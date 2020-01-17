@@ -1,0 +1,358 @@
+\documentclass[12pt,leqno]{article}
+\include{article_defs}
+\title{A Continuous Hidden Markov Model}
+\author{David M. Goldschmidt}
+%\oddsidemargin 10 pt \evensidemargin 10 pt \marginparwidth 0.75 in \textwidth
+%6.0 true in \topmargin -40 pt \textheight 8.8 true in 
+%\usepackage{fancyhdr}
+%\pagestyle{fancy}
+%\lfoot{}
+%\rfoot{\thepage}
+\begin{document}
+%\renewcommand{\footrulewidth}{0.4pt}
+\newcommand{\p}{\ensuremath{u}}
+\newcommand{\VV}{V}
+\maketitle
+
+\section{Introduction}
+We define an HMM with state space $(-\infty,\infty)$ as follows.  Given state $s$ and observation $x$ at time
+$t$, , the (gaussian) output density is
+$$
+X(x\mid s) := \frac{1}{\sigma_x\sqrt{2\pi}}\exp\left(-\frac{(x-s)^2}{2\sigma_x^2}\right)dx.
+$$
+The state process is a discrete time continuous state Markov process with transition function
+from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
+$$
+Pr(s_1\mid s_0) :=  \frac{1}{\sigma_0\sqrt{2\pi}}\exp\left(-\frac{(s_1-s_0)^2}{2\sigma_0^2}\right).
+$$
+We see that $s$ is the mean of the output density, while $\sigma_x$ and $\sigma_0$ are time-independent
+parameters of the model. Thus, the output distribution is i.i.d. gaussian.
+
+As usual, we are given observations $\{x_t\mid 1\le t\le T\}$ and model parameters $\theta$.
+For each observation time $t$ and state $s$, we define
+\begin{align*}
+  \alpha_t(s) :&= Pr(x_1,x_2,\dots,x_t~ \& \text{state $s$ at time $t$}\mid \theta ),\\
+  \beta_t(s) :&= Pr(x_{t+1},\dots,x_T \mid ~\text{state $s$ at time $t$},\theta)\\
+\end{align*}
+
+It is clear from the definitions that the following recursions are satisfied:
+\begin{align}
+\alpha_t(s) &= X(x_t \mid s)\int_{-\infty}^{\infty}\alpha_{t-1}(u)Pr(s \mid u)du,\quad\text{and}\label{alpha:0}\\
+\beta_t(s) &= \int_{-\infty}^{\infty}Pr(u \mid s)X(x_{t+1} \mid u)\beta_{t+1}(u)du.\label{beta:0}
+\end{align}
+
+We initialize these recursions with
+\begin{align*}
+\alpha_0(s) :&= \frac{1}{\sigma_{a,0}\sqrt{2\pi}}\exp\left(-\frac{(s-\mu_{a,0})^2}{2\sigma_{a,0}^2}\right),\\
+\beta_{T+1}(s) :&= 1 \quad\text{for all $s$},
+\end{align*}
+where $\sigma_{a,0}$ and $\mu_{a,o}$ are model parameters.
+
+Because everything in sight is gaussian, the above integrals can be evaluated in closed form, by repeated application of
+
+\begin{Lem}\label{comp_sq}
+  Let
+  $$
+  Q(x) := \frac{(x-\mu_1)^2}{\sigma_1^2} + \frac{(x-\mu_2)^2}{\sigma_2^2}.
+  $$
+  then
+\begin{align}
+    Q(x) &= \frac{(x-\mu)^2}{\sigma^2} + \frac{(\mu_1-\mu_2)^2}{\sigma_1^2+\sigma_2^2},\quad\text{where}\notag\\
+    \mu :&= \frac{\sigma_2^2\mu_1 + \sigma_1^2\mu_2}{\sigma_1^2+\sigma_2^2},\quad\text{and}\label{cs:mu}\\
+    \sigma^2 :&= \frac{\sigma_1^2\sigma_2^2}{\sigma_1^2+\sigma_2^2}.\label{cs:sigma}
+\end{align}
+In particular, the combined mean $\mu$ is a convex linear combination of $\mu_1$ and $\mu_2$ with weights proportional to $\sigma_2^2$ and $\sigma_1^2$ respectively, while the combined variance $\sigma^2$ satifies $\sigma^{-2} = \sigma_1^{-2} + \sigma_2^{-2}$.
+\end{Lem}
+  \begin{proof}
+    This is basically an exercise in completing the square.  We have
+
+\begin{align*}
+  Q(x) &= \sigma_1^{-2}(x-\mu_1)^2 + \sigma_2^{-2}(x-\mu_2)^2\\
+  &= (\sigma_1^{-2}+\sigma_2^{-2})x^2 - 2(\sigma_1^{-2}\mu_1+\sigma_2^{-2}\mu_2)x + \sigma_1^{-2}\mu_1^2+\sigma_2^{-2}\mu_2^2\\
+  &= a^2x^2 -2bx +c = (ax-a^{-1}b)^2 + c - a^{-2}b^2 = a^2(x-a^{-2}b)^2 + c - a^{-2}b^2 \\
+\end{align*}
+where
+$$
+a^2 = \sigma_1^{-2} + \sigma_2^{-2},\quad b = \sigma_1^{-2}\mu_1 + \sigma_2^{-2}\mu_2,\quad\text{and}\quad
+c = \sigma_1^{-2}\mu_1^2+\sigma_2^{-2}\mu_2^2.
+$$
+Then
+\begin{align*}
+  a^2(x-a^{-2}b^2) &= (\sigma_1^{-2}+\sigma_2^{-2})\left(x - \frac{\sigma_1^{-2}\mu_1+\sigma_2^{-2}\mu_2}{\sigma_1^{-2}+\sigma_2^{-2}}\right)^2 \\
+  &= \frac{\sigma_1^2 +\sigma_2^2}{\sigma_1^2\sigma_2^2}\left(x - \frac{\sigma_2^2\mu_1+\sigma_1^2\mu_2}{\sigma_1^2+\sigma_2^2}\right)^2\\
+  &= \frac{(x-\mu)^2}{\sigma^2},\quad\text{as required, and}\\
+  c-a^{-2}{b^2} &= \sigma_1^{-2}\mu_1^2+\sigma_2^{-2}\mu_2^2 - \frac{(\sigma_1^{-2}\mu_1 + \sigma_2^{-2}\mu_2)^2}
+  {\sigma_1^{-2}+\sigma_2^{-2}} \\
+  &=\frac{\sigma_1^{-4}\mu_1^2+\sigma_1^{-2}\sigma_2^{-2}(\mu_1^2+\mu_2^2)+\sigma_2^{-4}\mu_2^2 -
+    \sigma_1^{-4}\mu_1^2 - 2\sigma_1^{-2}\sigma_2^{-2}\mu_1\mu_2 -\sigma_2^{-4}\mu_2^2}{\sigma_1^{-2}+\sigma_2^{-2}}\\
+  &= \frac{\sigma_1^{-2}\sigma_2^{-2}(\mu_1^2 - 2\mu_1\mu_2+\mu_2^2)}{\sigma_1^{-2}+\sigma_2^{-2}} \\
+  &= \frac{(\mu_1-\mu_2)^2}{\sigma_1^2+\sigma_2^2}.
+  \end{align*}
+  \end{proof}
+
+  \section{The Alpha Pass}
+
+  Now we can inductively evaluate \eqref{alpha:0}. To do so, we split the computation
+  into two steps.  In the first step, which we call the {\em time update}, we multiply
+  $\alpha_{t-1}(u)$ by the state transition function $Pr(s\mid u)$ and integrate with respect
+  to $u$. We will denote the result of the time update by $\hat{\alpha}_t(s)$.  It is the joint probability
+  (density) of observations $x_1,\dots,x_{t-1}$ and state $s$ at time $t$.
+  Then in the second step, which we call the {\em measurement update}, we multiply
+  $\hat{\alpha}_t(s)$ by the probability (density) of observing $x_t$ at time $t$ to get $\alpha_t(s)$.
+
+  First, we define
+$$
+P_{m,n} := Pr(x_m,x_{m+1},\dots,x_n \mid \theta),\quad\text{for $1\le m \le n\le T$}.
+$$
+\begin{Thm}\label{alpha:1}
+  For each state $s$ and time $t$,
+$$
+  \alpha_t(s) = \frac{P_{1,t}}{\sigma_{a,t}\sqrt{2\pi}}\exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t})^2}{\sigma_{a.t}^2}\right),
+$$
+  where
+
+  \begin{align*}
+  \sigma_{a,t}^2 &= \frac{\hat{\sigma}_{a,t}^2\sigma_x^2}{\hat{\sigma}_{a,t}^2+\sigma_x^2}\\
+  \mu_{a,t} &= \frac{\hat{\sigma}_{a,t}^2\mu_x + \sigma_x^2\hat{\mu}_{a,t-1}}{\hat{\sigma}_{a,t}^2+\sigma_x^2}\quad\text{and}\\
+  P_{1,t} &=
+\end{align*}
+\end{Thm}
+
+\begin{proof}
+
+We proceed by induction on $t$, noting that the case $t = 0$ holds by definition.
+For the time update, we let
+\begin{align*}
+  \hat{\mu}_{a,t} &:= \frac{\sigma_0^2\mu_{a,t-1}}{\sigma_{a,t-1}^2 + \sigma_0^2},\\
+  \hat{\sigma}_{a,t}^2 &:=\sigma_{a,t-1}^2\sigma_0^2, \quad\text{and}\\
+  \rho^2 &:= \frac{\sigma_{a,t-1}^2\sigma_0^2}{\hat{\sigma}_{a,t}^2}.
+\end{align*}
+Then using \eqref{comp_sq} we have 
+\begin{equation}\label{alpha:2}
+  \begin{split}
+  \hat{\alpha}_t(s) &= \frac{P_{1,t-1}}{2\pi\sigma_{a,t-1}\sigma_0}
+  \int_{-\infty}^{\infty}\exp-\frac{1}{2}\left(\frac{(u-\mu_{a,t-1})^2}{\sigma_{a,t-1}^2} + \frac{(u-s)^2}{\sigma_0^2}\right)du \\
+  &= \frac{P_{1,t-1}}{2\pi\sigma_{a,t-1}\sigma_0}
+  \int_{-\infty}^{\infty}\exp-\frac{1}{2}\left(\frac{(u-\hat{\mu}_{a,t})^2}{\rho^2} +
+  \frac{(s - \mu_{a,t-1})^2}{\hat{\sigma}_{a,t}^2}\right)du \\
+      &= \frac{P_{1,t-1}}{2\pi\sigma_{a,t-1}\sigma_0x} \exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t-1})^2}{\hat{\sigma}_{a,t}^2}\right)
+  \int_{-\infty}^{\infty}\exp-\frac{1}{2}\left(\frac{(u-\hat{\mu}_{a,t-1})^2}{\rho^2} \right)du \\
+  &= \frac{P_{1,t-1}\rho}{\sqrt{2\pi}\sigma_{a,t-1}\sigma_0}\exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t-1})^2}{\hat{\sigma}_{a,t}^2}\right)\\
+  &= \frac{P_{1,t-1}}{\sqrt{2\pi}\hat{\sigma}_{a,t}}\exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t-1})^2}{\hat{\sigma}_{a,t}^2}\right).
+  \end{split}
+  \end{equation}
+
+We now apply the measurement update, and using \eqref{comp_sq} once more, we get
+\begin{align*}
+  \alpha_t(s) &= \frac{P_{1,t-1}}{2\pi\hat{\sigma}_{a,t}\sigma_x}
+  \exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t-1})^2}{\hat{\sigma}_{a,t}^2} + \frac{(s-x_t)^2}{\sigma_x^2}\right)\\
+  &= \frac{P_{1,t-1}}{2\pi\hat{\sigma}_{a,t}\sigma_x}
+  \exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t})^2}{\sigma_{a,t}^2 } +
+  \frac{(\mu_{a,t-1}-x_t)^2}{\hat{\sigma}_{a,t}^2 +\sigma_x^2}\right)\\
+  &= \frac{P_{1,t-1}\sigma_{a,t}}{\sqrt{2\pi}\hat{\sigma}_{a,t}\sigma_x}\exp-\frac{1}{2}\left(\frac{(\mu_{a,t-1}-x_t)^2}{\hat{\sigma}_{a,t}^2 +\sigma_x^2}\right)\frac{1}{\sqrt{2\pi}\sigma_{a,t}}\exp-\frac{1}{2}\left(\frac{(s-\mu_{a,t})^2}{\sigma_{a,t}^2 }
+  \right),
+\end{align*}
+where, using \eqref{cs:mu}and \eqref{cs:sigma}, we get
+\begin{align*}
+  \mu_{a,t} &= \frac{\hat{\sigma}_{a,t}^2\mu_x + \sigma_x^2\mu_{a,t-1}}{\hat{\sigma}_{a,t}^2+\sigma_x^2}\\
+  &= \frac{(\sigma_{a,t-1}^2+\sigma_0^2)\mu_x + \sigma_x^2\mu_{a,t-1}}{\sigma_{a,t-1}^2+\sigma_0^2+\sigma_x^2}, \\ 
+  \sigma_{a,t}^2 &= \frac{\hat{\sigma}_{a,t}^2\sigma_x^2}{\hat{\sigma}_{a,t}^2 + \sigma_x^2} \\
+  &= \frac{(\sigma_{a,t-1}^2+\sigma_0^2)\sigma_x^2}{\sigma_{a,t-1}^2+\sigma_0^2+\sigma_x^2}, \quad\text{and}\\
+  P_{1,t}&= \frac{P_{1,t-1}\sigma_{a,t}}{\sqrt{2\pi}\hat{\sigma}_{a,t}\sigma_x}\exp-\frac{1}{2}\left(\frac{(\mu_{a,t-1}-x_t)^2}{\hat{\sigma}_{a,t}^2 +\sigma_x^2}\right)\\
+%  &=  \frac{P_{1,t-1}\sigma_0\hat{\sigma}_{a,t}\sigma_x}{\sqrt{\hat{\sigma}_{a,t}^2+\sigma_x^2}\hat{\sigma}_{a,t}\sigma_x}\exp-\frac{1}{2}\left(\frac{(\mu_{a,t-1}-x_t)^2}{\hat{\sigma}_{a,t}^2 +\sigma_x^2}\right) \\
+  &= \frac{P_{1,t-1}\sigma_0}{\sqrt{2\pi(\sigma_{a,t-1}^2+\sigma_0^2+\sigma_x^2)}}\exp-\frac{1}{2}\left(\frac{(\mu_{a,t-1}-x_t)^2}
+    {\sigma_{a,t-1}^2+\sigma_0^2 +\sigma_x^2}\right).
+\end{align*}
+\end{proof}  
+
+\section{The Multivariate Case}
+In the multivariate case, the quadratic form
+$$
+\frac{(x-\mu)^2}{\sigma^2}\quad\text{becomes}\quad (x-\mu)^t\Sigma^{-1}(x-\mu),
+$$
+where now $x$ and $\mu$ are column vectors and $\Sigma$ is the covariance matrix.  We need to obtain
+the analog of \eqref{comp_sq}, which turns out to be slightly non-trivial.  It's straightforward to
+see that
+$$
+(x-\mu_1)^t\Sigma_1^{-1}(x-\mu_1) + (x-\mu_2)^t\Sigma_2^{-1}(x-\mu_2) = (x-\mu)^t(\Sigma^{-1})(x-\mu) + C,
+$$
+where
+\begin{align}
+ \Sigma^{-1} &= \Sigma_1^{-1} + \Sigma_2^{-1},\label{Sigma}\\
+  \Sigma^{-1}\mu &=\Sigma_1^{-1}\mu_1+\Sigma_2^{-1}\mu_2, \quad\text{and}\label{mu}\\
+ C &= \mu_1^t\Sigma_1^{-1}\mu_1 +\mu_2^t\Sigma_2^{-1}\mu_2 - \mu^t\Sigma^{-1}\mu.\label{C}
+\end{align}
+The problem is to put $C$ into a form analagous to \eqref{comp_sq}. To begin with, we have
+
+\begin{align}
+  \Sigma_1\Sigma^{-1}\Sigma_2 &= \Sigma_1(\Sigma_1^{-1}+\Sigma_2^{-1})\Sigma_2 = \Sigma_1+\Sigma_2
+  = \Sigma_2\Sigma^{-1}\Sigma_1,\quad\text{whence}\notag\\
+  \Sigma_1^{-1}\Sigma\Sigma_2^{-1} &= (\Sigma_1+\Sigma_2)^{-1} = \Sigma_2^{-1}\Sigma\Sigma_1^{-1},\quad\text{and thus}\notag\\
+  \Sigma &= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2 = \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\Sigma_1,\label{Sigma:1}
+\end{align}
+generalizing \eqref{cs:sigma}.  Then \eqref{mu} becomes
+\begin{equation}\label{mu:1}
+  \begin{split}
+    \mu &=  \Sigma(\Sigma_1^{-1}\mu_1+\Sigma_2^{-1}\mu_2)\\
+    &=\Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,
+  \end{split}
+\end{equation}
+which generalizes \eqref{cs:mu}. But we can also write
+\begin{equation}\label{mu:2}
+  \begin{split}
+  \mu &= \Sigma(\Sigma_1^{-1}\mu_1 + \Sigma_2^{-1}\mu_1 +\Sigma_2^{-1}(\mu_2-\mu_1)) \\
+  &= \Sigma(\Sigma^{-1}\mu_1 + \Sigma_2^{-1}|(\mu_2-\mu_1) \\
+  &= \mu_1 + \Sigma_1(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1).
+  \end{split}
+  \end{equation}
+By symmetry, we also have 
+\begin{equation}\label{mu:3}
+  \mu = \mu_2 + \Sigma_2(\Sigma_1+\Sigma_2)^{-1}(\mu_1-\mu_2).
+\end{equation}
+Then we premultiply \eqref{mu} by $\mu^t$, substituting \eqref{mu:2} into the first term and
+  \eqref{mu:3} into the second as well as using \eqref{Sigma:1}, to get 
+\begin{align*}
+    \mu^t\Sigma^{-1}\mu &= \mu^t\Sigma_1^{-1}\mu_1 + \mu^t\Sigma_2^{-1}\mu_2 \\
+    &= \mu_1^t\Sigma_1^{-1}\mu_1 + (\mu_2-\mu_1)^t(\Sigma_1+\Sigma_2)^{-1}\mu_1
+    +\mu_2^t\Sigma_1\mu_2 + (\mu_1-\mu_2)^t(\Sigma_1+\Sigma_2)^{-1}\mu_2\\
+    &= \mu_1^t\Sigma_1^{-1}\mu_1 + \mu_2^t\Sigma_2^{-1}\mu_2 - (\mu_2-\mu_1)^t(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1).
+\end{align*}
+
+Finally, substituting this result into \eqref{C} yields
+\begin{equation}\label{C:1}
+  C = (\mu_2-\mu_1)^t(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1).
+\end{equation}
+
+We have proved
+\begin{Lem}\label{comp_sq:1}
+  Let
+  $$
+  Q_i(x) := (x-\mu_i)^t\Sigma_i^{-1}(x-\mu_i)\quad(i = 1,2),
+  $$
+  where $x$ and $\mu_i$ are $n$-dimensional vectors and $\Sigma_i$ is a symmetric positive definite $n\times{n}$
+  matrix ($i = 1,2)$. Then
+  $$
+  Q_1(x) + Q_2(x) = (x-\mu)^t\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^t(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
+  $$
+  where
+  \begin{align*}
+    \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,\quad\text{and}\\
+    \Sigma^{-1} :&= \Sigma_1^{-1} + \Sigma_2^{-1}.
+  \end{align*}
+\end{Lem}
+\end{document}
+
+
+
+
+Then using \eqref{mu:1}, we get
+
+\begin{align*}
+\mu^t\Sigma^{-1}\mu &= (\mu_1^t(\Sigma_1+\Sigma_2)^{-1}\Sigma_2 +\mu_2^t(\Sigma_1+\Sigma_2)^{-1}\Sigma_1)(\Sigma_1^{-1}\mu_1+\Sigma_2^{-1}\mu_2) \\
+&= 2\mu_1^t(\Sigma_1+\Sigma_2)^{-1}\mu_2,
+\end{align*}
+
+whence \eqref{C} becomes
+\begin{equation} \label{C:1}
+  \begin{split}
+  C &= \mu_1^t\Sigma_1^{-1}\mu_1 +\mu_2^t\Sigma_2^{-1}\mu_2 - 2\mu_1^t(\Sigma_1+\Sigma_2)^{-1}\mu_2\\
+  &=
+  \end{split}
+\end{equation}
+
+ \beta_t(s) &= \frac{P_{t+1,T}}{\sigma_{b,t}\sqrt{2\pi}}\exp\left(-\frac{(s-\mu_{b,t})^2}{2\sigma_{b,t}^2},\right),\label{beta:1}
+\end{align}
+
+
+%\gamma_t(s) :&= \alpha_t(s)\beta_t(s) = Pr(x_1,x_2,\dots,x_T ~ \text{\& state $s$ at time $t$}\mid \theta).
+$$
+Then for any time $t$, we have
+\begin{equation*}
+Pr(\text{state $s$ at time $t$}\mid x_1,x_2,\dots x_T,\theta) = \frac{\gamma_t(s)}{P_{1,t}},\quad\text{and}\quad
+P_{1,T} = \int_{-\infty}^{\infty}\gamma_t(s)ds.
+\end{equation*}
+
+
+  &= \frac{\sigma_x^2}{a^2\sigma_{a,t-1}^2}\mu_{a,t-1} + x_t \\
+  &=\frac{\sigma_x^2}{(\rho^2+1)\sigma_{a,t-1}^2}\mu_{a,t-1} + x_t \\
+  &=\frac{\sigma_x^2\sigma_{a,t-1}^2}{(\sigma_0^2+\sigma_{a,t-1}^2)\sigma_{a,t-1}^2}\mu_{a,t-1} + x_t \\
+  &=\frac{\sigma_x^2}{(\sigma_0^2+\sigma_{a,t-1}^2)}\mu_{a,t-1} + x_t ,
+
+
+&= \frac{P_{1,t-1}\sigma_0}{\sqrt{2\pi}\sigma_x\sigma_{a,t-1}a}\exp-\frac{1}{2}
+    \left(\frac{a_1^2(a_1s - b_1a_1^{-1})^2 +\rho_1^2(x_t-\mu_{a,t-1})^2}{a_1^2\sigma_x^2}\right) \\
+
+
+& =\frac{v}{2\pi}\exp\left\{\frac{t^2}{2}\left((1 - \frac{1}{a^2}\right)\right\}\int_0^{\infty}s\alpha_{n-1}(s)
+\exp\left\{-\frac{1}{2}(as - ta^{-1})^2\right\}ds,
+\end{align*}
+where $a^2 := (x_{n-1}-\mu)^2+1$.  Then the substitution $u := as-ta^{-1}$ yields
+\begin{equation}\label{alpha:1}
+\alpha_n(t) = \frac{v}{2a^2\pi}\exp\left\{\frac{t^2}{2}\left((1 - \frac{1}{a^2}\right)\right\}
+\int_{-\infty}^{\infty}|u+ta^{-1}|\alpha_{n-1}(a^{-1}u+ta^{-2})\exp\left\{-\frac{1}{2}u^2\right\}du.
+\end{equation}
+
+\int_0^{\infty}\exp\left{-\frac{1}{2}(a^2x^2 + 2bx + c)\right}dx 
+&= \exp\left{\frac{1}}{2}(b^2a^{-2}-c)\right}\int_0^{\infty}\exp\left{-\frac{1}{2}(ax+ba^{-1})^2}dx \\
+&= a^{-1}\exp\left{\frac{1}}{2}(b^2a^{-2}-c)\right}\int_{ba^{-1}}^{\infty}\exp{-\frac{1}{2}u^2}du\\
+&= \frac{\sqrt{\pi}}{2a}e^{b^2a^{-2}-c}\text{erfc}(ba^{-1}).
+\end{align*}
+
+Then for \eqref{alpha} we have
+\begin{equation}
+  \begin{split}
+    
+
+
+
+
+where 
+$$
+\xi_n := \frac {x_n-\mu}{v}.
+$$
+If we put $\hat{x}_n := \sqrt{\xi_n^2+1}$, we can complete the square to obtain
+\begin{align*}
+\alpha_{n+1}(t) &= 
+\frac{v}{2\pi}\int_0^\infty s\alpha_n(s)\exp\left\{-\frac{v^2}{2}\left[(\hat{x}_ns- \frac{t}{\hat{x}_n})^2 + t^2(1-\frac{1}{\hat{x}_n^2}\right]\right\}ds,\\
+\end{align*}
+
+Similarly, we get
+$$
+\beta_{n-1}(t) = \int_0^{\infty}\beta_n(s)B(x_n | s))Pr(t | s)ds.
+$$
+\end{document}
+
+
+      Put $\rho := \sigma_1/\sigma_2$, then
+    $$
+    \frac{\rho^2}{1+\rho^2} = \frac{\sigma_1^2}{\sigma_1^2+\sigma_2^2},\quad \text{and}
+    $$
+    \begin{equation}\label{Q(x):1}
+      \begin{split}
+  Q(x) &= \frac{(x-\mu_1)^2 + \rho^2(x-\mu_2)^2}{2\sigma_1^2}\\
+  &= \frac{(1+\rho^2)x^2 - 2(\mu_1+\rho^2\mu_2)x + \mu_1^2+\rho^2\mu_2^2}{2\sigma_1^2} \\
+  &=: \frac{a^2x^2-2bx+c}{2\sigma_1^2}\\
+  &= \frac{(ax-a^{-1}b)^2 + c-a^{-2}b^2}{2\sigma_1^2}, \\
+    \end{split}
+\end{equation}
+where
+$$
+  a^2 = 1+\rho^2,\quad b = \mu_1 + \rho^2\mu_2,\quad\text{and}\quad c = \mu_1^2+\rho^2\mu_2^2.
+$$
+  Then
+  \begin{equation}\label{Q(x):2}
+    \begin{split}
+    c-a^{-2}b^2 &= \mu_1^2+\rho^2\mu_2^2 - \frac{\mu_1^2+2\rho^2\mu_1\mu_2 + \rho^4\mu_2^2}{1+\rho^2} \\
+    &= \frac{\mu_1^2+\rho^2\mu_2^2 + \rho^2\mu_1^2 + \rho^4\mu_2^2 - \mu_1^2-2\rho^2\mu_1\mu_2 - \rho^4\mu_2^2}{1+\rho^2}\\
+    &= \frac{\rho^2(\mu_1^2 -2\mu_1\mu_2+\mu_2^2}{1+\rho^2} \\
+    &= \frac{\sigma_1^2}{\sigma_1^2+\sigma_2^2}(\mu_1-\mu_2)^2,\quad\text{and}\\
+    (ax-a^{-1}b)^2 &= (1+\rho^2)\left(x - \frac{\sigma_2^2\mu_1 + \sigma_1^2\mu_2}{\sigma_1^2+\sigma_2^2}\right).
+    \end{split}
+  \end{equation}
+  Substituting \eqref{Q(x):2} into \eqref{Q(x):1}, we get
+  \begin{align*}
+    Q(x) &= \frac{(x-\mu)^2}{2\sigma^2} + \frac{(\mu_1-\mu_2)^2}{2(\sigma_1^2+\sigma_2^2)},\quad\text{where}\\
+    \mu :&= \frac{\sigma_2^2\mu_1 + \sigma_1^2\mu_2}{\sigma_1^2+\sigma_2^2},\quad\text{and}\\
+    \sigma :&= \frac{\sigma_1^2\sigma_2^2}{\sigma_1^2+\sigma_2^2}.
+    \end{align*}
+\end{proof}
