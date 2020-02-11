@@ -1,0 +1,125 @@
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{latexsym}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[all]{xy}
+\usepackage{type1cm,times,mathptmx}
+%\usepackage{type1cm}
+%\usepackage[notcite, notref]{showkeys}
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+\pdffalse % we are not running PDFLaTeX
+\else
+\pdfoutput=1 % we are running PDFLaTeX
+\pdftrue
+\fi
+
+\ifpdf
+%put pdflatex-only commands here
+\pdfcatalog{/OpenAction /Fith}
+\usepackage[plainpages=false,pdfpagelabels, pdftex, colorlinks, bookmarks,bookmarksopen]{hyperref}
+%\pdfcompresslevel=9
+
+% prints ``DRAFT'' or whatever diagonally across each page
+%\usepackage[pdftex]{graphics,color}                                          
+%\usepackage{eso-pic}                                                         
+%\AddToShipoutPicture{\resizebox{0.9\pdfpagewidth}{0.9\pdfpageheight}%       
+%{\rotatebox{60}{\color[gray]{0.8}\hspace*{5mm}\textsc{Evaluation Copy}}}}
+
+%another version of this
+%\usepackage[pdftex]{graphics,color}                                          
+%\usepackage{eso-pic} 
+%\makeatletter
+%  \AddToShipoutPicture{
+%    \setlength{\@tempdimb}{.5\paperwidth}%
+%    \setlength{\@tempdimc}{.5\paperheight}%
+%    \setlength{\unitlength}{1pt}%
+%    \put(\strip@pt\@tempdimb,\strip@pt\@tempdimc){%
+%      \makebox(0,0){\rotatebox{45}{\textcolor[gray]{0.75}{\fontsize{5cm}{5cm}\selectfont{Evaluation Copy}}}}
+%    }
+%}
+%\makeatother
+
+\else
+%put latex-only commands here
+\usepackage[hypertex]{hyperref}
+\fi
+%\usepackage[pdftex, colorlinks, bookmarks,bookmarksopen, backref]{hyperref}
+%\usepackage[pdftex,pagebackref]{hyperref}
+%\usepackage[pagebackref]{hyperref}
+%\usepackage{pst-all}
+\newcommand{\re}{\ensuremath{{\frak Re}}}
+\renewcommand{\P}{\ensuremath{{\mathbb P}}}
+\renewcommand{\O}{\ensuremath{{\cal O}}}
+\renewcommand{\S}{\ensuremath{{\cal S}}}
+\renewcommand{\L}{\ensuremath{{\cal L}}}
+\newcommand{\J}{\ensuremath{{\mathbf{J}}}}
+\newcommand{\bS}{\ensuremath{{\bar{S}}}}
+\newcommand{\I}{\ensuremath{{\cal I}}}
+\newcommand{\Y}{\ensuremath{{\cal Y}}}
+\newcommand{\V}{\ensuremath{{\cal V}}}
+\newcommand{\A}{\ensuremath{{\mathbb A}}}
+\newcommand{\Z}{\ensuremath{{\mathbb Z}}}
+\newcommand{\R}{\ensuremath{{\mathbb R}}}
+\newcommand{\Q}{\ensuremath{{\mathbb Q}}}
+\newcommand{\C}{\ensuremath{{\mathbb C}}}
+\newcommand{\N}{\ensuremath{{\mathbb N}}}
+\newcommand{\e}{\ensuremath{{\epsilon}}}
+\newcommand{\f}{\ensuremath{{\mathfrak f}}}
+\newcommand{\F}{\ensuremath{{\mathfrak F}}}
+\newcommand{\FF}{\ensuremath{{\cal F}}}
+\newcommand{\G}{\ensuremath{{\cal G}}}
+\newcommand{\LD}{\ensuremath{{\cal L}}}
+\newcommand{\E}{\ensuremath{{\cal E}}}
+\newcommand{\M}{\ensuremath{{\cal M}}}
+\newcommand{\NN}{\ensuremath{{\cal N}}}
+%\newcommand{\qed}{\ensuremath{~\Box}\vspace{.1in}}
+\newcommand{\ab}{\ensuremath{\text{\rm ab}}}
+\newcommand{\hgt}{\ensuremath{\text{\rm ht}}}
+\newcommand{\abel}{\ensuremath{\text{\rm abel}}}
+\newcommand{\rank}{\ensuremath{\text{\rm rank}}}
+\newcommand{\tr}{\ensuremath{\text{\rm tr}}}
+\newcommand{\lcm}{\ensuremath{\text{\rm lcm}}}
+\newcommand{\sep}{\;{\rm sep}}
+\newcommand{\diag}{\ensuremath{\text{\rm diag}}}
+\newcommand{\ch}{\ensuremath{\text{\rm char}}}
+\newcommand{\HOM}{\ensuremath{\mathbf{Hom}}}
+\newcommand{\Hom}{\ensuremath{\text{\rm Hom}}}
+\newcommand{\Ext}{\ensuremath{\text{\rm Ext}}}
+\newcommand{\End}{\ensuremath{\text{\rm End}}}
+\newcommand{\trdeg}{\ensuremath{\text{\rm trdeg}}}
+\newcommand{\Ann}{\ensuremath{\text{\rm Ann}}}
+\newcommand{\lub}{\ensuremath{\text{\rm lub}}}
+\newcommand{\Res}{\ensuremath{\text{\rm Res}}}
+\newcommand{\im}{\ensuremath{\text{\rm im}}}
+\newcommand{\init}{\ensuremath{\text{\rm in}}}
+\newcommand{\gr}{\ensuremath{\text{\rm gr}}}
+\newcommand{\coker}{\ensuremath{\text{\rm coker}}}
+\newcommand{\codim}{\ensuremath{\text{\rm codim}}}
+\newcommand{\D}{\ensuremath{{\cal D}}}
+\newcommand{\result}{\ensuremath{{\cal R}}}
+\newcommand{\Div}{\ensuremath{\text{\rm Div}}}
+\newcommand{\Gal}{\ensuremath{\text{\rm Gal}}}
+\newcommand{\Aut}{\ensuremath{\text{\rm Aut}}}
+\newcommand{\supp}{\ensuremath{\text{\rm supp}}}
+\newcommand{\ilim}{\ensuremath{\overset{\leftarrow}{\lim}}}
+\newcommand{\dlim}{\ensuremath{\underset{\rightarrow}{\lim}}}
+\newcommand{\bV}{\ensuremath{\mathbf{V}}}
+\newcommand{\bI}{\ensuremath{\mathbf{I}}}
+\newcommand{\Sp}{\ensuremath{\text{\rm Specm}}}
+\newcommand{\Sh}{\ensuremath{\text{\rm Sh}}}
+\newcommand{\normal}{\ensuremath{\triangleleft\;}}
+\newcommand{\subnormal}{\ensuremath{\triangleleft\triangleleft\;}}
+%\theoremstyle{break}
+\makeatletter\renewcommand\theequation{\@arabic\c@equation}\makeatother
+\numberwithin{equation}{section}
+\newtheorem{Thm}[equation]{Theorem}
+\newtheorem{Lem}[equation]{Lemma}
+\newtheorem{Cor}[equation]{Corollary}
+\newtheorem{Hyp}[equation]{Hypothesis}
+\theoremstyle{definition}
+\newtheorem{Ex}{Exercise}
+%\numberwithin{Ex}{chapter}
+\let\theHEx\theEx
+\newtheorem*{Def}{Definition}
