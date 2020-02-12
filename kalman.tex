@@ -31,7 +31,7 @@ X(x_t\mid s) := \N(x_t;M_ts + b_t,\Sigma_{Ob}),
 $$
 where $M_t$ is a time-dependent linear map from the state space to the
 measurement space, and $b_t$ is a time-dependent bias.
-In the simplest case, $b_t = 0$  and $M_t = I$, the identity map, for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  We will call this case the {\em basic} case, and concentrate on it initially. Later, we will consider some generalizations, particularly the case that $M_t$ is a non-identity time-independent model parameter, and $b_t$ is not necessarily zero, but is known. 
+In the simplest case, $b_t = 0$  and $M_t = I$, the identity map, for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  We will call this case the {\em basic} case, and concentrate on it initially. Later, we will consider some generalizations, particularly the case that $M_t = M$ and $b_t = b$ are time-independent model parameters.
 
 The state process is a discrete time continuous state Markov process with transition probability density
 from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
@@ -157,14 +157,15 @@ as required.
   to $u$. We will denote the result of the time update by $\hat{\alpha}_t(s)$.  It is the joint probability
   (density) of observations $x_1,\dots,x_{t-1}$ and state $s$ at time $t$.
   Then in the second step, which we call the {\em measurement update}, we multiply
-  $\hat{\alpha}_t(s)$ by the probability (density) of observing $x_t$ at time $t$ to get $\alpha_t(s)$.
+  $\hat{\alpha}_t(s)$ by $X(x_t \mid s)$, the probability (density) of observing $x_t$ at time $t$, to get $\alpha_t(s)$.
 
   First, we define
-$$
-P_{m,n}: = Pr(x_m,x_{m+1},\dots,x_n \mid \theta),\quad\text{for $1\le m \le n\le T$}
-$$
+\begin{align*}
+  P_{m,n} &:= Pr(x_m,x_{m+1},\dots,x_n \mid \theta),\quad\text{for $1\le m \le n\le T$},\quad\text{and}\\
+  P_{1,0} &:= 1.
+\end{align*}
 \begin{Thm}\label{alpha:1}
-  For each state $s$ and time $t$,
+  For each state $s$ and time $t \ge 1$,
 $$
   \alpha_t(s) = P_{1,t}N(s;\mu_t,\Sigma_t),
 $$
@@ -219,7 +220,7 @@ Multiplying by $X(x_t\mid s)$ finally yields
   &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
   \N(s;x_t,\Sigma_{Ob})\N(s;\mu_{t-1},\widehat{\Sigma}_t) \\
   &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
-  N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_t,\Sigma_t), \\
+  \N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_t,\Sigma_t), \\
   &= P_{1,t}\N(s,\mu_t,\Sigma_t),
 \end{align*}
 as required.
