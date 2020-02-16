@@ -55,10 +55,10 @@ It is clear from the definitions that the following recursions are satisfied:
 
 We initialize these recursions with
 \begin{align*}
-\alpha_0(s) :&= (2\pi)^{-\frac{n}{2}}\det{\Sigma_0}^{-\frac{1}{2}}\exp\left\{-\frac{1}{2}(s-\mu_0)^T\Sigma_0^{-1}(s-\mu_0)\right\},\\
+\alpha_0(s) :&= \N(\mu_0,\Sigma_0) \\
 \beta_{T+1}(s) :&= 1 \quad\text{for all $s$},
 \end{align*}
-where $\Sigma_{a,0}$ and $\mu_{a,0}$ are model parameters.
+where $\Sigma_0$ and $\mu_0$ are model parameters.
 
 Because everything in sight is gaussian, the above integrals can be evaluated in closed form, by repeated application of
 \begin{Lem}\label{comp_sq:1}
@@ -144,7 +144,7 @@ as required.
  \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2.
 \end{align*}
 \begin{proof}
-  The exponents above are equal by \eqref{comp_sq:1}, and it is
+  The right-hand and left-hand exponents above are equal by \eqref{comp_sq:1}, and it is
   straightforward to verify directly that the normalization factors outside the exponentials are also equal. 
 \end{proof}
 \end{Cor}
@@ -161,7 +161,7 @@ as required.
 
   First, we define
 \begin{align*}
-  P_{m,n} &:= Pr(x_m,x_{m+1},\dots,x_n \mid \theta),\quad\text{for $1\le m \le n\le T$},\quad\text{and}\\
+  P_{m,n} &:= Pd(x_m,x_{m+1},\dots,x_n \mid \theta),\quad\text{for $1\le m \le n\le T$},\quad\text{and}\\
   P_{1,0} &:= 1.
 \end{align*}
 \begin{Thm}\label{alpha:1}
@@ -176,7 +176,7 @@ where
   \Sigma_t &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
   \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{t-1},
  \quad\text{and}\\
-  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
+  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma_t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
   N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
 \end{align*}
 \end{Thm}
@@ -221,7 +221,7 @@ Multiplying by $X(x_t\mid s)$ finally yields
   \N(s;x_t,\Sigma_{Ob})\N(s;\mu_{t-1},\widehat{\Sigma}_t) \\
   &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
   \N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_t,\Sigma_t), \\
-  &= P_{1,t}\N(s,\mu_t,\Sigma_t),
+  &= P_{1,t}\N(s;\mu_t,\Sigma_t),
 \end{align*}
 as required.
 \end{proof}
