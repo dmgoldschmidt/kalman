@@ -226,3 +226,9 @@ Multiplying by $X(x_t\mid s)$ finally yields
 as required.
 \end{proof}
 \end{document}
+
+Problems with re-estimation:
+1. How to reestimate the state transition function covariance matrix? In the
+discrete world, we compute \gamma_{ij}, the posterior probability of state i
+and time t-1 and state j at time t.  Maybe just the product \alpha_t(s_0)Pd(s|s_0)\hat{\beta}_{t=1}(s) ?
+2. How to reestimate $M$ and $b$? 
