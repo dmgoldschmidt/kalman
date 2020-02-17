@@ -29,8 +29,8 @@ We now define a Hidden Markov Model with state space $\R^n$ as follows.  Given t
 $$
 X(x_t\mid s) := \N(x_t;M_ts + b_t,\Sigma_{Ob}),
 $$
-where $M_t$ is a time-dependent linear map from the state space to the
-measurement space, and $b_t$ is a time-dependent bias.
+where $M_t$ is a linear map from the state space to the
+measurement space, $b_t$ is a bias, and $\Sigma_{Ob}$ is an $m\times{m}$ positive definite real symmetric matrix.  Typically, $\Sigma_{Ob}$ is a time-independent model parameter.
 In the simplest case, $b_t = 0$  and $M_t = I$, the identity map, for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  We will call this case the {\em basic} case, and concentrate on it initially. Later, we will consider some generalizations, particularly the case that $M_t = M$ and $b_t = b$ are time-independent model parameters.
 
 The state process is a discrete time continuous state Markov process with transition probability density
@@ -38,8 +38,8 @@ from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
 $$
 Pd(s_1\mid s_0) :=  \N(s_1;s_0+c_t,\Sigma_{Tr}),
 $$
-where $\Sigma_{Ob}$ and $\Sigma_{Tr}$ are time-independent parameters of the model
-and $c_t$ is a known ``control input'' which we also assume is zero for the time being..
+where $\Sigma_{Tr}$ is a time-independent parameter of the model
+and $c_t$ is a known ``control input'' which we also assume is zero for the time being.
 
 As usual, we are given observations $\{x_t\mid 1\le t\le T\}$ and model parameters $\theta$.  For each observation time $t$ and state $s$, we define
 \begin{align*}
@@ -157,7 +157,8 @@ as required.
   to $u$. We will denote the result of the time update by $\hat{\alpha}_t(s)$.  It is the joint probability
   (density) of observations $x_1,\dots,x_{t-1}$ and state $s$ at time $t$.
   Then in the second step, which we call the {\em measurement update}, we multiply
-  $\hat{\alpha}_t(s)$ by $X(x_t \mid s)$, the probability (density) of observing $x_t$ at time $t$, to get $\alpha_t(s)$.
+  $\hat{\alpha}_t(s)$ by $X(x_t \mid s)$, the probability (density) of observing $x_t$ at time $t$
+  in state $s$, to get $\alpha_t(s)$.
 
   First, we define
 \begin{align*}
@@ -167,16 +168,16 @@ as required.
 \begin{Thm}\label{alpha:1}
   For each state $s$ and time $t \ge 1$,
 $$
-  \alpha_t(s) = P_{1,t}N(s;\mu_t,\Sigma_t),
+  \alpha_t(s) = P_{1,t}N(s;\mu_{a,t},\Sigma_{a,t}),
 $$
 where
 \begin{align*}
-  \mu_t &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\mu_{t-1}
+  \mu_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\mu_{t-1}
   + \widehat{\Sigma}_t(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}x_t, \\
-  \Sigma_t &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
+  \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
   \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{t-1},
  \quad\text{and}\\
-  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma_t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
+  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
   N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
 \end{align*}
 \end{Thm}
@@ -207,23 +208,64 @@ $S^tS = \widetilde{\Sigma}_t^{-1}$. This transforms the integrand to
   $\det{S}^{-1}\N(v;0,I)dv$
 with unchanged domain of integration $\R^n$, which integrates to
 $$
-(2\pi)^{\frac{n}{2}}\det{S}^{-1} = (2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}.
+(2\pi)^{\frac{n}{2}}\det{S}^{-1} = (2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}.
 $$
 The result is
 $$
-\hat{\alpha}_t(s) = P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
+\hat{\alpha}_t(s) = P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}
 \N(s;\mu_{t-1},\widehat{\Sigma}_t).
 $$
 Multiplying by $X(x_t\mid s)$ finally yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
-  &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
+  &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}
   \N(s;x_t,\Sigma_{Ob})\N(s;\mu_{t-1},\widehat{\Sigma}_t) \\
-  &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma_t}}^{\frac{1}{2}}
-  \N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_t,\Sigma_t), \\
-  &= P_{1,t}\N(s;\mu_t,\Sigma_t),
+  &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}
+  \N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_{a,t},\Sigma_{a,t}), \\
+  &= P_{1,t}\N(s;\mu_{a,t},\Sigma_{a,t}),
 \end{align*}
 as required.
+\end{proof}
+
+\section{The Beta Pass}
+This calculation is very similar to the alpha pass; the main difference being that we do
+the measurement update first by multiplying by $X(x_{t+1}\mid s)$ to obtain $\hat{\beta}_t(s)$,
+and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  To conserve notation,
+we redefine the intermediate quantities $\hat{\mu}_t$ and $\widehat{\Sigma}_t$ below.
+
+\begin{Thm}\label{beta:1}
+  For each state $s$ and time $t \le T$,
+$$
+  \beta_t(s) = P_{t+1,T}N(s;\mu_{b,t},\Sigma_{b,t}),
+$$
+where
+\begin{align*}
+  \mu_{b,t} &= \Sigma_{Tr}(\Sigma_{Tr}+\widehat{\Sigma}_t)^{-1}\hat{\mu}_{t+1}
+  + \widehat{\Sigma}_t(\Sigma_{Tr}+\widehat{\Sigma}_t)^{-1}, \\
+  \Sigma_{b,t} &= \Sigma_{Tr}(\Sigma_{Tr}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
+  \widehat{\Sigma}_t &= \Sigma_{Ob}+\Sigma_{b,t+1},
+ \quad\text{and}\\
+  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma}_{b,t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
+  N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
+\end{align*}
+\end{Thm}
+
+\begin{proof}
+  We proceed by reverse induction on $t$.  To evaluate \eqref{beta:0} we apply \eqref{comp_sq:2}:
+  \begin{align*}
+    \hat{\beta}_t(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
+    &= \N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
+    &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(u;\hat{\mu}_t,\widetilde{\Sigma}_t),\quad\text{where}\\
+    \widehat{\Sigma_t} :&= \Sigma_{b,t+1}+\Sigma_{Ob},\\
+    \hat{\mu}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\mu_{b,t+1},\quad\text{and}\\    \widetilde{\Sigma}_t :&= \Sigma_{b,t+1}(\widehat{\Sigma}_t^{-1}\Sigma_{Ob}.
+  \end{align*}
+
+  Then a second application of \eqref{comp_sq:2} yields
+  \begin{align*}
+    \beta_t(s) &= \int_{\R^n}\hat{\beta}_t(u)Pd(u\mid s)du \\
+    &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\int_{\R^n}\N(u;\hat{\mu}_t,\widetilde{\Sigma}_t)\N(u;s,\Sigma_{Tr})du\\
+    &=\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(s;\hat{\mu_t},\widetilde{\Sigma}_t+\Sigma_{Tr})\int_{\R^n}
+  \end{align*}
 \end{proof}
 \end{document}
 
@@ -231,4 +273,4 @@ Problems with re-estimation:
 1. How to reestimate the state transition function covariance matrix? In the
 discrete world, we compute \gamma_{ij}, the posterior probability of state i
 and time t-1 and state j at time t.  Maybe just the product \alpha_t(s_0)Pd(s|s_0)\hat{\beta}_{t=1}(s) ?
-2. How to reestimate $M$ and $b$? 
+2. How to reestimate $M$ and $b$? Use least-squares!
