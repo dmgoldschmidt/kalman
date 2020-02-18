@@ -45,7 +45,12 @@ As usual, we are given observations $\{x_t\mid 1\le t\le T\}$ and model paramete
 \begin{align*}
   \alpha_t(s) :&= Pd(x_1,x_2,\dots,x_t~ \& \text{state $s$ at time $t$}\mid \theta ),\\
   \beta_t(s) :&= Pd(x_{t+1},\dots,x_T \mid ~\text{state $s$ at time $t$},\theta)\\
+  \gamma_t(s) :&= \frac{\alpha_t(s)\beta_t(s)}{\int_{\R^n}\alpha_t(s)\beta_t(s)ds}.
 \end{align*}
+
+Thus, $\alpha_t(s)$ is the joint density of state $s$ at time $t$ and the observations up to (and including) time $t$,
+$\beta_t(s)$ is the {\em conditional} density of the future observations given state $s$ at time $t$, and $\gamma_t(s)$
+is the posterior probability density of state $s$ at time $t$.
 
 It is clear from the definitions that the following recursions are satisfied:
 \begin{align}
@@ -172,10 +177,10 @@ $$
 $$
 where
 \begin{align*}
-  \mu_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\mu_{t-1}
+  \mu_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\mu_{a,t-1}
   + \widehat{\Sigma}_t(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}x_t, \\
   \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
-  \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{t-1},
+  \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{a,t-1},
  \quad\text{and}\\
   P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
   N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
