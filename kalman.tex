@@ -262,15 +262,21 @@ where
     &= \N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
     &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(u;\hat{\mu}_t,\widetilde{\Sigma}_t),\quad\text{where}\\
     \widehat{\Sigma_t} :&= \Sigma_{b,t+1}+\Sigma_{Ob},\\
-    \hat{\mu}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\mu_{b,t+1},\quad\text{and}\\    \widetilde{\Sigma}_t :&= \Sigma_{b,t+1}(\widehat{\Sigma}_t^{-1}\Sigma_{Ob}.
+    \hat{\mu}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\mu_{b,t+1},\quad\text{and}\\    \widetilde{\Sigma}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}\Sigma_{Ob}.
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_t(u)Pd(u\mid s)du \\
     &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\int_{\R^n}\N(u;\hat{\mu}_t,\widetilde{\Sigma}_t)\N(u;s,\Sigma_{Tr})du\\
-    &=\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(s;\hat{\mu_t},\widetilde{\Sigma}_t+\Sigma_{Tr})\int_{\R^n}
+    &=\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(s;\hat{\mu_t},\widetilde{\Sigma}_t+\Sigma_{Tr})\int_{\R^n}\N(u;\mu_*,\Sigma_*)du \\
+    &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\det(2\pi\Sigma_*)^{\frac{1}{2}}
+    \N(s;\hat{\mu_t},\widetilde{\Sigma}_t+\Sigma_{Tr}),
   \end{align*}
+  where
+  $$
+  \Sigma_* := \widetilde{\Sigma}(\widetilde{\Sigma}+\Sigma_{Tr})^{-1}\Sigma_{Tr}.
+  $$
 \end{proof}
 \end{document}
 
