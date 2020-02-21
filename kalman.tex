@@ -236,22 +236,21 @@ as required.
 This calculation is very similar to the alpha pass; the main difference being that we do
 the measurement update first by multiplying by $X(x_{t+1}\mid s)$ to obtain $\hat{\beta}_t(s)$,
 and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  To conserve notation,
-we redefine the intermediate quantities $\hat{\mu}_t$ and $\widehat{\Sigma}_t$ below.
+we redefine the intermediate quantities $\widetilde{\Sigma}_t$ and $\widehat{\Sigma}_t$ below.
 
 \begin{Thm}\label{beta:1}
   For each state $s$ and time $t \le T$,
 $$
-  \beta_t(s) = P_{t+1,T}N(s;\mu_{b,t},\Sigma_{b,t}),
+  \beta_t(s) = Q_tN(s;\mu_{b,t},\Sigma_{b,t}),
 $$
 where
 \begin{align*}
-  \mu_{b,t} &= \Sigma_{Tr}(\Sigma_{Tr}+\widehat{\Sigma}_t)^{-1}\hat{\mu}_{t+1}
-  + \widehat{\Sigma}_t(\Sigma_{Tr}+\widehat{\Sigma}_t)^{-1}, \\
-  \Sigma_{b,t} &= \Sigma_{Tr}(\Sigma_{Tr}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
-  \widehat{\Sigma}_t &= \Sigma_{Ob}+\Sigma_{b,t+1},
- \quad\text{and}\\
-  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma}_{b,t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
-  N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
+  \widehat{\Sigma}_t :&= \Sigma_{Ob}+\Sigma_{b,t+1},\\
+  \mu_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\mu_{b,t+1},\\
+  \Sigma_{b,t} :&= \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\Sigma_{b,t+1} + \Sigma_{Tr},\quad\text{and}\\
+  Q_t:&=Q_{t+1}\det(2\pi\Sigma_{Ob}\widehat{\Sigma}_t^{-1}\Sigma_{b,t+1})^{\frac{1}{2}}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)
+\quad(t< T),\\
+  Q_T :&= 1.
 \end{align*}
 \end{Thm}
 
@@ -259,24 +258,19 @@ where
   We proceed by reverse induction on $t$.  To evaluate \eqref{beta:0} we apply \eqref{comp_sq:2}:
   \begin{align*}
     \hat{\beta}_t(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
-    &= \N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
-    &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(u;\hat{\mu}_t,\widetilde{\Sigma}_t),\quad\text{where}\\
-    \widehat{\Sigma_t} :&= \Sigma_{b,t+1}+\Sigma_{Ob},\\
-    \hat{\mu}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\mu_{b,t+1},\quad\text{and}\\    \widetilde{\Sigma}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}\Sigma_{Ob}.
+    &= Q_{t+1}\N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
+    &= Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(u;\mu_{b,t},\widetilde{\Sigma}_t),\quad\text{where}\\
+    \widetilde{\Sigma}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}\Sigma_{Ob}.
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_t(u)Pd(u\mid s)du \\
-    &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\int_{\R^n}\N(u;\hat{\mu}_t,\widetilde{\Sigma}_t)\N(u;s,\Sigma_{Tr})du\\
-    &=\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(s;\hat{\mu_t},\widetilde{\Sigma}_t+\Sigma_{Tr})\int_{\R^n}\N(u;\mu_*,\Sigma_*)du \\
-    &= \N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\det(2\pi\Sigma_*)^{\frac{1}{2}}
-    \N(s;\hat{\mu_t},\widetilde{\Sigma}_t+\Sigma_{Tr}),
+    &= Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_t)\N(u;s,\Sigma_{Tr})du\\
+    &=Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(s;\mu_{b,t},\Sigma_{b,t})\int_{\R^n}\N(u;\mu_*,\Sigma_*)du \\
+    &= Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\det(2\pi\Sigma_*)^{\frac{1}{2}}
+    \N(s;\mu_{b,t},\Sigma_{b,t}).
   \end{align*}
-  where
-  $$
-  \Sigma_* := \widetilde{\Sigma}(\widetilde{\Sigma}+\Sigma_{Tr})^{-1}\Sigma_{Tr}.
-  $$
 \end{proof}
 \end{document}
 
