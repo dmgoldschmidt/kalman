@@ -1,6 +1,6 @@
 \documentclass[12pt,leqno]{article}
 \include{article_defs}
-\title{A Continuous Hidden Markov Model}
+\title{A Continuous State Hidden Markov Model}
 \author{David M. Goldschmidt}
 %\oddsidemargin 10 pt \evensidemargin 10 pt \marginparwidth 0.75 in \textwidth
 %6.0 true in \topmargin -40 pt \textheight 8.8 true in 
@@ -67,14 +67,15 @@ where $\Sigma_0$ and $\mu_0$ are model parameters.
 
 Because everything in sight is gaussian, the above integrals can be evaluated in closed form, by repeated application of
 \begin{Lem}\label{comp_sq:1}
-  Let
+ Define the quadratic form
   $$
-  Q_i(x) := (x-\mu_i)^T\Sigma_i^{-1}(x-\mu_i)\quad(i = 1,2),
+ Q(x;\mu,\Sigma) := (x-\mu)^T\Sigma^{-1}(x-\mu),
   $$
   where $x$ and $\mu_i$ are $n$-dimensional vectors and $\Sigma_i$ is a symmetric positive definite $n\times{n}$
   matrix ($i = 1,2)$. Then
   $$
-  Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
+  Q(x;\mu_1,\Sigma_1)+Q(x;\mu_2,\Sigma_2) = Q(x;\mu,\Sigma) + Q(\mu_2;\mu_1,\Sigma_1+\Sigma_2),
+  %Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
   $$
   where
   \begin{align}
@@ -84,9 +85,10 @@ Because everything in sight is gaussian, the above integrals can be evaluated in
 \end{Lem}
 \begin{proof}
 
-It's straightforward to see that
+  By expanding the left-hand side, combining like terms, and completing the
+  square, it is straightforward to see that
 $$
-Q_1(x) + Q_2(x) = (x-\mu)^T(\Sigma^{-1})(x-\mu) + C,
+Q(x;\mu_1,\Sigma_1) + Q(x;\mu_2,\Sigma_2) = (x-\mu)^T\Sigma^{-1}(x-\mu) + C,
 $$
 where
 \begin{align}
@@ -95,7 +97,7 @@ where
   C &= \mu_1^T\Sigma_1^{-1}\mu_1 +\mu_2^T\Sigma_2^{-1}\mu_2 - \mu^T\Sigma^{-1}\mu.
   \label{C}
 \end{align}
-The problem is to prove \eqref{mu} and \eqref{sigma}, and to put $C$ into the form given in the lemma.
+The problem is to verify \eqref{mu} and \eqref{sigma}, and to put $C$ into the form given in the lemma.
  To begin with, we have
 
 \begin{align}
@@ -141,13 +143,17 @@ Finally, substituting this result into \eqref{C} yields
 as required.
 \end{proof}
 
-\begin{Cor}\label{comp_sq:2}
-\begin{align*}
+\begin{Cor}
+\begin{align}
   \N(x;\mu_1\Sigma_1)\N(x;\mu_2,\Sigma_2) &= \N(\mu_1;\mu_2,\Sigma_1+\Sigma_2)
-  \N(x;\mu,\Sigma) \quad\text{where}\\
- \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2, \quad\text{and}\\
- \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2.
-\end{align*}
+  \N(x;\mu,\Sigma) \quad\text{where}\label{comp_sq:2}\\
+ \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2, \quad\text{and}\notag\\
+ \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2.\notag
+\end{align}
+In particular,
+\begin{equation}\label{int_prod}
+  \int_{\R^n}N(x;\mu_1,\Sigma_1)\N(x;\mu_2,\Sigma_2)dx = \N(\mu_1;\mu_2,\Sigma_1+\Sigma_2).
+  \end{equation}
 \begin{proof}
   The right-hand and left-hand exponents above are equal by \eqref{comp_sq:1}, and it is
   straightforward to verify directly that the normalization factors outside the exponentials are also equal. 
@@ -182,97 +188,87 @@ where
   \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
   \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{a,t-1},
  \quad\text{and}\\
-  P_{1,t} &=P_{1,t-1}(2\pi)^{\frac{n}{2}}\det(\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{t-1})^{\frac{1}{2}}
-  N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
+  P_{1,t} &=P_{1,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
 \end{align*}
 \end{Thm}
 
 \begin{proof}
 
 Proceeding by induction on $t$, we note that the case $t = 0$ holds by definition.
-For the time update, we have, using \eqref{comp_sq:2}
+For the time update, we have, using \eqref{int_prod}
 \begin{align}
   \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
-  &= P_{1,t-1}\int_{\R^n}\N(u;s,\Sigma_{Tr})\N(u;\mu_{t-1},\Sigma_{t-1})du \notag\\
-  &= P_{1,t-1}\N(s;\mu_{t-1},\widehat{\Sigma}_t)\int_{\R^n}\N(u;\hat{\mu}_t,
-  \widetilde{\Sigma}_t) du,
+ &= P_{1,t-1}\int_{\R^n}\N(u;s,\Sigma_{Tr})\N(u;\mu_{a,t-1},\Sigma_{a,t-1})du \notag\\
+ &= P_{1,t-1}\N(s;\mu_{a,t-1},\widehat{\Sigma}_t).
 \end{align}
-where
- \begin{align*}
-  \hat{\mu}_t &:= \Sigma_{Tr}\widehat{\Sigma}_t^{-1}\mu_{t-1} +
-  \Sigma_{t-1}\widehat{\Sigma}_t^{-1}s, \quad\text{and}\\
-  \widetilde{\Sigma}_t &:= \Sigma_{Tr}\widehat{\Sigma}_t^{-1}\Sigma_{t-1}.
-  \end{align*}
-Because neither $\hat{\mu_t}$ nor $\widetilde{\Sigma}_t$ depends on $u$, we can
-make the affine change of variable
-$$
-v = S(u-\hat{\mu}_t),\quad u = S^{-1}v+\hat{\mu}_t,
-$$
-where $S$ is the cholesky factor of $\widetilde{\Sigma}_t^{-1}$ satisfying
-$S^tS = \widetilde{\Sigma}_t^{-1}$. This transforms the integrand to
-  $\det{S}^{-1}\N(v;0,I)dv$
-with unchanged domain of integration $\R^n$, which integrates to
-$$
-(2\pi)^{\frac{n}{2}}\det{S}^{-1} = (2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}.
-$$
-The result is
-$$
-\hat{\alpha}_t(s) = P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}
-\N(s;\mu_{t-1},\widehat{\Sigma}_t).
-$$
-Multiplying by $X(x_t\mid s)$ finally yields
+
+Then Multiplying by $X(x_t\mid s)$ yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
-  &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}
-  \N(s;x_t,\Sigma_{Ob})\N(s;\mu_{t-1},\widehat{\Sigma}_t) \\
-  &= P_{1,t-1}(2\pi)^{\frac{n}{2}}\det{\widetilde{\Sigma}_t}^{\frac{1}{2}}
-  \N(x_t;\mu_{t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_{a,t},\Sigma_{a,t}), \\
-  &= P_{1,t}\N(s;\mu_{a,t},\Sigma_{a,t}),
+  &= P_{1,t-1}\N(s;x_t,\Sigma_{Ob})\N(s;\mu_{a,t-1},\widehat{\Sigma}_t) \\
+  &= P_{1,t-1}\N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_{a,t},\Sigma_{a,t}), \\
+  &= P_{1,t}\N(s;\mu_{a,t},\Sigma_{a,t}).
 \end{align*}
-as required.
 \end{proof}
 
 \section{The Beta Pass}
 This calculation is very similar to the alpha pass; the main difference being that we do
-the measurement update first by multiplying by $X(x_{t+1}\mid s)$ to obtain $\hat{\beta}_t(s)$,
-and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  To conserve notation,
-we redefine the intermediate quantities $\widetilde{\Sigma}_t$ and $\widehat{\Sigma}_t$ below.
+the measurement update first by multiplying by $X(x_{t+1}\mid u)$ to obtain $\hat{\beta}_t(u)$,
+and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  
 
 \begin{Thm}\label{beta:1}
   Let 
 \begin{align*}
-  \widehat{\Sigma}_t :&= \Sigma_{Ob}+\Sigma_{b,t+1},\quad\text{and}\\
-    \widetilde{\Sigma}_t :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}\Sigma_{Ob}.
+  \widehat{\Sigma}_{b,t} :&= \Sigma_{Ob}+\Sigma_{b,t+1},\quad\text{and}\\
+    \widetilde{\Sigma}_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_{b,t}^{-1}\Sigma_{Ob}.
 \end{align*}
 
   Then for each state $s$ and time $t \le T$,
 $$
-  \beta_t(s) = Q_tN(s;\mu_{b,t},\Sigma_{b,t}),
+  \beta_t(s) = P_{b,t}N(s;\mu_{b,t},\Sigma_{b,t}),
 $$
 where
 \begin{align*}
-  \mu_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_t^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_t^{-1}\mu_{b,t+1},\\
-  \Sigma_{b,t} :&= \widetilde{\Sigma}_t + \Sigma_{Tr},\quad\text{and}\\
-  Q_t:&=Q_{t+1}\det(2\pi\Sigma_{Ob}\widehat{\Sigma}_t^{-1}\Sigma_{b,t+1})^{\frac{1}{2}}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)
+  \mu_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_{b,t}^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_{b,t}^{-1}\mu_{b,t+1},\\
+  \Sigma_{b,t} :&= \widetilde{\Sigma}_{b,t} + \Sigma_{Tr},\quad\text{and}\\
+  P_{b,t}:&=P_{b,t+1}\det(2\pi\widetilde{\Sigma}_{b,t})^{\frac{1}{2}}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})
 \quad(t< T),\\
-  Q_T :&= 1.
+  P_{b,T} :&= 1.
 \end{align*}
 \end{Thm}
 
 \begin{proof}
-  We proceed by reverse induction on $t$.  To evaluate \eqref{beta:0} we apply \eqref{comp_sq:2}:
+  We proceed by reverse induction on $t$. However, to get started we first must  deal with
+  the special case $\beta_T(u) = 1$.  Thus,
+  \begin{align*}
+    \hat{\beta}_{T-1}(u) &= \N(u;x_t,\Sigma_{Ob}),\quad\text{and}\\
+    \beta_{T-1}(s) &= \int_{\R^n}\N(u;x_t,\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
+    &= \N(s;x_t,\Sigma_{Ob}+\Sigma_{Tr})\int_{\R^n}\N(u;\mu,\Sigma)du \\
+  \end{align*}
+  where $\mu$ is irrelevant, and 
+$$
+  \Sigma = \Sigma_{Ob}(\Sigma_{Ob}+\Sigma_{Tr})^{-1})\Sigma_{Tr}.
+  $$
+  Thus, our initial values at $t = T-1$ are
+  \begin{align*}
+  P_{b,T-1} &= \det(2\pi\Sigma)^{-\frac{1}{2}}, \\
+  \mu_{b,T-1} &= x_t, \quad\text{and}\\
+  \Sigma_{b,T-1} &= \Sigma_{Ob}+\Sigma_{Tr}.
+  \end{align*}
+
+  For t < T-1, we have 
   \begin{align*}
     \hat{\beta}_t(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
-    &= Q_{t+1}\N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
-    &= Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(u;\mu_{b,t},\widetilde{\Sigma}_t).
+    &= P_{b,t+1}\N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
+    &= P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t}).
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_t(u)Pd(u\mid s)du \\
-    &= Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_t)\N(u;s,\Sigma_{Tr})du\\
-    &=Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\N(s;\mu_{b,t},\Sigma_{b,t})\int_{\R^n}\N(u;\mu_*,\Sigma_*)du \\
-    &= Q_{t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_t)\det(2\pi\Sigma_*)^{\frac{1}{2}}
+    &= P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t})\N(u;s,\Sigma_{Tr})du\\
+    &=P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(s;\mu_{b,t},\Sigma_{b,t})\int_{\R^n}\N(u;\mu_*,\Sigma_*)du \\
+    &= P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\det(2\pi\Sigma_*)^{\frac{1}{2}}
     \N(s;\mu_{b,t},\Sigma_{b,t}).
   \end{align*}
 \end{proof}
@@ -283,3 +279,17 @@ Problems with re-estimation:
 discrete world, we compute \gamma_{ij}, the posterior probability of state i
 and time t-1 and state j at time t.  Maybe just the product \alpha_t(s_0)Pd(s|s_0)\hat{\beta}_{t=1}(s) ?
 2. How to reestimate $M$ and $b$? Use least-squares!
+
+
+\begin{proof}
+   From the theorem, we have
+\begin{align*}
+\log{P_{t,1}} &= \log{P_{1,t-1}}+\frac{n}{2}\log(2\pi)+
+\frac{1}{2}\log\det(\Sigma_{Tr}\widehat{\Sigma}_t^{-1}\Sigma_{a,t-1})\\
+&-\frac{n}{2}\log(2\pi) - \frac{1}{2}\log\det(\Sigma_{Ob}+\widehat{\Sigma}_t)
+-\frac{1}{2}Q(x_t;\mu_{a,t-1},\Sigma_{Ob}+\widehat{\Sigma}_t)\\
+&= \log{P_{t-1}} + \frac{1}{2}\log\det(\Sigma_{Tr}\widehat{\Sigma}_t^{-1}\Sigma_{a,t-1}) - \frac{1}{2}\log\det(\Sigma_{Ob}+\widehat{\Sigma}_t)\\
+&-\frac{1}{2}Q(x_t;\mu_{a,t-1},\Sigma_{Ob}+\widehat{\Sigma}_t)\\
+\end{align*}
+
+\end{proof}
