@@ -173,13 +173,14 @@ In particular,
 
   First, we define
 \begin{align*}
-  P_{m,n} &:= Pd(x_m,x_{m+1},\dots,x_n \mid \theta),\quad\text{for $1\le m \le n\le T$},\quad\text{and}\\
-  P_{1,0} &:= 1.
+  P_{a,t} &:= Pd(x_1,x_2,\dots,x_t \mid \theta),\quad\text{for $1\le m \le n\le T$},\quad\text{and}\\
+  P_{a,0} &:= 1.
 \end{align*}
+
 \begin{Thm}\label{alpha:1}
   For each state $s$ and time $t \ge 1$,
 $$
-  \alpha_t(s) = P_{1,t}N(s;\mu_{a,t},\Sigma_{a,t}),
+  \alpha_t(s) = P_{a,t}N(s;\mu_{a,t},\Sigma_{a,t}),
 $$
 where
 \begin{align*}
@@ -188,7 +189,7 @@ where
   \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
   \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{a,t-1},
  \quad\text{and}\\
-  P_{1,t} &=P_{1,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
+  P_{1,t} &=P_{a,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
 \end{align*}
 \end{Thm}
 
@@ -198,16 +199,16 @@ Proceeding by induction on $t$, we note that the case $t = 0$ holds by definitio
 For the time update, we have, using \eqref{int_prod}
 \begin{align}
   \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
- &= P_{1,t-1}\int_{\R^n}\N(u;s,\Sigma_{Tr})\N(u;\mu_{a,t-1},\Sigma_{a,t-1})du \notag\\
- &= P_{1,t-1}\N(s;\mu_{a,t-1},\widehat{\Sigma}_t).
+ &= P_{a,t-1}\int_{\R^n}\N(u;s,\Sigma_{Tr})\N(u;\mu_{a,t-1},\Sigma_{a,t-1})du \notag\\
+ &= P_{a,t-1}\N(s;\mu_{a,t-1},\widehat{\Sigma}_t).
 \end{align}
 
-Then Multiplying by $X(x_t\mid s)$ yields
+Then multiplying by $X(x_t\mid s)$ yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
-  &= P_{1,t-1}\N(s;x_t,\Sigma_{Ob})\N(s;\mu_{a,t-1},\widehat{\Sigma}_t) \\
-  &= P_{1,t-1}\N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_{a,t},\Sigma_{a,t}), \\
-  &= P_{1,t}\N(s;\mu_{a,t},\Sigma_{a,t}).
+  &= P_{a,t-1}\N(s;x_t,\Sigma_{Ob})\N(s;\mu_{a,t-1},\widehat{\Sigma}_t) \\
+  &= P_{a,t-1}\N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_{a,t},\Sigma_{a,t}), \\
+  &= P_{a,t}\N(s;\mu_{a,t},\Sigma_{a,t}).
 \end{align*}
 \end{proof}
 
@@ -231,7 +232,7 @@ where
 \begin{align*}
   \mu_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_{b,t}^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_{b,t}^{-1}\mu_{b,t+1},\\
   \Sigma_{b,t} :&= \widetilde{\Sigma}_{b,t} + \Sigma_{Tr},\quad\text{and}\\
-  P_{b,t}:&=P_{b,t+1}\det(2\pi\widetilde{\Sigma}_{b,t})^{\frac{1}{2}}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})
+  P_{b,t}:&=P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})
 \quad(t< T),\\
   P_{b,T} :&= 1.
 \end{align*}
@@ -241,36 +242,62 @@ where
   We proceed by reverse induction on $t$. However, to get started we first must  deal with
   the special case $\beta_T(u) = 1$.  Thus,
   \begin{align*}
-    \hat{\beta}_{T-1}(u) &= \N(u;x_t,\Sigma_{Ob}),\quad\text{and}\\
-    \beta_{T-1}(s) &= \int_{\R^n}\N(u;x_t,\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
-    &= \N(s;x_t,\Sigma_{Ob}+\Sigma_{Tr})\int_{\R^n}\N(u;\mu,\Sigma)du \\
+    \hat{\beta}_{T-1}(u) &= \N(u;x_{T-1},\Sigma_{Ob}),\quad\text{and}\\
+    \beta_{T-1}(s) &= \int_{\R^n}\N(u;x_{T-1},\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
+    &= \N(s;x_{T-1},\Sigma_{Ob}+\Sigma_{Tr})
   \end{align*}
-  where $\mu$ is irrelevant, and 
-$$
-  \Sigma = \Sigma_{Ob}(\Sigma_{Ob}+\Sigma_{Tr})^{-1})\Sigma_{Tr}.
-  $$
+
   Thus, our initial values at $t = T-1$ are
   \begin{align*}
-  P_{b,T-1} &= \det(2\pi\Sigma)^{-\frac{1}{2}}, \\
-  \mu_{b,T-1} &= x_t, \quad\text{and}\\
+  P_{b,T-1} &= 1,\\
+  \mu_{b,T-1} &= x_{t-1}, \quad\text{and}\\
   \Sigma_{b,T-1} &= \Sigma_{Ob}+\Sigma_{Tr}.
   \end{align*}
 
-  For t < T-1, we have 
+  For $t <  T-1$, we have 
   \begin{align*}
     \hat{\beta}_t(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
-    &= P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t}).
+    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t}).
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_t(u)Pd(u\mid s)du \\
-    &= P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t})\N(u;s,\Sigma_{Tr})du\\
-    &=P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(s;\mu_{b,t},\Sigma_{b,t})\int_{\R^n}\N(u;\mu_*,\Sigma_*)du \\
-    &= P_{b,t+1}\N(x_t;\mu_{b,t+1},\widehat{\Sigma}_{b,t})\det(2\pi\Sigma_*)^{\frac{1}{2}}
-    \N(s;\mu_{b,t},\Sigma_{b,t}).
+    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t})\N(u;s,\Sigma_{Tr})du\\
+    &=P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(s;\mu_{b,t},\Sigma_{b,t})\\
+    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(s;\mu_{b,t},\Sigma_{b,t}).
   \end{align*}
+\end{proof}
+
+\section{The Gamma Calculation}
+Recall that $\gamma_t(s)$ is the posterior probability density of state $s$
+at time $t$. 
+\begin{Thm}
+  Let notation be as in \eqref{alpha:1} and \eqref{beta:1}.  Define
+$$
+  \widehat{\Sigma}_{c,t} := \Sigma_{a,t}+\Sigma_{b,t}.
+  $$
+  Then
+  \begin{align*}
+      \gamma_t(s) &= \N(s;\mu_{c,t},\Sigma_{c,t}),\quad\text{where}\\
+      \Sigma_{c,t} &= \Sigma_{a,t}\widehat{\Sigma}_{c,t}^{-1}\Sigma_{b,t}
+      \quad\text{and}\\
+      \mu_{c,t} &= \Sigma_{a,t}\widehat{\Sigma}_{c_t}^{-1}\mu_{b,t} +
+      \Sigma_{b,t}\widehat{\Sigma}_{c_t}^{-1}\mu_{a,t}.
+  \end{align*}
+\end{Thm}
+\begin{proof}
+  From \eqref{alpha:1} and \eqref{beta:1} we have (using \eqref{comp_sq:2}
+  as usual)
+  \begin{align*}
+  \alpha_t(s)\beta_t(s) &= P_{a,t}P_{b,t}\N(s;\mu_{a,t},\Sigma_{a,t})
+  \N(s;\mu_{b,t},\Sigma_{b,t})ds\\
+  &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})\N(s;\mu_{c,t},
+  \Sigma_{c,t}), \quad\text{whence}\\
+  \int_{\R^n}\alpha_t(s)\beta_t(s) &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})
+  \end{align*}
+by \eqref{int_prod}, and the theorem follows.
 \end{proof}
 \end{document}
 
