@@ -166,14 +166,14 @@ In particular,
   into two steps.  In the first step, which we call the {\em time update}, we multiply
   $\alpha_{t-1}(u)$ by the state transition function $Pd(s\mid u)$ and integrate with respect
   to $u$. We will denote the result of the time update by $\hat{\alpha}_t(s)$.  It is the joint probability
-  (density) of observations $x_1,\dots,x_{t-1}$ and state $s$ at time $t$.
+  density of observations $x_1,\dots,x_{t-1}$ and state $s$ at time $t$.
   Then in the second step, which we call the {\em measurement update}, we multiply
-  $\hat{\alpha}_t(s)$ by $X(x_t \mid s)$, the probability (density) of observing $x_t$ at time $t$
+  $\hat{\alpha}_t(s)$ by $X(x_t \mid s)$, the probability density of observing $x_t$ at time $t$
   in state $s$, to get $\alpha_t(s)$.
 
   First, we define
 \begin{align*}
-  P_{a,t} &:= Pd(x_1,x_2,\dots,x_t \mid \theta),\quad\text{for $1\le m \le n\le T$},\quad\text{and}\\
+  P_{a,t} &:= Pd(x_1,x_2,\dots,x_t \mid \theta),\quad\text{for $1\le t\le T$},\quad\text{and}\\
   P_{a,0} &:= 1.
 \end{align*}
 
@@ -240,21 +240,21 @@ where
 
 \begin{proof}
   We proceed by reverse induction on $t$. However, to get started we first must  deal with
-  the special case $\beta_T(u) = 1$.  Thus,
+  the special case $\beta_{T+1}(u) = 1$.  Thus,
   \begin{align*}
-    \hat{\beta}_{T-1}(u) &= \N(u;x_{T-1},\Sigma_{Ob}),\quad\text{and}\\
-    \beta_{T-1}(s) &= \int_{\R^n}\N(u;x_{T-1},\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
-    &= \N(s;x_{T-1},\Sigma_{Ob}+\Sigma_{Tr})
+    \hat{\beta}_T(u) &= \N(u;x_T,\Sigma_{Ob}),\quad\text{and}\\
+    \beta_T(s) &= \int_{\R^n}\N(u;x_T,\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
+    &= \N(s;x_T,\Sigma_{Ob}+\Sigma_{Tr})
   \end{align*}
 
-  Thus, our initial values at $t = T-1$ are
+  Thus, our initial values at $t = T$ are
   \begin{align*}
-  P_{b,T-1} &= 1,\\
-  \mu_{b,T-1} &= x_{t-1}, \quad\text{and}\\
-  \Sigma_{b,T-1} &= \Sigma_{Ob}+\Sigma_{Tr}.
+  P_{b,T} &= 1,\\
+  \mu_{b,T} &= x_T, \quad\text{and}\\
+  \Sigma_{b,T} &= \Sigma_{Ob}+\Sigma_{Tr}.
   \end{align*}
 
-  For $t <  T-1$, we have 
+  For $t <  T$, we have 
   \begin{align*}
     \hat{\beta}_t(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
