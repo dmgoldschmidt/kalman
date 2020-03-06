@@ -66,21 +66,20 @@ We initialize these recursions with
 where $\Sigma_0$ and $\mu_0$ are model parameters.
 
 Because everything in sight is gaussian, the above integrals can be evaluated in closed form, by repeated application of
-\begin{Lem}\label{comp_sq:1}
- Define the quadratic form
+ \begin{Lem}\label{comp_sq:1}
+  Let
   $$
- Q(x;\mu,\Sigma) := (x-\mu)^T\Sigma^{-1}(x-\mu),
+  Q_i(x) := (x-\mu_i)^T\Sigma_i^{-1}(x-\mu_i)\quad(i = 1,2),
   $$
   where $x$ and $\mu_i$ are $n$-dimensional vectors and $\Sigma_i$ is a symmetric positive definite $n\times{n}$
   matrix ($i = 1,2)$. Then
   $$
-  Q(x;\mu_1,\Sigma_1)+Q(x;\mu_2,\Sigma_2) = Q(x;\mu,\Sigma) + Q(\mu_2;\mu_1,\Sigma_1+\Sigma_2),
-  %Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
+  Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
   $$
   where
   \begin{align}
-    \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,\quad\text{and}\label{mu}\\
-    \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2\label{sigma}.
+    \mu &= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,\quad\text{and}\label{mu}\\
+    \Sigma &= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2 = \Sigma_2(\Sigma_1 + \Sigma_2)^{-1}\Sigma_1\label{sigma}.
   \end{align}
 \end{Lem}
 \begin{proof}
@@ -88,7 +87,7 @@ Because everything in sight is gaussian, the above integrals can be evaluated in
   By expanding the left-hand side, combining like terms, and completing the
   square, it is straightforward to see that
 $$
-Q(x;\mu_1,\Sigma_1) + Q(x;\mu_2,\Sigma_2) = (x-\mu)^T\Sigma^{-1}(x-\mu) + C,
+Q_1(x) + Q_2(x) = (x-\mu)^T(\Sigma^{-1})(x-\mu) + C,
 $$
 where
 \begin{align}
