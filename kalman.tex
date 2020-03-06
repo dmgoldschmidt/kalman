@@ -60,7 +60,7 @@ It is clear from the definitions that the following recursions are satisfied:
 
 We initialize these recursions with
 \begin{align*}
-\alpha_0(s) :&= \N(\mu_0,\Sigma_0) \\
+\alpha_0(s) :&= \N(s;\mu_0,\Sigma_0) \\
 \beta_{T+1}(s) :&= 1 \quad\text{for all $s$},
 \end{align*}
 where $\Sigma_0$ and $\mu_0$ are model parameters.
@@ -299,13 +299,94 @@ $$
   \end{align*}
 by \eqref{int_prod}, and the theorem follows.
 \end{proof}
+
+\section{Re-estimation}
+Given a state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$, the
+joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,\Sigma_0,\Sigma_{Tr},\Sigma_{Ob}\}$ is
+$$
+P(X,S\mid\theta) = \N(s_0;\mu_0,\Sigma_0)\prod_{t=1}^T\N(x_t;s_t,\Sigma_{Ob})\N(s_t;s_{t-1},\Sigma_{Tr}).
+$$
+
+Note that $P(X,S\mid\theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$.
+To re-estimate $\theta$, we try to maximize $L(\theta)$ using the EM algorithm. Namely, we define 
+$$
+E(\theta',\theta) := \int_{\R^{Tn}}P(X,S\mid\theta')\log{L(\theta\mid X,S)}dS,
+$$
+where $\theta'$ is the current set of parameters, and $\theta$ is the unknown set of new parameters
+we wish to determine. So instead of maximizing the log-likelihood directly, we can maximize its expected
+value with respect to the current posterior distribution, because it is a standard result (and easy to prove) that
+$$
+L(\theta) - L(\theta') \ge E(\theta',\theta) - E(\theta',\theta'),
+$$
+so choosing $\theta$ to maximize $E(\theta',\theta)$ will increase the value of $L(\theta)$.
+
+To compact our notation a little,  we define the quadratic form
+\begin{align*}
+  Q(x;\mu,\Sigma) :&= (x-\mu)^T\Sigma(x-\mu), \quad\text{then}\\
+  \log{\N(x;\mu,\Sigma)} &= -\frac{1}{2}\{\log{\det(2\pi\Sigma)} + Q(x;\mu,\Sigma^{-1})\}.
+\end{align*}
+  
+Thus, we have
+\begin{align}
+  E(\theta',\theta) &= -\frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
+  E_0 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\{\log{\det(2\pi\Sigma_0)} + Q(s_0;\mu_0,\Sigma_0^{-1})\}dS,\label{E0}\\
+  E_1 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\sum_{t=1}^T\log{\det(2\pi\Sigma_{Ob})} + Q(x_t;s_t,\Sigma_{Ob}^{-1})dS,
+\label{E1}\\
+  E_2 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\sum_{t=1}^T\log{\det(2\pi\Sigma_{Tr})} + Q(s_t;s_{t-1},\Sigma_{Tr}^{-1})dS,
+\label{E2}
+\end{align}
+Since none of the parameters of $\theta$ appear in more than one of these three expressions, we can maximize $E$
+by minimizing each of $E_1,E_2,E_3$ separately. Moreover, since the expected value of a constant is just that constant, 
+and since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the expected value collapses to the marginal 
+expected value of the integrand with respect to the marginalization of $P(X,S\mid\theta')$ at $s_0$, which is just 
+$\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation 
+outside the integral in \eqref{E1} we have the same collapse to the marginalization of the posterior to $s_t$, which
+is just $\gamma_t(s_t)$.  It follows that
+\begin{align*}
+E_0 &= \log\det(2\pi\Sigma_0) + \int_{\R^n}\gamma_0(s)Q(s;\mu_0,\Sigma_0)ds,\quad\text{and}\\
+E_1 &= \log\det(2\pi\Sigma_{Ob}) + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)Q(x_t;s,\Sigma_{Ob})ds.
+\end{align*}
+
+The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
+the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
+joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
+$$
+E_2 = \log\det(2\pi\Sigma_{Ob}) + \sum_{t=1}^T\int_{\R^n}\hat{\gamma}_t(s,u)Qs;u,\Sigma_{Tr})ds,
+$$
+where $\hat{\sigma}_t(s,u)$ is the joint posterior probability density of state $s=u$ at time $t-1$ and state $s$ 
+at time $t$.
+
+If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
+$m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors (when $n=1$).
+Now we can minimize $E_0$:
+\begin{align}
+0 &= \frac{\partial{E_0}}{\partial{\mu_0}} = \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_0,\Sigma_0)}}{\partial{\mu_0}}ds 
+\notag\\
+&= -\int_{\R^n}\gamma_0(s)(2\Sigma_0^{-1}(s-\mu_0))ds\notag\\
+&= -2\det(\Sigma_0)\int_{\R^n}\gamma_0(\Sigma_0v+\mu_0)vdv,\label{E0:mu}
+\end{align}
+where
+$$
+v := \Sigma_0^{-1}(s-\mu_0), \quad\text{and}\quad dv = \det\Sigma_0^{-1}ds.
+$$
+But $\gamma_0(\Sigma_0v+\mu_0) = \N(\Sigma_0v+\mu_0;\mu_{c,0},\Sigma_{c,0})$, and
+\eqref{E0:mu} says to choose $\mu_0$ so that the mean of this density is zero.
+If we set $\mu_0 = \mu_{c,o}$, then
+\begin{align*}
+\N(\Sigma_0v+\mu_0;\mu_{c,0},\Sigma_{c,0}) &= \det(2\pi\Sigma_{c,0})^{-\frac{1}{2}}\exp\{-\frac{1}{2}v^T\Sigma_0\Sigma_{o,c}^{-1}\Sigma_0v)\}\\
+&= \det(\Sigma_0)^{-1}\N(v;0,\Sigma_0^{-1}\Sigma_{0,c}\Sigma_0^{-1}),
+\end{align*}
+which has mean zero as required. 
 \end{document}
 
-Problems with re-estimation:
+ roblems with re-estimation:
 1. How to reestimate the state transition function covariance matrix? In the
 discrete world, we compute \gamma_{ij}, the posterior probability of state i
 and time t-1 and state j at time t.  Maybe just the product \alpha_t(s_0)Pd(s|s_0)\hat{\beta}_{t=1}(s) ?
-2. How to reestimate $M$ and $b$? Use least-squares!
+
+o reestimate $M$ and $b$? Use least-squares!
+\|
+
 
 
 \begin{proof}
