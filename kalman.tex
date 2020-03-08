@@ -66,20 +66,21 @@ We initialize these recursions with
 where $\Sigma_0$ and $\mu_0$ are model parameters.
 
 Because everything in sight is gaussian, the above integrals can be evaluated in closed form, by repeated application of
- \begin{Lem}\label{comp_sq:1}
-  Let
+\begin{Lem}\label{comp_sq:1}
+ Define the quadratic form
   $$
-  Q_i(x) := (x-\mu_i)^T\Sigma_i^{-1}(x-\mu_i)\quad(i = 1,2),
+ Q(x;\mu,\Sigma) := (x-\mu)^T\Sigma^{-1}(x-\mu),
   $$
   where $x$ and $\mu_i$ are $n$-dimensional vectors and $\Sigma_i$ is a symmetric positive definite $n\times{n}$
   matrix ($i = 1,2)$. Then
   $$
-  Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
+  Q(x;\mu_1,\Sigma_1)+Q(x;\mu_2,\Sigma_2) = Q(x;\mu,\Sigma) + Q(\mu_2;\mu_1,\Sigma_1+\Sigma_2),
+  %Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
   $$
   where
   \begin{align}
-    \mu &= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,\quad\text{and}\label{mu}\\
-    \Sigma &= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2 = \Sigma_2(\Sigma_1 + \Sigma_2)^{-1}\Sigma_1\label{sigma}.
+    \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,\quad\text{and}\label{mu}\\
+    \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2\label{sigma}.
   \end{align}
 \end{Lem}
 \begin{proof}
@@ -87,7 +88,7 @@ Because everything in sight is gaussian, the above integrals can be evaluated in
   By expanding the left-hand side, combining like terms, and completing the
   square, it is straightforward to see that
 $$
-Q_1(x) + Q_2(x) = (x-\mu)^T(\Sigma^{-1})(x-\mu) + C,
+Q(x;\mu_1,\Sigma_1) + Q(x;\mu_2,\Sigma_2) = (x-\mu)^T\Sigma^{-1}(x-\mu) + C,
 $$
 where
 \begin{align}
@@ -183,12 +184,12 @@ $$
 $$
 where
 \begin{align*}
-  \mu_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\mu_{a,t-1}
-  + \widehat{\Sigma}_t(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}x_t, \\
-  \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_t)^{-1}\widehat{\Sigma}_t,\\
-  \widehat{\Sigma}_t &= \Sigma_{Tr}+\Sigma_{a,t-1},
+  \mu_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_{a,t})^{-1}\mu_{a,t-1}
+  + \widehat{\Sigma}_{a,t}(\Sigma_{Ob}+\widehat{\Sigma}_{a,t})^{-1}x_t, \\
+  \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_{a,t})^{-1}\widehat{\Sigma}_{a,t},\\
+  \widehat{\Sigma}_{a,t} &= \Sigma_{Tr}+\Sigma_{a,t-1},
  \quad\text{and}\\
-  P_{1,t} &=P_{a,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t).
+  P_{1,t} &=P_{a,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_{a,t}).
 \end{align*}
 \end{Thm}
 
@@ -199,14 +200,14 @@ For the time update, we have, using \eqref{int_prod}
 \begin{align}
   \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
  &= P_{a,t-1}\int_{\R^n}\N(u;s,\Sigma_{Tr})\N(u;\mu_{a,t-1},\Sigma_{a,t-1})du \notag\\
- &= P_{a,t-1}\N(s;\mu_{a,t-1},\widehat{\Sigma}_t).
+ &= P_{a,t-1}\N(s;\mu_{a,t-1},\widehat{\Sigma}_{a,t}).
 \end{align}
 
 Then multiplying by $X(x_t\mid s)$ yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
-  &= P_{a,t-1}\N(s;x_t,\Sigma_{Ob})\N(s;\mu_{a,t-1},\widehat{\Sigma}_t) \\
-  &= P_{a,t-1}\N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_t)\N(s;\mu_{a,t},\Sigma_{a,t}), \\
+  &= P_{a,t-1}\N(s;x_t,\Sigma_{Ob})\N(s;\mu_{a,t-1},\widehat{\Sigma}_{a,t}) \\
+  &= P_{a,t-1}\N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_{a,t})\N(s;\mu_{a,t},\Sigma_{a,t}), \\
   &= P_{a,t}\N(s;\mu_{a,t},\Sigma_{a,t}).
 \end{align*}
 \end{proof}
@@ -298,7 +299,33 @@ $$
   \end{align*}
 by \eqref{int_prod}, and the theorem follows.
 \end{proof}
+We also need the joint posterior probability density of state $u$ at time $t-1$ and state $s$ at time $t$,
+which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all the data and the two given states
+  $u,s$  at times $t-1,t$ is
+  \begin{align}
+    \hat{\gamma}_t(s,u) &\propto \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \notag\\
+    &= \N(u;\mu_{a,t-1},\Sigma_{a,t-1})\N(u;s,\Sigma_{Tr})  \N(s;x_t,\Sigma_{Ob})\N(s;\mu_{b,t},\Sigma_{b,t})\notag\\
+    &\propto \N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu_{a,t-1},\widehat{\Sigma}_{a,t-1})\N(s;\mu_{b,t-1},
+    \widetilde{\Sigma}_{b,t-1})\notag\\
+    &\propto \N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t),\label{gamma_hat}
+  \end{align}
+  where we have discarded factors which do not depend on either $u$ or $s$, and 
+  \begin{align*}
+    \Sigma^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr},\\
+    \mu^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}s + \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\\
+ %   \Sigma^{(2)}_t :&= \Sigma_{Ob}(\Sigma_{Ob}+\Sigma_{b,t})^{-1}\Sigma_{b,t},\\
+ %   \mu^{(2)}_t :&= \Sigma_{Ob}(\Sigma_{Ob}+\Sigma_{b,t})^{-1})\mu_{b,t} +\Sigma_{b,t}(\Sigma_{Ob}+\Sigma_{b,t})^{-1})x_t,\\
+    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t-1}(\widehat{\Sigma}_{a,t-1}+\widetilde{\Sigma}_{b,t-1})^{-1}\widetilde{\Sigma}_{b,t-1},     \quad\text{and}\\
+    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t-1}(\widehat{\Sigma}_{a,t-1}+\widetilde{\Sigma}_{b,t-1})^{-1}\mu_{b,t-1} +
+    \widetilde{\Sigma}_{b,t-1}(\widehat{\Sigma}_{a,t-1} + \widetilde{\Sigma}_{b,t-1})^{-1}\mu_{a,t-1}.
+  \end{align*}
 
+  Note that the second factor in \eqref{gamma_hat} does not depend on $u$, and the first factor depends on $s$
+  only in the mean, which means that integrating first with respect to $u$, we just get the second factor
+  because of the translation
+  invariance of the integrand, and thus the double integral of \eqref{gamma_hat} is unity and no normalization factor is
+  required.
+  
 \section{Re-estimation}
 Given a state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$, the
 joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,\Sigma_0,\Sigma_{Tr},\Sigma_{Ob}\}$ is
@@ -319,47 +346,56 @@ L(\theta) - L(\theta') \ge E(\theta',\theta) - E(\theta',\theta'),
 $$
 so choosing $\theta$ to maximize $E(\theta',\theta)$ will increase the value of $L(\theta)$.
 
-To compact our notation a little,  we define the quadratic form
-\begin{align*}
-  Q(x;\mu,\Sigma) :&= (x-\mu)^T\Sigma(x-\mu), \quad\text{then}\\
-  \log{\N(x;\mu,\Sigma)} &= -\frac{1}{2}\{\log{\det(2\pi\Sigma)} + Q(x;\mu,\Sigma^{-1})\}.
-\end{align*}
+
   
-Thus, we have
+Recall the notation $Q(x;\mu,\Sigma)$ from \eqref{comp_sq:1}.  Then we have
 \begin{align}
-  E(\theta',\theta) &= -\frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
-  E_0 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\{\log{\det(2\pi\Sigma_0)} + Q(s_0;\mu_0,\Sigma_0^{-1})\}dS,\label{E0}\\
-  E_1 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\sum_{t=1}^T\log{\det(2\pi\Sigma_{Ob})} + Q(x_t;s_t,\Sigma_{Ob}^{-1})dS,
+  E(\theta',\theta) &= -\frac{n\log(2\pi)}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
+  E_0 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\{\log{\Sigma_0} + Q(s_0;\mu_0,\Sigma_0^{-1})\}dS,\label{E0}\\
+  E_1 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\left\{\sum_{t=1}^T\log\det\Sigma_{Ob} + Q(x_t;s_t,\Sigma_{Ob}^{-1})\right\}dS,
 \label{E1}\\
-  E_2 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\sum_{t=1}^T\log{\det(2\pi\Sigma_{Tr})} + Q(s_t;s_{t-1},\Sigma_{Tr}^{-1})dS,
+  E_2 :&= \int_{\R^{Tn}}P(X,S\mid\theta')\left\{\sum_{t=1}^T\log\det\Sigma_{Tr} + Q(s_t;s_{t-1},\Sigma_{Tr}^{-1})\right\}dS,
 \label{E2}
 \end{align}
-Since none of the parameters of $\theta$ appear in more than one of these three expressions, we can maximize $E$
-by minimizing each of $E_1,E_2,E_3$ separately. Moreover, since the expected value of a constant is just that constant, 
-and since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the expected value collapses to the marginal 
+Since the expected value of a constant is just that constant, $-n\log(2\pi)/2$ can be moved outside the
+integral sign.  Since none of the parameters of $\theta$ appear in more than one of these three expressions,
+we can maximize $E$ by minimizing each of $E_1,E_2,E_3$ separately.
+
+Since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the expected value collapses to the marginal 
 expected value of the integrand with respect to the marginalization of $P(X,S\mid\theta')$ at $s_0$, which is just 
 $\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation 
 outside the integral in \eqref{E1} we have the same collapse to the marginalization of the posterior to $s_t$, which
 is just $\gamma_t(s_t)$.  It follows that
 \begin{align*}
-E_0 &= \log\det(2\pi\Sigma_0) + \int_{\R^n}\gamma_0(s)Q(s;\mu_0,\Sigma_0)ds,\quad\text{and}\\
-E_1 &= \log\det(2\pi\Sigma_{Ob}) + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)Q(x_t;s,\Sigma_{Ob})ds.
+E_0 &= \log\det(\Sigma_0) + \int_{\R^n}\gamma_0(s)Q(s;\mu_0,\Sigma_0)ds,\quad\text{and}\\
+E_1 &= T\log\det(\Sigma_{Ob}) + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)Q(x_t;s,\Sigma_{Ob})ds.
 \end{align*}
 
 The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
 the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
 $$
-E_2 = \log\det(2\pi\Sigma_{Ob}) + \sum_{t=1}^T\int_{\R^n}\hat{\gamma}_t(s,u)Qs;u,\Sigma_{Tr})ds,
+E_2 = T\log\det(\Sigma_{Tr}) + \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)Q(s;u,\Sigma_{Tr})duds,
 $$
-where $\hat{\sigma}_t(s,u)$ is the joint posterior probability density of state $s=u$ at time $t-1$ and state $s$ 
+where $\hat{\sigma}_t(s,u)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
 at time $t$.
 
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors (when $n=1$).
-Now we can minimize $E_0$:
+In particular, if $m=n$, $A$ is symmetric, and $f(A) = \det(A)$,  then the usual expansion 
+in minors along the $i^{th}$ row shows that 
+$$
+\frac{\partial{\det(A)}}{\partial{A}} = A^* = \det(A)A^{-1}.
+$$
+Also, since $Q(x;\mu,\Sigma)$ is linear in the coefficients of $\Sigma$, we see that
+$$
+\frac{\partial{Q(x;\mu,\Sigma)}}{\partial{\Sigma}} = (x-\mu)(x-\mu)^T.
+$$
+
+Now we can minimize $E_0$. We first minimize $E_0$ with respect to $\mu_0$: 
+
 \begin{align}
-0 &= \frac{\partial{E_0}}{\partial{\mu_0}} = \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_0,\Sigma_0)}}{\partial{\mu_0}}ds 
+0 = \frac{\partial{E_0}}{\partial{\mu_0}} &= \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_0,\Sigma_0)}}{\partial{\mu_0}}ds 
 \notag\\
 &= -\int_{\R^n}\gamma_0(s)(2\Sigma_0^{-1}(s-\mu_0))ds\notag\\
 &= -2\det(\Sigma_0)\int_{\R^n}\gamma_0(\Sigma_0v+\mu_0)vdv,\label{E0:mu}
@@ -370,33 +406,63 @@ v := \Sigma_0^{-1}(s-\mu_0), \quad\text{and}\quad dv = \det\Sigma_0^{-1}ds.
 $$
 But $\gamma_0(\Sigma_0v+\mu_0) = \N(\Sigma_0v+\mu_0;\mu_{c,0},\Sigma_{c,0})$, and
 \eqref{E0:mu} says to choose $\mu_0$ so that the mean of this density is zero.
-If we set $\mu_0 = \mu_{c,o}$, then
+Now if we set 
+\begin{equation}\label{mu_0}
+\mu_0 = \mu_{c,o},\quad\text{we get}
+\end{equation}
 \begin{align*}
 \N(\Sigma_0v+\mu_0;\mu_{c,0},\Sigma_{c,0}) &= \det(2\pi\Sigma_{c,0})^{-\frac{1}{2}}\exp\{-\frac{1}{2}v^T\Sigma_0\Sigma_{o,c}^{-1}\Sigma_0v)\}\\
 &= \det(\Sigma_0)^{-1}\N(v;0,\Sigma_0^{-1}\Sigma_{0,c}\Sigma_0^{-1}),
 \end{align*}
-which has mean zero as required. 
+which has mean zero as required.
+
+Next, it is easier to maximize $E_0$ with respect to $\Sigma_0^{-1}$, and we can set $\mu_0 = \mu_{c,0}$ by \eqref{mu_0}:
+\begin{align*}
+0 = \frac{\partial{E_0}}{\partial{\Sigma_0^{-1}}} &= -\frac{\partial{\log\det(\Sigma_0^{-1})}}{\partial\Sigma_0^{-1}} + \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\Sigma_0^{-1})}}{\partial{\Sigma_0^{-1}}}ds \\
+&= -\Sigma_0^{-1} + \int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
+\end{align*}
+However, the integral is just the covariance matrix of $\gamma_0(s)$, so not surprisingly, we find that
+%\begin{equation}\label{Sigma_0}
+$$
+\Sigma_0^{-1} = \Sigma_{c,0}.
+$$
+%\end{equation}
+
+To minimize $E_1$, we differentiate with respect to $\Sigma_{ob}^{-1}$:
+\begin{align*}
+  0 = \frac{\partial{E_1}}{\partial{\Sigma_{Ob}^{-1}}} &= -T\frac{\partial{\log\det(\Sigma_{Ob}^{-1})}}{\partial\Sigma_{Ob}^{-1}}
+  + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(s;x_t,\Sigma_{Ob}^{-1})}}{\partial{\Sigma_{Ob}^{-1}}}ds \\
+  &= -T\Sigma_{Ob}^{-1} + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)(s-x_t)(s-x_t)^Tds\\
+  &= -T\Sigma_{Ob}^{-1} + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)(ss^T - sx_t^T - x_ts^T + x_tx_t^T)ds \\
+  &= -T\Sigma_{Ob}^{-1} + \sum_{t=1}^T(\Sigma_{c,t} + \mu_{c,t}\mu_{c,t}^T -\mu_{c,t}x_t^T- x_t\mu_{c,t}^T + x_tx_t^T).
+\end{align*}
+Thus, we see that
+\begin{equation}\label{Sigma_Ob}
+  \Sigma_{Ob}^{-1} = \frac{1}{T}\sum_{t=1}^T [\Sigma_{c,t} + (\mu_{c,t}-x_t)(\mu_{c,t}-x_t)^T.
+\end{equation}
+
+Finally, we minimize $E_2$ by differentiating with respect to $\Sigma_{Tr}^{-1}$:
+\begin{equation}\label{Sigma_Tr:0}
+  \begin{split}
+  0 = \frac{\partial{E_2}}{\partial{\Sigma_{Tr}^{-1}}} &= -T\frac{\partial{\log\det(\Sigma_{Tr}^{-1})}}{\partial\Sigma_{Tr}^{-1}}
+  + \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\Sigma_{Tr}^{-1})}}{\partial\Sigma_{Tr}^{-1}}duds \\
+      &= -T\Sigma_{Tr}^{-1} + \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t\Sigma^{(2)}_t)(u-s)(u-s)^Tduds.
+  \end{split}
+\end{equation}
+
+As noted earlier, $\mu^{(2)}_t$ does not depend on $u$, so we can integrate first with respect to $u$, with a result
+analagous to \eqref{Sigma_Ob}:
+\begin{align*}
+  \int_{-\infty}^{\infty}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)(u-s)(u-s)^Tdu &=
+  \int_{-\infty}^{\infty}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)(u^Tu - u^Ts -s^Tu + s^Ts)du\\
+  &= \Sigma^{(1)}_t + (\mu^{(1)}_t - s)(\mu^{(1)}_t-s)^T.
+\end{align*}
+Substituting this result into \eqref{Sigma_Tr:0}, we get
+\begin{equation}\label{Sigma_Tr:1}
+\Sigma_{Tr}^{-1} = \frac{1}{T}\sum_{t=1}^T\int_{-\infty}^{\infty}N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(\Sigma^{(1)}_t+(\mu^{(1)}_t-s)(\mu^{(1)}_t-s)^T)ds.
+\end{equation}
+
+
 \end{document}
 
- roblems with re-estimation:
-1. How to reestimate the state transition function covariance matrix? In the
-discrete world, we compute \gamma_{ij}, the posterior probability of state i
-and time t-1 and state j at time t.  Maybe just the product \alpha_t(s_0)Pd(s|s_0)\hat{\beta}_{t=1}(s) ?
 
-o reestimate $M$ and $b$? Use least-squares!
-\|
-
-
-
-\begin{proof}
-   From the theorem, we have
-\begin{align*}
-\log{P_{t,1}} &= \log{P_{1,t-1}}+\frac{n}{2}\log(2\pi)+
-\frac{1}{2}\log\det(\Sigma_{Tr}\widehat{\Sigma}_t^{-1}\Sigma_{a,t-1})\\
-&-\frac{n}{2}\log(2\pi) - \frac{1}{2}\log\det(\Sigma_{Ob}+\widehat{\Sigma}_t)
--\frac{1}{2}Q(x_t;\mu_{a,t-1},\Sigma_{Ob}+\widehat{\Sigma}_t)\\
-&= \log{P_{t-1}} + \frac{1}{2}\log\det(\Sigma_{Tr}\widehat{\Sigma}_t^{-1}\Sigma_{a,t-1}) - \frac{1}{2}\log\det(\Sigma_{Ob}+\widehat{\Sigma}_t)\\
-&-\frac{1}{2}Q(x_t;\mu_{a,t-1},\Sigma_{Ob}+\widehat{\Sigma}_t)\\
-\end{align*}
-
-\end{proof}
