@@ -383,11 +383,15 @@ $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This
 In particular, if $m=n$, $A$ is symmetric, and $f(A) = \det(A)$,  then the usual expansion 
 in minors along the $i^{th}$ row shows that 
 $$
-\frac{\partial{\det(A)}}{\partial{A}} = A^* = \det(A)A^{-1},\quad\text{and}\quad\frac{\partial{\log\det(A)}}{\partial{A}} = A^{-1}. 
+\frac{\partial{\det(A)}}{\partial{A}} = (2-\delta_{ij})A^* = (2-\delta_{ij})\det(A)A^{-1},\quad\text{and}
+\quad\frac{\partial{\log\det(A)}}{\partial{A}} = (2-\delta_{ij}A^{-1}. 
 $$
+Here the notation $(2-\delta_{ij})A^*$ means to multiply all off-diagonal elements of $A^*$ by 2 and leave the diagonal unchanged.
+This is of course necessary due the the symmetry $A = A^T$.
+
 Also, since $Q(x;\mu,\Sigma)$ is linear in the coefficients of $\Sigma$, we see that
 $$
-\frac{\partial{Q(x;\mu,\Sigma)}}{\partial{\Sigma}} = (x-\mu)(x-\mu)^T,
+\frac{\partial{Q(x;\mu,\Sigma)}}{\partial{\Sigma}} = (2-\delta_{ij})(x-\mu)(x-\mu)^T,
 $$
 and it is also easy to verify that
 $$
@@ -406,46 +410,42 @@ Now we can minimize $E_0$. We first minimize $E_0$ with respect to $\bar{\mu}_0$
 
 Next, it is easier to maximize $E_0$ with respect to $\overline{\Sigma}_0^{-1}$, and we can set $\bar{\mu}_0 = \mu_{c,0}$ by \eqref{mu_0}:
 \begin{align*}
-0 = \frac{\partial{E_0}}{\partial{\overline{\Sigma}_0^{-1}}} &= -\frac{\partial{\log\det(\overline{\Sigma}_0^{-1})}}{\partial\overline{\Sigma}_0^{-1}} + \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\overline{\Sigma}_0^{-1})}}{\partial{\overline{\Sigma}_0^{-1}}}ds \\
-&= -\overline{\Sigma}_0^{-1} + \int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
+0 = \frac{\partial{E_0}}{\partial{\overline{\Sigma}_0^{-1}}} &= \frac{\partial{\log\det(\overline{\Sigma}_0^{-1})}}{\partial\overline{\Sigma}_0^{-1}} - \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\overline{\Sigma}_0^{-1})}}{\partial{\overline{\Sigma}_0^{-1}}}ds \\
+&= (2-\delta_{ij})\overline{\Sigma}_0 - (2-\delta_{ij})\int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
 \end{align*}
-However, the integral is just the covariance matrix of $\gamma_0(s)$, so not surprisingly, we find that
+Not surprisingly, it follows that
 \begin{equation}\label{Sigma_0}
-\overline{\Sigma}_0^{-1} = \Sigma_{c,0}.
-\end{equation}
+  \overline{\Sigma}_0 = \int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds = \Sigma_{c,o}.
+  \end{equation}
 
 To minimize $E_1$, we differentiate with respect to $\overline{\Sigma}_{ob}^{-1}$:
 \begin{align*}
-  0 = \frac{\partial{E_1}}{\partial{\overline{\Sigma}_{Ob}^{-1}}} &= -T\frac{\partial{\log\det(\overline{\Sigma}_{Ob}^{-1})}}{\partial\overline{\Sigma}_{Ob}^{-1}}
-  + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(s;x_t,\overline{\Sigma}_{Ob}^{-1})}}{\partial{\overline{\Sigma}_{Ob}^{-1}}}ds \\
-  &= -T\overline{\Sigma}_{Ob}^{-1} + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)(s-x_t)(s-x_t)^Tds\\
-  &= -T\overline{\Sigma}_{Ob}^{-1} + \sum_{t=1}^T\int_{\R^n}\gamma_t(s)(ss^T - sx_t^T - x_ts^T + x_tx_t^T)ds \\
-  &= -T\overline{\Sigma}_{Ob}^{-1} + \sum_{t=1}^T(\overline{\Sigma}_{c,t} + \mu_{c,t}\mu_{c,t}^T -\mu_{c,t}x_t^T- x_t\mu_{c,t}^T + x_tx_t^T).
+  0 = \frac{\partial{E_1}}{\partial{\overline{\Sigma}_{Ob}^{-1}}} &= T\frac{\partial{\log\det(\overline{\Sigma}_{Ob}^{-1})}}{\partial\overline{\Sigma}_{Ob}^{-1}}
+  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(s;x_t,\overline{\Sigma}_{Ob}^{-1})}}{\partial{\overline{\Sigma}_{Ob}^{-1}}}ds \\
+  &= (2-\delta{ij})T\overline{\Sigma}_{Ob} - (2-\delta_{ij})\sum_{t=1}^T\int_{\R^n}\gamma_t(s)(s-x_t)(s-x_t)^Tds.
 \end{align*}
-Thus, we see that
+Thus,  we see that
 \begin{equation}\label{Sigma_Ob}
-  \overline{\Sigma}_{Ob}^{-1} = \frac{1}{T}\sum_{t=1}^T [\Sigma_{c,t} + (\mu_{c,t}-x_t)(\mu_{c,t}-x_t)^T].
+  \overline{\Sigma}_{Ob} = \frac{1}{T}\sum_{t=1}^T [\Sigma_{c,t} + (\mu_{c,t}-x_t)(\mu_{c,t}-x_t)^T].
 \end{equation}
 
 Finally, we minimize $E_2$ by differentiating with respect to $\overline{\Sigma}_{Tr}^{-1}$:
 \begin{equation}\label{Sigma_Tr:0}
   \begin{split}
-  0 = \frac{\partial{E_2}}{\partial{\overline{\Sigma}_{Tr}^{-1}}} &= -T\frac{\partial{\log\det(\overline{\Sigma}_{Tr}^{-1})}}{\partial\overline{\Sigma}_{Tr}^{-1}}
-  + \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\overline{\Sigma}_{Tr}^{-1})}}{\partial\overline{\Sigma}_{Tr}^{-1}}duds \\
-      &= -T\overline{\Sigma}_{Tr}^{-1} + \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t\Sigma^{(2)}_t)(u-s)(u-s)^Tduds.
+  0 &= \frac{\partial{E_2}}{\partial{\overline{\Sigma}_{Tr}^{-1}}} = \frac{\partial{\log\det(\overline{\Sigma}_{Tr}^{-1})}}{\partial\overline{\Sigma}_{Tr}^{-1}}
+  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\overline{\Sigma}_{Tr}^{-1})}}{\partial\overline{\Sigma}_{Tr}^{-1}}duds \\
+      &= (2-\delta_{ij}T\overline{\Sigma}_{Tr} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t\Sigma^{(2)}_t)(u-s)(u-s)^Tduds.
   \end{split}
 \end{equation}
 
 As noted earlier, $\N(s,\mu^{(2)}_t,\Sigma^{(2)}_t)$ does not depend on $u$, so we can integrate first with respect to $u$, with a result
 analagous to \eqref{Sigma_Ob}:
-\begin{align*}
-  \int_{-\infty}^{\infty}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)(u-s)(u-s)^Tdu &=
-  \int_{-\infty}^{\infty}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)(u^Tu - u^Ts -s^Tu + s^Ts)du\\
-  &= \Sigma^{(1)}_t + (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^T.
-\end{align*}
+$$
+  \int_{-\infty}^{\infty}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)(u-s)(u-s)^Tdu = \Sigma^{(1)}_t + (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^T.
+$$
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
-  \overline{\Sigma}_{Tr}^{-1} = \frac{1}{T}\sum_{t=1}^T\int_{-\infty}^{\infty}N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(\Sigma^{(1)}_t+
+  \overline{\Sigma}_{Tr} = \frac{1}{T}\sum_{t=1}^T\int_{-\infty}^{\infty}N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(\Sigma^{(1)}_t+
   (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^T)ds.
 \end{equation}
 
@@ -460,17 +460,17 @@ s - \mu^{(1)}_t &= (I - \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1})s - \Sigma_{Tr
   &= \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s - \mu_{a,t-1}).
 \end{align*}
 
-Fortunately, neither $\mu^{(2)}_t$ nor $\Sigma^{(2)}_t$ depends on $s$, so after the substitution $s_1 = s - \mu_{a,t-1}$,
+Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends on $s$, so 
 \eqref{Sigma_Tr:1} becomes
 \begin{equation}\label{Sigma_Tr:2}
   \begin{split}
-    \overline{\Sigma}_{Tr}^{-1} &= \frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
-    \int_{-\infty}^{\infty}\N(s_1;\mu^{(2)}_t-\mu_{a,t-1},\Sigma^{(2)}_t)\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}s_1
-    s_1^T\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}ds_1\\
+    \overline{\Sigma}_{Tr} &= \frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
+    \int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s-\mu_{a,t-1})
+    s-\mu_{a,t-1})^T\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}ds\\
     &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t +\frac{1}{T}\sum_{t=1}^T\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}
-    \left[\int_{-\infty}^{\infty}\N(s_1;\mu^{(2)}_t-\mu_{a,t-1},\Sigma^{(2)}_t)s_1s_1^Tds_1\right]\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}\\
-    &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\frac{1}{T}\sum_{t=1}^T\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}
-    [\Sigma^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}-\mu_{a,t-1})^T]\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}.
+    \left[\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}\\
+   &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{a,t}^{-1}
+   [\Sigma^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{\Sigma}_{a,t}^{-1}\right)\Sigma_{Tr}.
   \end{split}
 \end{equation}
 
