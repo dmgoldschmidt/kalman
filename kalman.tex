@@ -313,9 +313,10 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   \begin{align}
     \Sigma^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr},\notag\\
     \mu^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}s + \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\label{mu(1)}\\
-    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t-1})^{-1}\widetilde{\Sigma}_{b,t-1},     \quad\text{and}\notag\\
-    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t-1})^{-1}\mu_{b,t-1} +
-    \widetilde{\Sigma}_{b,t-1}(\widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t-1})^{-1}\mu_{a,t-1}.\notag
+    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\widetilde{\Sigma}_{b,t-1},\notag\\
+    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+    \widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1},\notag\quad\text{and}\\
+    \widehat{\Sigma}_{c,t} :&= \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t-1}.\notag
   \end{align}
 
   Note that the second factor in \eqref{gamma_hat} does not depend on $u$, and the first factor depends on $s$
@@ -462,17 +463,31 @@ s - \mu^{(1)}_t &= (I - \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1})s - \Sigma_{Tr
 
 Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends on $s$, so 
 \eqref{Sigma_Tr:1} becomes
-\begin{equation}\label{Sigma_Tr:2}
-  \begin{split}
-    \overline{\Sigma}_{Tr} &= \frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
+\begin{align}
+  \overline{\Sigma}_{Tr} &= \frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
     \int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s-\mu_{a,t-1})
-    s-\mu_{a,t-1})^T\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}ds\\
+    s-\mu_{a,t-1})^T\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}ds\notag\\
     &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t +\frac{1}{T}\sum_{t=1}^T\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}
-    \left[\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}\\
+    \left[\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}\notag\\
    &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{a,t}^{-1}
-   [\Sigma^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{\Sigma}_{a,t}^{-1}\right)\Sigma_{Tr}.
-  \end{split}
-\end{equation}
+   [\Sigma^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{\Sigma}_{a,t}^{-1}\right)\Sigma_{Tr}.\label{Sigma_Tr:2}
+  \end{align}
+
+Finally, we can make the following simplification:
+\begin{align*}
+  \mu^{(2)} - \mu_{a,t-1} &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-I)\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-\widehat{\Sigma}_{c,t}\widehat{\Sigma}_{c,t}^{-1})\mu_{a,t-1}\\
+  &=  \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}-\widehat{\Sigma}_{c,t})\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
+\end{align*}
+and substituting this into \eqref{Sigma_Tr:2} we have
+\begin{equation}\label{Sigma_Tr:3}
+\overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{c,t}^{-1}
+   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b_t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
+\end{equation}  
 
 \end{document}
 
