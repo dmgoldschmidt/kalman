@@ -211,6 +211,7 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
   // Begin Baum-Welch iterations
   Array<double> alpha_score(T+1), beta_score(T), gamma_score(T);
   Matrix<double> Sigma_hat_inv(nstates,nstates);
+  double det_Sigma_hat;
   for(int iter = 0;iter < niters;iter++){
     // alpha pass
     mu_a[0] = theta.mu_0;
@@ -219,11 +220,11 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
     for(int t = 1;t <= T;t++){
       Sigma_hat_inv = theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1];
       cout << "\nSigma_hat:\n"<<Sigma_hat_inv;
-      double det = Sigma_hat_inv.inv();
-      cout << "Sigma_hat_inv:\n"<<Sigma_hat_inv<<"det = "<<det<<endl;
+      det_Sigma_hat = Sigma_hat_inv.inv(); // invert in place
+      cout << "Sigma_hat_inv:\n"<<Sigma_hat_inv<<"det_Sigma_hat = "<<det_Sigma_hat<<endl;
       mu_a[t] = theta.Sigma_Ob*Sigma_hat_inv*mu_a[t-1] + (theta.Sigma_Tr + Sigma_a[t-1])*Sigma_hat_inv*data.x[t];
       Sigma_a[t] = theta.Sigma_Ob*Sigma_hat_inv*(theta.Sigma_Tr+Sigma_a[t-1]);
-      alpha_score[t] = alpha_score[t-1] +.5*(log(det) - (mu_a[t-1]-data.x[t]).T()*Sigma_hat_inv*(mu_a[t-1]-data.x[t]));
+      alpha_score[t] = alpha_score[t-1] -.5*(log(det_Sigma_hat) + (mu_a[t-1]-data.x[t]).T()*Sigma_hat_inv*(mu_a[t-1]-data.x[t]));
       cout << "t = "<<t<<endl<<"x[t]:\n"<<data.x[t]<<"Sigma_a[t]:\n"<<Sigma_a[t]<<"mu_a[t]:\n"<<mu_a[t]<<"alpha_score = "<<alpha_score[t]<<endl;;
     }
     // beta pass
@@ -233,81 +234,28 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
     beta_score[T-1] = 0;
     for(int t = T-2;t >= 0;t--){
       Sigma_hat_inv = theta.Sigma_Ob + Sigma_b[t+1];
-      double det = Sigma_hat_inv.inv();
+      det_Sigma_hat = Sigma_hat_inv.inv();
       Sigma_b[t] = Sigma_b[t+1]*Sigma_hat_inv*theta.Sigma_Ob + theta.Sigma_Tr;
       mu_b[t] = Sigma_b[t+1]*Sigma_hat_inv*data.x[t+1] + theta.Sigma_Ob*Sigma_hat_inv*mu_b[t+1];
-      beta_score[t] = beta_score[t+1] + .5*(log(det)-(mu_b[t+1]-data.x[t+1]).T()*Sigma_hat_inv*(mu_b[t+1]-data.x[t+1]));
+      beta_score[t] = beta_score[t+1] - .5*(log(det_Sigma_hat)+(mu_b[t+1]-data.x[t+1]).T()*Sigma_hat_inv*(mu_b[t+1]-data.x[t+1]));
     }
 
     // gamma calculation
-    
+    for(int t = 1;t < T;t++){
+      Sigma_hat_inv = Sigma_a[t] + Sigma_b[t];
+      det_Sigma_hat = Sigma_hat_inv.inv();
+      Sigma_c[t] = Sigma_a[t]*Sigma_hat_inv*Sigma_b[t];
+      mu_c[t] = Sigma_a[t]*Sigma_hat_inv*mu_b[t] + Sigma_b[t]*Sigma_hat_inv*mu_a[t];
+      gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_hat_inv*(mu_a[t]-mu_b[t]));
+      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
+    }
+  }
+}
+
+
+
+
 #if 0        
-
-
-
-
-    // begin gamma pass
-    hmm.gamma_i(0,gamma);
-    if(pi0_reestimate){
-      pi00 = gamma.copy();
-      pi00[0] = 0;
-      if(verbose)cout << "new pi0: "<<pi00<<endl;
-    }
-    if(verbose && data_file == "") cout << format("state[0] = %d\n",state[0]);
-    if(A_reestimate) newA.zero();
-    if(B_reestimate) new_gaussian.zero(); // prepare to re-estimate model
-
-    double gamma_info = 0;
-    double nright = 0;
-    double gamma_score = 0;
-    double tot_gamma0 = 0;
-    //    tot_gamma[0] = tot_gamma[1] = 0;
-    for(int t = 1;t <= ntrain;t++){
-      hmm.gamma_i(t,gamma);
-      if(verbose) {
-        cout << format("gamma[%d]: ",t)<<gamma<<", alpha: "<<hmm.alpha[t]<<", beta: "<<hmm.beta[t];
-        if(data_file == "") cout << format("state: %d ",state[t]);
-        cout << endl;
-      }
-      tot_gamma0 += gamma[1];
-      gamma_info += gamma[1]*log(gamma[1]) + gamma[2]*log(gamma[2]);
-      if(B_reestimate){ // re-train the model with new gammas
-        for(int s = 0;s < 2;s++) new_gaussian.train(t,s,gamma[s+1]);
-      }
-      if(A_reestimate){ // accumulate new A matrix
-        hmm.gamma_ij(t,tempA); // get joint prob(state_{t-1} = i, state_t = j) 
-        newA *= A_decay; // age off the previous terms
-        newA += tempA; // add the new one
-      }
-      if(data_file == ""){ // compute gamma score in simulation mode
-        int s = state[t];
-        gamma_score += log(2*gamma[s+1]);
-        //        cout << format("state[%d]: %d, gamma_score: %f, gamma: ",t,s,gamma_score)<<gamma;
-        if(gamma[s+1] > .5){
-          nright++;
-          //cout << "right\n";
-        }
-        // if(iter == 9)
-        //   cout << format("state[%d]: %d gamma: %f score: %f\n",t,s,gamma[s+1],gamma_score);
-        //        else cout << "wrong\n";
-      }
-    }
-    // end gamma pass
-    cout << "state dwell time: "<<tot_gamma0/ntrain<<" " << 1 - tot_gamma0/ntrain<<endl;
-    cout <<"average gamma information: "<< gamma_info/(log(2)*ntrain) + 1<<" bits/observation\n";
-    if(data_file == "")
-      cout << format("gamma score: %f bits/observation, %% correct: %f\n",gamma_score/(log(2)*ntrain),
-                     nright/(double)ntrain);
-    if(A_reestimate){
-      for(int s0 = 0;s0 < 2;s0++){
-        double sum = newA(s0,0) + newA(s0,1);
-        for(int s1 = 0;s1 < 2;s1++) A(s0,s1) = newA(s0,s1)/sum;
-      }
-      cout << "new A-matrix:\n"<<A;
-    }
-    gaussian.copy_model(new_gaussian);  // replace old model with new
-    cout << "new model:\n"<<gaussian.output();
-  } // end iteration
 
 
   Array<ProbHistogram> hist(2);
@@ -404,4 +352,4 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
   cout << format("stake: %g mean daily (gross) return: %g+-%g daily sharpe: %g max_drawdown: %g%% nobet: %d\n",
                  stake,stake_stats.mean(), stake_sigma, sharpe, max_drawdown*100,nobet);
 #endif
-}
+

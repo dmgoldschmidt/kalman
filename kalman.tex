@@ -145,7 +145,7 @@ as required.
 
 \begin{Cor}
 \begin{align}
-  \N(x;\mu_1\Sigma_1)\N(x;\mu_2,\Sigma_2) &= \N(\mu_1;\mu_2,\Sigma_1+\Sigma_2)
+  \N(x;\mu_1,\Sigma_1)\N(x;\mu_2,\Sigma_2) &= \N(\mu_1;\mu_2,\Sigma_1+\Sigma_2)
   \N(x;\mu,\Sigma) \quad\text{where}\label{comp_sq:2}\\
  \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2, \quad\text{and}\notag\\
  \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2.\notag
@@ -189,7 +189,7 @@ where
   \Sigma_{a,t} &= \Sigma_{Ob}(\Sigma_{Ob}+\widehat{\Sigma}_{a,t})^{-1}\widehat{\Sigma}_{a,t},\\
   \widehat{\Sigma}_{a,t} &= \Sigma_{Tr}+\Sigma_{a,t-1},
  \quad\text{and}\\
-  P_{1,t} &=P_{a,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_{a,t}).
+  P_{a,t} &=P_{a,t-1}N(x_t;\mu_{a,t-1},\Sigma_{Ob} + \widehat{\Sigma}_{a,t}).
 \end{align*}
 \end{Thm}
 
@@ -214,59 +214,58 @@ Then multiplying by $X(x_t\mid s)$ yields
 
 \section{The Beta Pass}
 This calculation is very similar to the alpha pass; the main difference being that we do
-the measurement update first by multiplying by $X(x_{t+1}\mid u)$ to obtain $\hat{\beta}_t(u)$,
+the measurement update first by multiplying by $X(x_{t+1}\mid u)$ to obtain $\hat{\beta}_{t+1}(u)$,
 and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  
 
 \begin{Thm}\label{beta:1}
   Let 
 \begin{align*}
-  \widehat{\Sigma}_{b,t} :&= \Sigma_{Ob}+\Sigma_{b,t+1},\quad\text{and}\\
-    \widetilde{\Sigma}_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_{b,t}^{-1}\Sigma_{Ob}.
+  \widehat{\Sigma}_{b,t} :&= \Sigma_{Ob}+\Sigma_{b,t},\quad\text{and}\\
+    \widetilde{\Sigma}_{b,t} :&= \Sigma_{b,t}\widehat{\Sigma}_{b,t}^{-1}\Sigma_{Ob}.
 \end{align*}
 
-  Then for each state $s$ and time $t \le T$,
+  Then for each state $s$ and time $t < T$,
 $$
   \beta_t(s) = P_{b,t}N(s;\mu_{b,t},\Sigma_{b,t}),
 $$
 where
 \begin{align*}
-  \mu_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_{b,t}^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_{b,t}^{-1}\mu_{b,t+1},\\
-  \Sigma_{b,t} :&= \widetilde{\Sigma}_{b,t} + \Sigma_{Tr},\quad\text{and}\\
-  P_{b,t}:&=P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})
-\quad(t< T),\\
+  \mu_{b,t} :&= \Sigma_{b,t+1}\widehat{\Sigma}_{b,t+1}^{-1}x_{t+1} + \Sigma_{Ob}\widehat{\Sigma}_{b,t+1}^{-1}\mu_{b,t+1},\\
+  \Sigma_{b,t} :&= \widetilde{\Sigma}_{b,t+1} + \Sigma_{Tr},\quad\text{and}\\
+  P_{b,t}:&=P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t+1}),\\
   P_{b,T} :&= 1.
 \end{align*}
 \end{Thm}
 
 \begin{proof}
   We proceed by reverse induction on $t$. However, to get started we first must  deal with
-  the special case $\beta_{T+1}(u) = 1$.  Thus,
+  the special case $\beta_{T}(u) = 1$.  Thus,
   \begin{align*}
     \hat{\beta}_T(u) &= \N(u;x_T,\Sigma_{Ob}),\quad\text{and}\\
-    \beta_T(s) &= \int_{\R^n}\N(u;x_T,\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
+    \beta_{T-1}(s) &= \int_{\R^n}\N(u;x_T,\Sigma_{Ob})\N(u;s,\Sigma_{Tr})du \\
     &= \N(s;x_T,\Sigma_{Ob}+\Sigma_{Tr})
   \end{align*}
 
-  Thus, our initial values at $t = T$ are
+  Thus, our initial values at $t = T-1$ are
   \begin{align*}
-  P_{b,T} &= 1,\\
-  \mu_{b,T} &= x_T, \quad\text{and}\\
-  \Sigma_{b,T} &= \Sigma_{Ob}+\Sigma_{Tr}.
+  P_{b,t} &= 1,\\
+  \mu_{b,t} &= x_T, \quad\text{and}\\
+  \Sigma_{b,t} &= \Sigma_{Ob}+\Sigma_{Tr}.
   \end{align*}
 
-  For $t <  T$, we have 
+  For $t <  T-1$, we have 
   \begin{align*}
-    \hat{\beta}_t(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
+    \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(u;x_{t+1},\Sigma_{Ob})\N(u;\mu_{b,t+1},\Sigma_{b,t+1})\\
-    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t}).
+    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t+1})\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t+1}).
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields
   \begin{align*}
-    \beta_t(s) &= \int_{\R^n}\hat{\beta}_t(u)Pd(u\mid s)du \\
-    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t})\N(u;s,\Sigma_{Tr})du\\
-    &=P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(s;\mu_{b,t},\Sigma_{b,t})\\
-    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t})\N(s;\mu_{b,t},\Sigma_{b,t}).
+    \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
+    &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t+1})\int_{\R^n}\N(u;\mu_{b,t},\widetilde{\Sigma}_{b,t+1})\N(u;s,\Sigma_{Tr})du\\
+    &=P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t+1})\N(s;\mu_{b,t},\Sigma_{b,t}),\quad\text{whence}\\
+    P_{b,t} &= P_{b,t+1}\N(x_{t+1};\mu_{b,t+1},\widehat{\Sigma}_{b,t+1}).
   \end{align*}
 \end{proof}
 
@@ -295,7 +294,7 @@ $$
   \N(s;\mu_{b,t},\Sigma_{b,t})ds\\
   &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})\N(s;\mu_{c,t},
   \Sigma_{c,t}), \quad\text{whence}\\
-  \int_{\R^n}\alpha_t(s)\beta_t(s) &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})
+  \int_{\R^n}\alpha_t(s)\beta_t(s)ds &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})
   \end{align*}
 by \eqref{int_prod}, and the theorem follows.
 \end{proof}
