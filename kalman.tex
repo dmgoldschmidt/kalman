@@ -274,9 +274,10 @@ Recall that $\gamma_t(s)$ is the posterior probability density of state $s$
 at time $t$. 
 \begin{Thm}
   Let notation be as in \eqref{alpha:1} and \eqref{beta:1}.  Define
-$$
-  \widehat{\Sigma}_{c,t} := \Sigma_{a,t}+\Sigma_{b,t}.
-  $$
+\begin{align*}
+  \widehat{\Sigma}_{c,t} :&= \Sigma_{a,t}+\Sigma_{b,t}, \quad\text{and}\\
+  P_{c,t} :&= \int_{\R^n}\alpha_t(s)\beta_t(s)ds.
+\end{align*}
   Then
   \begin{align*}
       \gamma_t(s) &= \N(s;\mu_{c,t},\Sigma_{c,t}),\quad\text{where}\\
@@ -294,10 +295,20 @@ $$
   \N(s;\mu_{b,t},\Sigma_{b,t})ds\\
   &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})\N(s;\mu_{c,t},
   \Sigma_{c,t}), \quad\text{whence}\\
-  \int_{\R^n}\alpha_t(s)\beta_t(s)ds &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})
+  P_{c,t} &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})
   \end{align*}
 by \eqref{int_prod}, and the theorem follows.
 \end{proof}
+By definition, $P_{c,t}$ is the posterior probability density of all the data and is therefore independent of $t$.
+However, as a useful check on our calculations, we can derive this directly:
+\begin{align*}
+  \frac{P_{c,t}}{P_{c,t+1}} &= \frac{P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t}}
+  {P_{a,t+1}P_{b,t+1}\N(\mu_{a,t+1};\mu_{b,t+1},\Sigma_{a,t+1}+\Sigma_{b,t+1})}\\
+  &=\frac{P_{a,t}P_{b,t+1}\N(x_{t+1};\mu_{t+1},\widehat{\Sigma}_{b,t+1})\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})}
+  {P_{a,t}P_{b,t+1}\N(x_{t-1};\mu_{a,t}\Sigma_{Ob}+\widehat{\Sigma}_{a,t})\N(\mu_{a,t+1};\mu_{b,t+1},\Sigma_{a,t+1}+\Sigma_{b,t+1})}\\
+\end{align*}
+
+
 We also need the joint posterior probability density of state $u$ at time $t-1$ and state $s$ at time $t$,
 which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all the data and the two given states
   $u,s$  at times $t-1,t$ is

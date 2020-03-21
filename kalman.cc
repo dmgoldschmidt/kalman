@@ -14,7 +14,7 @@
 using namespace std;
 
 double zero(0);
-
+void printmat(matrix& A){cout << A;}
 struct ArrayInitializer : public Initializer<Array<double>> { 
   // For use with Array<Array<double>>
   int length;
@@ -51,7 +51,7 @@ struct RanVec {
   }
   void reset(const Matrix<double>& Sig){
     S.reduce(Sig);
-    cout << "reduced Sigma:\n"<<S.A;
+    //    cout << "reduced Sigma:\n"<<S.A;
   }
   
   void reset_mu(const ColVector<double>& m){
@@ -112,7 +112,7 @@ struct Data {
     ran_vec_Tr.reset(theta.Sigma_0);
     ran_vec_Tr.reset_mu(theta.mu_0);
     state[0].copy(ran_vec_Tr.dev());
-    cout << "initial state: "<<state[0].T()<<endl;
+    cout << "simulate: initial state: "<<state[0].T()<<endl;
     ColVector<double> mean_state(nstates);
     mean_state[0] = mean_state[1] = 0;
     ran_vec_Ob.reset(theta.Sigma_Ob);
@@ -121,13 +121,13 @@ struct Data {
       ran_vec_Tr.mu = state[t-1]; // soft copy
       state[t].copy(ran_vec_Tr.dev());
       mean_state += state[t]-state[t-1];
-      cout << format("state[%d]: ",t)<<state[t].T()<<endl;
+      //      cout << format("state[%d]: ",t)<<state[t].T()<<endl;
       ran_vec_Ob.mu = state[t];
       x[t].copy(ran_vec_Ob.dev());
-      cout << format("x[%d]: ",t)<<x[t].T()<<endl;
+      //      cout << format("x[%d]: ",t)<<x[t].T()<<endl;
     }
     mean_state *= 1.0/max_recs;
-    cout << "mean delta state : "<<mean_state.T()<<endl;
+    //    cout << "mean delta state : "<<mean_state.T()<<endl;
   }
 };
 
@@ -135,8 +135,8 @@ struct Data {
 
 int main(int argc, char** argv){
 
-  int niters = 100;
-  int max_recs = 10000; // zero means read the entire file
+  int niters = 1;
+  int max_recs = 100; // zero means read the entire file
   string data_file = ""; //data (either real or from simulation)
   string outfile = ""; // output
   string param_file = ""; // nominal input parameters
@@ -159,6 +159,7 @@ int main(int argc, char** argv){
 
   GetOpt cl(argc,argv,help_msg); // parse command line
   cout << "input parameters:\n";
+  cl.get("nstates",nstates); cout << "nstates: "<< nstates<<endl;
   cl.get("data_file",data_file); cout << "data_file: "<<data_file<<endl;
   cl.get("ddir", data_dir); cout << "data_dir: "<<data_dir<<endl;
   cl.get("outfile",outfile); cout << "outfile: "<<outfile<<endl;
@@ -213,19 +214,25 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
   Matrix<double> Sigma_hat_inv(nstates,nstates);
   double det_Sigma_hat;
   for(int iter = 0;iter < niters;iter++){
+    cout << "Sigma_0:\n"<<theta.Sigma_0<<"mu_0:\n"<<theta.mu_0<<"Sigma_Ob:\n"<<theta.Sigma_Ob<<"Sigma_Tr\n"<<theta.Sigma_Tr;
     // alpha pass
     mu_a[0] = theta.mu_0;
     Sigma_a[0] = theta.Sigma_0;
     alpha_score[0] = 0;
     for(int t = 1;t <= T;t++){
       Sigma_hat_inv = theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1];
-      cout << "\nSigma_hat:\n"<<Sigma_hat_inv;
+      //    cout << "\nSigma_hat:\n"<<Sigma_hat_inv;//fflush(stdout);
       det_Sigma_hat = Sigma_hat_inv.inv(); // invert in place
-      cout << "Sigma_hat_inv:\n"<<Sigma_hat_inv<<"det_Sigma_hat = "<<det_Sigma_hat<<endl;
+      //      cout << "Sigma_hat_inv:\n"<<Sigma_hat_inv<<"det_Sigma_hat = "<<det_Sigma_hat<<endl;
       mu_a[t] = theta.Sigma_Ob*Sigma_hat_inv*mu_a[t-1] + (theta.Sigma_Tr + Sigma_a[t-1])*Sigma_hat_inv*data.x[t];
+      //      matrix A = theta.Sigma_Tr+Sigma_a[t-1];
+      //      cout << "A:\n"<<A<<"Sigma_hat_inv:\n"<<Sigma_hat_inv;
+      //      matrix B = Sigma_hat_inv*A;
+      //      cout << "B:\n"<<B;
+      //      Sigma_a[t] = theta.Sigma_Ob*B;
       Sigma_a[t] = theta.Sigma_Ob*Sigma_hat_inv*(theta.Sigma_Tr+Sigma_a[t-1]);
       alpha_score[t] = alpha_score[t-1] -.5*(log(det_Sigma_hat) + (mu_a[t-1]-data.x[t]).T()*Sigma_hat_inv*(mu_a[t-1]-data.x[t]));
-      cout << "t = "<<t<<endl<<"x[t]:\n"<<data.x[t]<<"Sigma_a[t]:\n"<<Sigma_a[t]<<"mu_a[t]:\n"<<mu_a[t]<<"alpha_score = "<<alpha_score[t]<<endl;;
+      //cout << "t = "<<t<<endl<<"x[t]:\n"<<data.x[t]<<"Sigma_a[t]:\n"<<Sigma_a[t]<<"mu_a[t]:\n"<<mu_a[t]<<"alpha_score = "<<alpha_score[t]<<endl;;
     }
     // beta pass
     

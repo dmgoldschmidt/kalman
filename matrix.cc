@@ -3,6 +3,8 @@
 
 // matrix routines for SCALAR=double
 
+//void printmat(matrix& A){ cout << A;}
+
 bool scale_rows(matrix& C){
   double d;
   for(int i = 0;i < C.nrows();i++){
@@ -82,7 +84,8 @@ int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rota
 // }
     
 matrix qr(const matrix& A){
-  matrix QR(A.nrows(),A.nrows()+A.ncols(),0);
+  double zero(0);
+  matrix QR(A.nrows(),A.nrows()+A.ncols(),&zero);
   matrix Q(QR.slice(0,A.ncols(),A.nrows(),A.nrows()));
   matrix R(QR.slice(0,0,A.nrows(),A.ncols()));
 
@@ -98,6 +101,7 @@ void reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
   double a,b;
 
   for(int i = 0;i < n;i++){
+    //cout << "reduce:\n"<<A;
     if( fabs(b = A(i,i)) < eps)throw "solve: Matrix is singular\n";
     A(i,i) = 1.0;
     for(int j = i+1;j < A.ncols();j++) A(i,j) /= b;
@@ -105,7 +109,7 @@ void reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
       a = A(k,i);
       A(k,i) = 0;
       for(int j = i+1;j < A.ncols();j++) A(k,j) -= a*A(i,j);
-      //      cout << format("\nk,i = (%d,%d) A:\n",k,i)<<A;
+      //cout << format("\n(k,i) = (%d,%d) A:\n",k,i)<<A;
     }
   }
 }
