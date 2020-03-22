@@ -299,15 +299,6 @@ at time $t$.
   \end{align*}
 by \eqref{int_prod}, and the theorem follows.
 \end{proof}
-By definition, $P_{c,t}$ is the posterior probability density of all the data and is therefore independent of $t$.
-However, as a useful check on our calculations, we can derive this directly:
-\begin{align*}
-  \frac{P_{c,t}}{P_{c,t+1}} &= \frac{P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t}}
-  {P_{a,t+1}P_{b,t+1}\N(\mu_{a,t+1};\mu_{b,t+1},\Sigma_{a,t+1}+\Sigma_{b,t+1})}\\
-  &=\frac{P_{a,t}P_{b,t+1}\N(x_{t+1};\mu_{t+1},\widehat{\Sigma}_{b,t+1})\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})}
-  {P_{a,t}P_{b,t+1}\N(x_{t-1};\mu_{a,t}\Sigma_{Ob}+\widehat{\Sigma}_{a,t})\N(\mu_{a,t+1};\mu_{b,t+1},\Sigma_{a,t+1}+\Sigma_{b,t+1})}\\
-\end{align*}
-
 
 We also need the joint posterior probability density of state $u$ at time $t-1$ and state $s$ at time $t$,
 which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all the data and the two given states
@@ -386,7 +377,7 @@ joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
 $$
 E_2 = T\log\det(\overline{\Sigma}^{-1}_{Tr}) - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)Q(s;u,\overline{\Sigma}_{Tr})duds,
 $$
-where $\hat{\sigma}_t(s,u)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
+where $\hat{\gamma}_t(s,u)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
 at time $t$ given by \eqref{gamma_hat}.
 
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
@@ -397,10 +388,10 @@ $$
 \frac{\partial{\det(A)}}{\partial{A}} = (2-\delta_{ij})A^* = (2-\delta_{ij})\det(A)A^{-1},\quad\text{and}
 \quad\frac{\partial{\log\det(A)}}{\partial{A}} = (2-\delta_{ij}A^{-1}. 
 $$
-Here the notation $(2-\delta_{ij})A^*$ means to multiply all off-diagonal elements of $A^*$ by 2 and leave the diagonal unchanged.
-This is of course necessary due the the symmetry $A = A^T$.
+Here $A^*$ is the adjoint matrix and the notation $(2-\delta_{ij})A^*$ means to multiply all off-diagonal elements of $A^*$ by 2
+and leave the diagonal unchanged.  This is of course necessary due the the symmetry $A = A^T$.
 
-Also, since $Q(x;\mu,\Sigma)$ is linear in the coefficients of $\Sigma$, we see that
+In addition, since $Q(x;\mu,\Sigma)$ is linear in the coefficients of $\Sigma$, we see that
 $$
 \frac{\partial{Q(x;\mu,\Sigma)}}{\partial{\Sigma}} = (2-\delta_{ij})(x-\mu)(x-\mu)^T,
 $$
@@ -409,8 +400,8 @@ $$
 \frac{\partial{Q(x;\mu,\Sigma)}}{\partial{\mu}} = 2\Sigma(\mu-x).
 $$
 
-Now we can minimize $E_0$. We first minimize $E_0$ with respect to $\bar{\mu}_0$: 
-
+Armed with these formulas, we first minimize $E_0$ with respect to $\bar{\mu}_0$: 
+ 
 \begin{align}
 0 = \frac{\partial{E_0}}{\partial{\bar{\mu}_0}} &= \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\bar{\mu}_0,\overline{\Sigma}_0)}}{\partial{\bar{\mu}_0}}ds \notag\\
 &= \int_{\R^n}\gamma_0(s)(2\overline{\Sigma}_0^{-1}(\bar{\mu}_0-s))ds\notag\\
@@ -419,7 +410,7 @@ Now we can minimize $E_0$. We first minimize $E_0$ with respect to $\bar{\mu}_0$
 \bar{\mu}_0 &= \mu_{c,0}\label{mu_0}
 \end{align}
 
-Next, it is easier to maximize $E_0$ with respect to $\overline{\Sigma}_0^{-1}$, and we can set $\bar{\mu}_0 = \mu_{c,0}$ by \eqref{mu_0}:
+Next, we maximize $E_0$ with respect to $\overline{\Sigma}_0^{-1}$, and we can set $\bar{\mu}_0 = \mu_{c,0}$ by \eqref{mu_0}:
 \begin{align*}
 0 = \frac{\partial{E_0}}{\partial{\overline{\Sigma}_0^{-1}}} &= \frac{\partial{\log\det(\overline{\Sigma}_0^{-1})}}{\partial\overline{\Sigma}_0^{-1}} - \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\overline{\Sigma}_0^{-1})}}{\partial{\overline{\Sigma}_0^{-1}}}ds \\
 &= (2-\delta_{ij})\overline{\Sigma}_0 - (2-\delta_{ij})\int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
@@ -501,4 +492,13 @@ and substituting this into \eqref{Sigma_Tr:2} we have
 
 \end{document}
 
+
+By definition, $P_{c,t}$ is the posterior probability density of all the data and is therefore independent of $t$.
+However, as a useful check on our calculations, we can derive this directly:
+\begin{align*}
+  \frac{P_{c,t}}{P_{c,t+1}} &= \frac{P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t}}
+  {P_{a,t+1}P_{b,t+1}\N(\mu_{a,t+1};\mu_{b,t+1},\Sigma_{a,t+1}+\Sigma_{b,t+1})}\\
+  &=\frac{P_{a,t}P_{b,t+1}\N(x_{t+1};\mu_{t+1},\widehat{\Sigma}_{b,t+1})\N(\mu_{a,t};\mu_{b,t},\Sigma_{a,t}+\Sigma_{b,t})}
+  {P_{a,t}P_{b,t+1}\N(x_{t-1};\mu_{a,t}\Sigma_{Ob}+\widehat{\Sigma}_{a,t})\N(\mu_{a,t+1};\mu_{b,t+1},\Sigma_{a,t+1}+\Sigma_{b,t+1})}\\
+\end{align*}
 

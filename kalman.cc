@@ -210,7 +210,7 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
   // OK, the data is ready to go
 
   // Begin Baum-Welch iterations
-  Array<double> alpha_score(T+1), beta_score(T), gamma_score(T);
+  Array<double> alpha_score(T+1), beta_score(T), gamma_score(T+1);
   Matrix<double> Sigma_hat_inv(nstates,nstates);
   double det_Sigma_hat;
   for(int iter = 0;iter < niters;iter++){
@@ -219,7 +219,7 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
     mu_a[0] = theta.mu_0;
     Sigma_a[0] = theta.Sigma_0;
     alpha_score[0] = 0;
-    for(int t = 1;t <= T;t++){
+    for(int t = 1;t <= T;t++){ // NOTE: the infix notation is more readable, but inefficient.
       Sigma_hat_inv = theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1];
       //    cout << "\nSigma_hat:\n"<<Sigma_hat_inv;//fflush(stdout);
       det_Sigma_hat = Sigma_hat_inv.inv(); // invert in place
@@ -234,8 +234,8 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
       alpha_score[t] = alpha_score[t-1] -.5*(log(det_Sigma_hat) + (mu_a[t-1]-data.x[t]).T()*Sigma_hat_inv*(mu_a[t-1]-data.x[t]));
       //cout << "t = "<<t<<endl<<"x[t]:\n"<<data.x[t]<<"Sigma_a[t]:\n"<<Sigma_a[t]<<"mu_a[t]:\n"<<mu_a[t]<<"alpha_score = "<<alpha_score[t]<<endl;;
     }
-    // beta pass
     
+    // beta pass
     mu_b[T-1] = data.x[T];
     Sigma_b[T-1] = theta.Sigma_Ob + theta.Sigma_Tr;
     beta_score[T-1] = 0;
@@ -248,7 +248,10 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
     }
 
     // gamma calculation
-    for(int t = 1;t < T;t++){
+    Sigma_c[T] = Sigma_a[T];
+    mu_c[T] = mu_a[T];
+    gamma_score[T] = alpha_score[T];
+    for(int t = 0;t < T;t++){
       Sigma_hat_inv = Sigma_a[t] + Sigma_b[t];
       det_Sigma_hat = Sigma_hat_inv.inv();
       Sigma_c[t] = Sigma_a[t]*Sigma_hat_inv*Sigma_b[t];
@@ -256,6 +259,7 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
       gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_hat_inv*(mu_a[t]-mu_b[t]));
       cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
+    cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
   }
 }
 
