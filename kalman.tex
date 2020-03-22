@@ -307,17 +307,17 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
     \hat{\gamma}_t(s,u) &\propto \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \notag\\
     &= \N(u;\mu_{a,t-1},\Sigma_{a,t-1})\N(u;s,\Sigma_{Tr})  \N(s;x_t,\Sigma_{Ob})\N(s;\mu_{b,t},\Sigma_{b,t})\notag\\
     &\propto \N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu_{a,t-1},\widehat{\Sigma}_{a,t})\N(s;\mu_{b,t-1},
-    \widetilde{\Sigma}_{b,t-1})\notag\\
+    \widetilde{\Sigma}_{b,t})\notag\\
     &\propto \N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t),\label{gamma_hat}
   \end{align}
   where we have discarded factors which do not depend on either $u$ or $s$, and 
   \begin{align}
     \Sigma^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr},\notag\\
     \mu^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}s + \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\label{mu(1)}\\
-    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\widetilde{\Sigma}_{b,t-1},\notag\\
-    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
-    \widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1},\notag\quad\text{and}\\
-    \widehat{\Sigma}_{c,t} :&= \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t-1}.\notag
+    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\widetilde{\Sigma}_{b,t},\notag\quad\text{and}\\
+    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{b,t-1} +
+    \widetilde{\Sigma}_{b,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{a,t-1}.
+%    \widehat{\Sigma}_{c,t} :&= \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t-1}.\notag
   \end{align}
 
   Note that the second factor in \eqref{gamma_hat} does not depend on $u$, and the first factor depends on $s$
@@ -487,7 +487,7 @@ Finally, we can make the following simplification:
 and substituting this into \eqref{Sigma_Tr:2} we have
 \begin{equation}\label{Sigma_Tr:3}
 \overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{c,t}^{-1}
-   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b_t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
+   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
 \end{equation}  
 
 \end{document}
