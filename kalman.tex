@@ -316,7 +316,7 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
     \mu^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}s + \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\label{mu(1)}\\
     \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\widetilde{\Sigma}_{b,t},\notag\quad\text{and}\\
     \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{b,t-1} +
-    \widetilde{\Sigma}_{b,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{a,t-1}.
+    \widetilde{\Sigma}_{b,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{a,t-1}.\label{mu(2)}
 %    \widehat{\Sigma}_{c,t} :&= \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t-1}.\notag
   \end{align}
 
@@ -386,7 +386,7 @@ In particular, if $m=n$, $A$ is symmetric, and $f(A) = \det(A)$,  then the usual
 in minors along the $i^{th}$ row shows that 
 $$
 \frac{\partial{\det(A)}}{\partial{A}} = (2-\delta_{ij})A^* = (2-\delta_{ij})\det(A)A^{-1},\quad\text{and}
-\quad\frac{\partial{\log\det(A)}}{\partial{A}} = (2-\delta_{ij}A^{-1}. 
+\quad\frac{\partial{\log\det(A)}}{\partial{A}} = (2-\delta_{ij})A^{-1}. 
 $$
 Here $A^*$ is the adjoint matrix and the notation $(2-\delta_{ij})A^*$ means to multiply all off-diagonal elements of $A^*$ by 2
 and leave the diagonal unchanged.  This is of course necessary due the the symmetry $A = A^T$.
@@ -436,7 +436,7 @@ Finally, we minimize $E_2$ by differentiating with respect to $\overline{\Sigma}
   \begin{split}
   0 &= \frac{\partial{E_2}}{\partial{\overline{\Sigma}_{Tr}^{-1}}} = \frac{\partial{\log\det(\overline{\Sigma}_{Tr}^{-1})}}{\partial\overline{\Sigma}_{Tr}^{-1}}
   - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\overline{\Sigma}_{Tr}^{-1})}}{\partial\overline{\Sigma}_{Tr}^{-1}}duds \\
-      &= (2-\delta_{ij}T\overline{\Sigma}_{Tr} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t\Sigma^{(2)}_t)(u-s)(u-s)^Tduds.
+      &= (2-\delta_{ij})T\overline{\Sigma}_{Tr} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu^{(1)}_t,\Sigma^{(1)}_t)\N(s;\mu^{(2)}_t\Sigma^{(2)}_t)(u-s)(u-s)^Tduds.
   \end{split}
 \end{equation}
 
@@ -462,7 +462,27 @@ s - \mu^{(1)}_t &= (I - \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1})s - \Sigma_{Tr
   &= \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s - \mu_{a,t-1}).
 \end{align*}
 
-Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends on $s$, so 
+Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends on $s$, 
+so we can make the affine change of variable 
+$$
+v := \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s - \mu_{a,t-1}),\quad dv := \det(\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1})ds
+$$
+in \eqref{Sigma_Tr:1}, which yields
+\begin{equation} \label{Sigma_tr:2}
+  \begin{split}
+  \overline{\Sigma}_{Tr} &= \frac{1}{T\det\Sigma_{Tr}}\sum_{t=1}^T\det\widehat{\Sigma}_{a,t}
+  \int_{-\infty}^{\infty}N(v;\mu^{(2)}_t-\mu_{a,t-1},\Sigma_t^{(3)})(\Sigma^{(1)}_t + vv^T) dv\\
+  &= \frac{1}{T\det\Sigma_{Tr}}\sum_{t=1}^T\det\widehat{\Sigma}_{a,t}\left(\Sigma^{(1)}_t + \Sigma^{(3)}_t
+  + (\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T\right).
+  \end{split}
+\end{equation}
+where
+$$
+\Sigma_t^{(3)} := \widehat{\Sigma}_{a,t}\Sigma_{Tr}^{-1}\Sigma^{(2)}_t\Sigma_{Tr}^{-1}\widehat{\Sigma}_{a,t}.
+$$
+  
+\end{document}
+
 \eqref{Sigma_Tr:1} becomes
 \begin{align}
   \overline{\Sigma}_{Tr} &= \frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
@@ -474,23 +494,26 @@ Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends 
    [\Sigma^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{\Sigma}_{a,t}^{-1}\right)\Sigma_{Tr}.\label{Sigma_Tr:2}
   \end{align}
 
-Finally, we can make the following simplification:
+Finally, we can make the following simplification by using \eqref{mu(2)} and defining
+$$
+\Sigma_{ab} = \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t}.
+$$
+Then
 \begin{align*}
-  \mu^{(2)} - \mu_{a,t-1} &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-I)\mu_{a,t-1}\\
-  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-\widehat{\Sigma}_{c,t}\widehat{\Sigma}_{c,t}^{-1})\mu_{a,t-1}\\
-  &=  \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{\Sigma}_{b,t-1}-\widehat{\Sigma}_{c,t})\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1}\\
-  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
+  \mu^{(2)} - \mu_{a,t-1} &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{ab}^{-1}-I)\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{ab}^{-1}-\widehat{\Sigma}_{ab}\widehat{\Sigma}_{ab}^{-1})\mu_{a,t-1}\\
+  &=  \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}-\widehat{\Sigma}_{ab})\widehat{\Sigma}_{ab}^{-1}\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
 \end{align*}
 and substituting this into \eqref{Sigma_Tr:2} we have
 \begin{equation}\label{Sigma_Tr:3}
-\overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{c,t}^{-1}
-   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
+\overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{ab}^{-1}
+   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{ab}^{-1}\right)\Sigma_{Tr}.
 \end{equation}  
 
-\end{document}
 
 
 By definition, $P_{c,t}$ is the posterior probability density of all the data and is therefore independent of $t$.

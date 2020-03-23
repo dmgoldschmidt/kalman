@@ -135,7 +135,7 @@ struct Data {
 
 int main(int argc, char** argv){
 
-  int niters = 1;
+  int niters = 10;
   int max_recs = 100; // zero means read the entire file
   string data_file = ""; //data (either real or from simulation)
   string outfile = ""; // output
@@ -168,11 +168,10 @@ int main(int argc, char** argv){
   cl.get("ntrain",ntrain); cout << "ntrain: "<<ntrain<<endl;
   cl.get("ntest",ntest); cout << "ntest: "<<ntest<<endl;
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
-  cl.get("min_delta",min_delta); cout << "min_delta: "<<min_delta<<endl;
   if(cl.get("verbose")){ verbose = true; cout << "verbose: "<<verbose<<endl;}
   if(cl.get("Tr_reestimate")) {Tr_reestimate = true; cout << "Tr_reestimate: "<<Tr_reestimate<<endl;}
   if(cl.get("Ob_reestimate")) {Ob_reestimate = true; cout << "Ob_reestimate: "<<Ob_reestimate<<endl;}
-if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0_reestimate<<endl;}
+  if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0_reestimate<<endl;}
 
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   if(data_file != "" && strcmp(data_file.c_str(),"stdin")) 
@@ -213,7 +212,11 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
   Array<double> alpha_score(T+1), beta_score(T), gamma_score(T+1);
   Matrix<double> Sigma_hat_inv(nstates,nstates);
   double det_Sigma_hat;
+  for(int i = 0;i < nstates;i++){
+    for(int j = 0;j < nstates;j++)theta.Sigma_Ob(i,j) += 1.0;
+  }
   for(int iter = 0;iter < niters;iter++){
+    cout << "Begin iteration "<<iter<<endl;
     cout << "Sigma_0:\n"<<theta.Sigma_0<<"mu_0:\n"<<theta.mu_0<<"Sigma_Ob:\n"<<theta.Sigma_Ob<<"Sigma_Tr\n"<<theta.Sigma_Tr;
     // alpha pass
     mu_a[0] = theta.mu_0;
@@ -257,9 +260,22 @@ if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0
       Sigma_c[t] = Sigma_a[t]*Sigma_hat_inv*Sigma_b[t];
       mu_c[t] = Sigma_a[t]*Sigma_hat_inv*mu_b[t] + Sigma_b[t]*Sigma_hat_inv*mu_a[t];
       gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_hat_inv*(mu_a[t]-mu_b[t]));
-      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
+      //cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
+    cout << "mu_c[0] = "<<mu_c[0].T()<<"\nSigma_c[0]:\n"<<Sigma_c[0];
+
+    //    Re-estimation
+    if(S0_reestimate){
+      theta.mu_0 = mu_c[0];theta.Sigma_0 = Sigma_c[0];
+    }
+    if(Ob_reestimate){
+      theta.Sigma_Ob.fill(0);
+      for(int t = 1;t < T;t++){
+        theta.Sigma_Ob += Sigma_c[t] + (mu_c[t]-data.x[t])*(mu_c[t]-data.x[t]).T();
+      }
+      theta.Sigma_Ob *= 1.0/T;
+    }
   }
 }
 
