@@ -65,14 +65,17 @@ We initialize these recursions with
 \end{align*}
 where $\Sigma_0$ and $\mu_0$ are model parameters.
 
-Because everything in sight is gaussian, the above integrals can be evaluated in closed form, by repeated application of
+Because everything in sight is gaussian, the above integrals can be evaluated in closed form, as we now proceed to show.
+
+\section{Completing the Square}
+
 \begin{Lem}\label{comp_sq:1}
  Define the quadratic form
   $$
  Q(x;\mu,\Sigma) := (x-\mu)^T\Sigma^{-1}(x-\mu),
   $$
-  where $x$ and $\mu_i$ are $n$-dimensional vectors and $\Sigma_i$ is a symmetric positive definite $n\times{n}$
-  matrix ($i = 1,2)$. Then
+  where $x$ and $\mu$ are $n$-dimensional vectors and $\Sigma$ is a symmetric positive definite $n\times{n}$
+  matrix.  Then
   $$
   Q(x;\mu_1,\Sigma_1)+Q(x;\mu_2,\Sigma_2) = Q(x;\mu,\Sigma) + Q(\mu_2;\mu_1,\Sigma_1+\Sigma_2),
   %Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
@@ -161,7 +164,7 @@ In particular,
 \end{Cor}
 
 
-\section{The Alpha Pass}
+\section{The Forward Pass}
   Now we can inductively evaluate \eqref{alpha:0}. To do so, we split the computation
   into two steps.  In the first step, which we call the {\em time update}, we multiply
   $\alpha_{t-1}(u)$ by the state transition function $Pd(s\mid u)$ and integrate with respect
@@ -212,8 +215,8 @@ Then multiplying by $X(x_t\mid s)$ yields
 \end{align*}
 \end{proof}
 
-\section{The Beta Pass}
-This calculation is very similar to the alpha pass; the main difference being that we do
+\section{The Backward Pass}
+This calculation is very similar to the forward pass; the main difference being that we do
 the measurement update first by multiplying by $X(x_{t+1}\mid u)$ to obtain $\hat{\beta}_{t+1}(u)$,
 and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  
 
@@ -269,21 +272,18 @@ where
   \end{align*}
 \end{proof}
 
-\section{The Gamma Calculation}
+\section{The Posterior Likelihoods}
 Recall that $\gamma_t(s)$ is the posterior probability density of state $s$
 at time $t$. 
 \begin{Thm}
   Let notation be as in \eqref{alpha:1} and \eqref{beta:1}.  Define
 \begin{align*}
   \widehat{\Sigma}_{c,t} :&= \Sigma_{a,t}+\Sigma_{b,t}, \quad\text{and}\\
-  P_{c,t} :&= \int_{\R^n}\alpha_t(s)\beta_t(s)ds.
-\end{align*}
-  Then
-  \begin{align*}
+  P_{c,t} :&= \int_{\R^n}\alpha_t(s)\beta_t(s)ds,\quad\text{then} \\
       \gamma_t(s) &= \N(s;\mu_{c,t},\Sigma_{c,t}),\quad\text{where}\\
-      \Sigma_{c,t} &= \Sigma_{a,t}\widehat{\Sigma}_{c,t}^{-1}\Sigma_{b,t}
+      \Sigma_{c,t} &:= \Sigma_{a,t}\widehat{\Sigma}_{c,t}^{-1}\Sigma_{b,t}
       \quad\text{and}\\
-      \mu_{c,t} &= \Sigma_{a,t}\widehat{\Sigma}_{c_t}^{-1}\mu_{b,t} +
+      \mu_{c,t} &:= \Sigma_{a,t}\widehat{\Sigma}_{c_t}^{-1}\mu_{b,t} +
       \Sigma_{b,t}\widehat{\Sigma}_{c_t}^{-1}\mu_{a,t}.
   \end{align*}
 \end{Thm}
@@ -314,10 +314,10 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   \begin{align}
     \Sigma^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr},\notag\\
     \mu^{(1)}_t &:= \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1}s + \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\label{mu(1)}\\
-    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\widetilde{\Sigma}_{b,t},\notag\quad\text{and}\\
-    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{b,t-1} +
-    \widetilde{\Sigma}_{b,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\mu_{a,t-1}.\label{mu(2)}
-%    \widehat{\Sigma}_{c,t} :&= \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t-1}.\notag
+    \Sigma^{(2)}_t &:= \widehat{\Sigma}_{a,t}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}\widetilde{\Sigma}_{b,t}
+    = \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\widetilde{\Sigma}_{b,t},\notag\quad\text{and}\\
+    \mu^{(2)}_t &:= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+    \widetilde{\Sigma}_{b,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1}\label{mu(2)}.
   \end{align}
 
   Note that the second factor in \eqref{gamma_hat} does not depend on $u$, and the first factor depends on $s$
@@ -447,41 +447,86 @@ $$
 $$
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
-  \overline{\Sigma}_{Tr} = \frac{1}{T}\sum_{t=1}^T\int_{-\infty}^{\infty}N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(\Sigma^{(1)}_t+
-  (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^T)ds.
+  \overline{\Sigma}_{Tr} =  \frac{1}{T}\left(\sum_{t=1}^T\Sigma^{(1)}_t +\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)
+  (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^Tds\right).
 \end{equation}
 
 However, there is a problem evaluating this integral because after checking \eqref{mu(1)}, we see that $\mu^{(1)}_t$
 depends on $s$, namely  
-\begin{align*}
+\begin{equation}\label{s-mu_1}
+    \begin{split}
 s - \mu^{(1)}_t &= (I - \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1})s - \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1}, \\
   &= (\widehat{\Sigma}_{a,t}\widehat{\Sigma}_{a,t}^{-1} - \Sigma_{a,t-1}\widehat{\Sigma}_{a,t}^{-1})s  - 
   \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\\
   &= (\widehat{\Sigma}_{a,t} - \Sigma_{a,t-1})\widehat{\Sigma}_{a,t}^{-1}s - \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\\
   &= \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}s - \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}\mu_{a,t-1},\\
   &= \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s - \mu_{a,t-1}).
-\end{align*}
+    \end{split}
+\end{equation}
 
-Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends on $s$, 
+
+Fortunately, neither $\mu^{(2)}_t,\Sigma^{(2)}_t,$ nor $\Sigma^{(1)}_t$ depends on $s$,
+so \eqref{Sigma_Tr:1} becomes
+\begin{align}
+  \overline{\Sigma}_{Tr} &= \frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
+    \int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s-\mu_{a,t-1})
+    s-\mu_{a,t-1})^T\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}ds\notag\\
+    &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t +\frac{1}{T}\sum_{t=1}^T\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}
+    \left[\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,\Sigma^{(2)}_t)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr}\notag\\
+   &=\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{a,t}^{-1}
+   [\Sigma^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{\Sigma}_{a,t}^{-1}\right)\Sigma_{Tr}.\label{Sigma_Tr:2}
+  \end{align}
+
+Finally, we can make the following simplification by using \eqref{mu(2)}.
+\begin{align*}
+  \mu^{(2)} - \mu_{a,t-1} &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-I)\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-\widehat{\Sigma}_{c,t}\widehat{\Sigma}_{c,t}^{-1})\mu_{a,t-1}\\
+  &=  \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}-\widehat{\Sigma}_{c,t})\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
+\end{align*}
+and substituting this into \eqref{Sigma_Tr:2} we have
+\begin{equation}\label{Sigma_Tr:3}
+\overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{c,t}^{-1}
+   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
+\end{equation}  
+\end{document}
+
+
+
+
+
 so we can make the affine change of variable 
 $$
-v := \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s - \mu_{a,t-1}),\quad dv := \det(\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1})ds
+v := \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(s - \mu_{a,t-1}),\quad dv = \det(\Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1})ds
 $$
 in \eqref{Sigma_Tr:1}, which yields
 \begin{equation} \label{Sigma_tr:2}
   \begin{split}
-  \overline{\Sigma}_{Tr} &= \frac{1}{T\det\Sigma_{Tr}}\sum_{t=1}^T\det\widehat{\Sigma}_{a,t}
-  \int_{-\infty}^{\infty}N(v;\mu^{(2)}_t-\mu_{a,t-1},\Sigma_t^{(3)})(\Sigma^{(1)}_t + vv^T) dv\\
-  &= \frac{1}{T\det\Sigma_{Tr}}\sum_{t=1}^T\det\widehat{\Sigma}_{a,t}\left(\Sigma^{(1)}_t + \Sigma^{(3)}_t
-  + (\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T\right).
+  \overline{\Sigma}_{Tr} &= \frac{1}{T}\sum_{t=1}^T \left(\Sigma^{(1)}_t +\det(\widehat{\Sigma}_{a,t}\Sigma_{Tr}^{-1})
+  \int_{-\infty}^{\infty}\N(v;\mu^{(3)}_t,\Sigma_t^{(3)})vv^T dv\right)\\
+  &=  \frac{1}{T}\sum_{t=1}^T \left(\Sigma^{(1)}_t +\det(\widehat{\Sigma}_{a,t}\Sigma_{Tr}^{-1}) (\Sigma^{(3)}_t
+  + \mu^{(3)}_t(\mu^{(3)}_t)^T)\right).
   \end{split}
 \end{equation}
 where
+\begin{align*}
+\Sigma_t^{(3)} :&= \Sigma_{Tr}\widehat{\Sigma}^{-1}_{a,t}\Sigma^{(2)}_t\widehat{\Sigma}_{a,t}^{-1}\Sigma_{Tr},\quad\text{and}\\
+\mu_t^{(3)} :&= \Sigma_{Tr}\widehat{\Sigma}_{a,t}^{-1}(\mu_t^{(2)} - \mu_{a,t-1}).
+\end{align*}
+
+However, by a calculation entirely analagous to \eqref{s-mu_1}, we find that
 $$
-\Sigma_t^{(3)} := \widehat{\Sigma}_{a,t}\Sigma_{Tr}^{-1}\Sigma^{(2)}_t\Sigma_{Tr}^{-1}\widehat{\Sigma}_{a,t}.
+\Sigma_{tr}\widehat{\Sigma}_{a,t}^{-1}(\mu_t^{(2)}-\mu_{a,t-1})=
+(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}(\mu_{b,t-1}-\mu_{a,t-1}),
 $$
-  
-\end{document}
+which yields
+$$
+\mu_t^{(3)} = \Sigma_{Tr}(\widehat{\Sigma}_{a,t}+\widetilde{\Sigma}_{b,t})^{-1}(\mu_{b,t-1}-\mu_{a,t-1}).
+$$
+
 
 \eqref{Sigma_Tr:1} becomes
 \begin{align}
@@ -496,22 +541,22 @@ $$
 
 Finally, we can make the following simplification by using \eqref{mu(2)} and defining
 $$
-\Sigma_{ab} = \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t}.
+\widehat{\Sigma}_{c,t} = \widehat{\Sigma}_{a,t} + \widetilde{\Sigma}_{b,t}.
 $$
 Then
 \begin{align*}
-  \mu^{(2)} - \mu_{a,t-1} &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}\mu_{b,t-1} +
-  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{ab}^{-1}-I)\mu_{a,t-1}\\
-  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}\mu_{b,t-1} +
-  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{ab}^{-1}-\widehat{\Sigma}_{ab}\widehat{\Sigma}_{ab}^{-1})\mu_{a,t-1}\\
-  &=  \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}\mu_{b,t-1} +
-  (\widetilde{\Sigma}_{b,t-1}-\widehat{\Sigma}_{ab})\widehat{\Sigma}_{ab}^{-1}\mu_{a,t-1}\\
-  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{ab}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
+  \mu^{(2)} - \mu_{a,t-1} &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-I)\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}\widehat{\Sigma}_{c,t}^{-1}-\widehat{\Sigma}_{c,t}\widehat{\Sigma}_{c,t}^{-1})\mu_{a,t-1}\\
+  &=  \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}\mu_{b,t-1} +
+  (\widetilde{\Sigma}_{b,t-1}-\widehat{\Sigma}_{c,t})\widehat{\Sigma}_{c,t}^{-1}\mu_{a,t-1}\\
+  &= \widehat{\Sigma}_{a,t}\widehat{\Sigma}_{c,t}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
 \end{align*}
 and substituting this into \eqref{Sigma_Tr:2} we have
 \begin{equation}\label{Sigma_Tr:3}
-\overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{ab}^{-1}
-   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{ab}^{-1}\right)\Sigma_{Tr}.
+\overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{c,t}^{-1}
+   [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
 \end{equation}  
 
 

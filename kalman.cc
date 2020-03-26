@@ -192,20 +192,20 @@ int main(int argc, char** argv){
   if(ntest == 0) ntest = ntrain+1;
   Array<Matrix<double>> Sigma_a(T+1);
   Array<ColVector<double>> mu_a(T+1);
-  Array<Matrix<double>> Sigma_b(T);
-  Array<ColVector<double>> mu_b(T);
-  Array<Matrix<double>> Sigma_c(T);
-  Array<ColVector<double>> mu_c(T);
-  for(int t = 0;t < T;t++){
+  Array<Matrix<double>> Sigma_b(T+1);
+  Array<ColVector<double>> mu_b(T+1);
+  Array<Matrix<double>> Sigma_c(T+1);
+  Array<Matrix<double>> Sigma_c_hat_inv(T+1); // needed for reestimation
+  Array<ColVector<double>> mu_c(T+1);
+  for(int t = 0;t <= T;t++){
     Sigma_a[t].reset(nstates,nstates);
     mu_a[t].reset(nstates);
     Sigma_b[t].reset(nstates,nstates);
     mu_b[t].reset(nstates);
     Sigma_c[t].reset(nstates,nstates);
+    Sigma_c_hat_inv[t].reset(nstates,nstates); 
     mu_c[t].reset(nstates);
   }
-  Sigma_b[T].reset(nstates,nstates);
-  mu_b[T].reset(nstates);
   // OK, the data is ready to go
 
   // Begin Baum-Welch iterations
@@ -213,7 +213,7 @@ int main(int argc, char** argv){
   Matrix<double> Sigma_hat_inv(nstates,nstates);
   double det_Sigma_hat;
   for(int i = 0;i < nstates;i++){
-    for(int j = 0;j < nstates;j++)theta.Sigma_Ob(i,j) += 1.0;
+    for(int j = 0;j < nstates;j++)theta.Sigma_Tr(i,j) += 1.0;
   }
   for(int iter = 0;iter < niters;iter++){
     cout << "Begin iteration "<<iter<<endl;
@@ -223,16 +223,9 @@ int main(int argc, char** argv){
     Sigma_a[0] = theta.Sigma_0;
     alpha_score[0] = 0;
     for(int t = 1;t <= T;t++){ // NOTE: the infix notation is more readable, but inefficient.
-      Sigma_hat_inv = theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1];
-      //    cout << "\nSigma_hat:\n"<<Sigma_hat_inv;//fflush(stdout);
-      det_Sigma_hat = Sigma_hat_inv.inv(); // invert in place
-      //      cout << "Sigma_hat_inv:\n"<<Sigma_hat_inv<<"det_Sigma_hat = "<<det_Sigma_hat<<endl;
+      Sigma_hat_inv = (theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1]).inv(&det_Sigma_hat);
+      //      det_Sigma_hat = Sigma_hat_inv.inv(); // invert in place
       mu_a[t] = theta.Sigma_Ob*Sigma_hat_inv*mu_a[t-1] + (theta.Sigma_Tr + Sigma_a[t-1])*Sigma_hat_inv*data.x[t];
-      //      matrix A = theta.Sigma_Tr+Sigma_a[t-1];
-      //      cout << "A:\n"<<A<<"Sigma_hat_inv:\n"<<Sigma_hat_inv;
-      //      matrix B = Sigma_hat_inv*A;
-      //      cout << "B:\n"<<B;
-      //      Sigma_a[t] = theta.Sigma_Ob*B;
       Sigma_a[t] = theta.Sigma_Ob*Sigma_hat_inv*(theta.Sigma_Tr+Sigma_a[t-1]);
       alpha_score[t] = alpha_score[t-1] -.5*(log(det_Sigma_hat) + (mu_a[t-1]-data.x[t]).T()*Sigma_hat_inv*(mu_a[t-1]-data.x[t]));
       //cout << "t = "<<t<<endl<<"x[t]:\n"<<data.x[t]<<"Sigma_a[t]:\n"<<Sigma_a[t]<<"mu_a[t]:\n"<<mu_a[t]<<"alpha_score = "<<alpha_score[t]<<endl;;
@@ -241,10 +234,12 @@ int main(int argc, char** argv){
     // beta pass
     mu_b[T-1] = data.x[T];
     Sigma_b[T-1] = theta.Sigma_Ob + theta.Sigma_Tr;
+    mu_b[T-1] = data.x[T-1];
+    Sigma_b[T].fill(0);
     beta_score[T-1] = 0;
     for(int t = T-2;t >= 0;t--){
-      Sigma_hat_inv = theta.Sigma_Ob + Sigma_b[t+1];
-      det_Sigma_hat = Sigma_hat_inv.inv();
+      Sigma_hat_inv = (theta.Sigma_Ob + Sigma_b[t+1]).inv(&det_Sigma_hat);
+      //      det_Sigma_hat = Sigma_hat_inv.inv();
       Sigma_b[t] = Sigma_b[t+1]*Sigma_hat_inv*theta.Sigma_Ob + theta.Sigma_Tr;
       mu_b[t] = Sigma_b[t+1]*Sigma_hat_inv*data.x[t+1] + theta.Sigma_Ob*Sigma_hat_inv*mu_b[t+1];
       beta_score[t] = beta_score[t+1] - .5*(log(det_Sigma_hat)+(mu_b[t+1]-data.x[t+1]).T()*Sigma_hat_inv*(mu_b[t+1]-data.x[t+1]));
@@ -253,13 +248,14 @@ int main(int argc, char** argv){
     // gamma calculation
     Sigma_c[T] = Sigma_a[T];
     mu_c[T] = mu_a[T];
+    Sigma_c_hat_inv[T] =  Sigma_a[T];
     gamma_score[T] = alpha_score[T];
     for(int t = 0;t < T;t++){
-      Sigma_hat_inv = Sigma_a[t] + Sigma_b[t];
-      det_Sigma_hat = Sigma_hat_inv.inv();
-      Sigma_c[t] = Sigma_a[t]*Sigma_hat_inv*Sigma_b[t];
-      mu_c[t] = Sigma_a[t]*Sigma_hat_inv*mu_b[t] + Sigma_b[t]*Sigma_hat_inv*mu_a[t];
-      gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_hat_inv*(mu_a[t]-mu_b[t]));
+      Sigma_c_hat_inv[t] = (Sigma_a[t] + Sigma_b[t]).inv(&det_Sigma_hat);
+      //      det_Sigma_hat = Sigma_c_hat_inv[t].inv();
+      Sigma_c[t] = Sigma_a[t]*Sigma_c_hat_inv[t]*Sigma_b[t];
+      mu_c[t] = Sigma_a[t]*Sigma_c_hat_inv[t]*mu_b[t] + Sigma_b[t]*Sigma_c_hat_inv[t]*mu_a[t];
+      gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_c_hat_inv[t]*(mu_a[t]-mu_b[t]));
       //cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
@@ -275,6 +271,25 @@ int main(int argc, char** argv){
         theta.Sigma_Ob += Sigma_c[t] + (mu_c[t]-data.x[t])*(mu_c[t]-data.x[t]).T();
       }
       theta.Sigma_Ob *= 1.0/T;
+    }
+    if(Tr_reestimate){
+      matrix Sigma_1(nstates,nstates);
+      matrix Sigma_3(nstates,nstates);
+      matrix Sigma_a_hat(nstates,nstates);
+      matrix Sigma_b_tilde(nstates,nstates);
+      ColVector<double> mu_3(nstates);
+      Sigma_1.fill(0);
+      Sigma_3.fill(0);
+      
+      for(int t = 1;t < T;t++){ // t <= T?
+        Sigma_a_hat = Sigma_a[t-1]+theta.Sigma_Tr;
+        Sigma_b_tilde = Sigma_b[t-1] - theta.Sigma_Tr;
+        Sigma_1 += Sigma_a[t-1]*Sigma_a_hat.inv()*theta.Sigma_Tr;
+        mu_3 = Sigma_c_hat_inv[t]*(mu_b[t-1]-mu_a[t-1]);
+        Sigma_3 += Sigma_c_hat_inv[t]*Sigma_a_hat*Sigma_c_hat_inv[t]*Sigma_b_tilde*Sigma_c_hat_inv[t] + mu_3*mu_3.T();
+      }
+      theta.Sigma_Tr = Sigma_1 + (theta.Sigma_Tr*Sigma_3*theta.Sigma_Tr);
+      theta.Sigma_Tr *= 1.0/T;
     }
   }
 }
