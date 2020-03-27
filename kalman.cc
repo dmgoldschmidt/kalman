@@ -149,7 +149,8 @@ int main(int argc, char** argv){
 
   double min_delta = 1.0e-3; // exit criterion for Baum-Welch iterations
   bool verbose = false;
-  bool Tr_reestimate = false; 
+  bool Tr_reestimate = false;
+  bool Tr1_reestimate = false;
   bool Ob_reestimate = false;
   bool S0_reestimate = false;
   char const* help_msg = "Usage:\n\
@@ -168,10 +169,11 @@ int main(int argc, char** argv){
   cl.get("ntrain",ntrain); cout << "ntrain: "<<ntrain<<endl;
   cl.get("ntest",ntest); cout << "ntest: "<<ntest<<endl;
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
-  if(cl.get("verbose")){ verbose = true; cout << "verbose: "<<verbose<<endl;}
-  if(cl.get("Tr_reestimate")) {Tr_reestimate = true; cout << "Tr_reestimate: "<<Tr_reestimate<<endl;}
-  if(cl.get("Ob_reestimate")) {Ob_reestimate = true; cout << "Ob_reestimate: "<<Ob_reestimate<<endl;}
-  if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: "<<S0_reestimate<<endl;}
+  if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
+  if(cl.get("Tr_reestimate")) {Tr_reestimate = true; cout << "Tr_reestimate ";}
+    else if(cl.get("Tr1_reestimate")) {Tr1_reestimate = true; cout << "Tr1_reestimate ";}
+  if(cl.get("Ob_reestimate")) {Ob_reestimate = true; cout << "Ob_reestimate: ";}
+  if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: ";}
 
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   if(data_file != "" && strcmp(data_file.c_str(),"stdin")) 
@@ -267,7 +269,7 @@ int main(int argc, char** argv){
     }
     if(Ob_reestimate){
       theta.Sigma_Ob.fill(0);
-      for(int t = 1;t < T;t++){
+      for(int t = 1;t <= T;t++){
         theta.Sigma_Ob += Sigma_c[t] + (mu_c[t]-data.x[t])*(mu_c[t]-data.x[t]).T();
       }
       theta.Sigma_Ob *= 1.0/T;
@@ -283,12 +285,26 @@ int main(int argc, char** argv){
       
       for(int t = 1;t < T;t++){ // t <= T?
         Sigma_a_hat = Sigma_a[t-1]+theta.Sigma_Tr;
+        //        if(!Sigma_a_hat.symmetric()) throw "oops!";
         Sigma_b_tilde = Sigma_b[t-1] - theta.Sigma_Tr;
+        //        if(!Sigma_b_tilde.symmetric()) throw "oops!";
+        //        if(!Sigma_a[t-1].symmetric()) throw "oops!";
+
         Sigma_1 += Sigma_a[t-1]*Sigma_a_hat.inv()*theta.Sigma_Tr;
+        //        if(!Sigma_1.symmetric()) throw "oops!";
+        
         mu_3 = Sigma_c_hat_inv[t]*(mu_b[t-1]-mu_a[t-1]);
         Sigma_3 += Sigma_c_hat_inv[t]*Sigma_a_hat*Sigma_c_hat_inv[t]*Sigma_b_tilde*Sigma_c_hat_inv[t] + mu_3*mu_3.T();
       }
       theta.Sigma_Tr = Sigma_1 + (theta.Sigma_Tr*Sigma_3*theta.Sigma_Tr);
+      theta.Sigma_Tr *= 1.0/T;
+      theta.Sigma_Tr.symmetrize(); // roundoff errors will accumulate
+    }
+    else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
+      theta.Sigma_Tr.fill(0);
+      for(int t = 1;t <= T;t++){
+        theta.Sigma_Tr += (mu_c[t]-mu_c[t-1])*(mu_c[t]-mu_c[t-1]).T();
+      }
       theta.Sigma_Tr *= 1.0/T;
     }
   }
