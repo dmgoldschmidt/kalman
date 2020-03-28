@@ -120,15 +120,89 @@ void solve(matrix& A, double eps){ // solve linear equations in-place
   reduce(A,eps); // now row-reduce coefficients to identity.  Each rhs is now solved
 }
 
-matrix inv(const matrix& A, double eps){
+// matrix inv(const matrix& A, double eps){
+//   matrix QR = qr(A); // rotate to upper-triangular form
+//   // and append the rotation matrix (as extra columns)
+//   int n = QR.nrows();
+
+//   reduce(QR,eps); // now row-reduce
+//   return QR.slice(0,n,n,n); // return the left-most n columns
+// }
+
+matrix inv(const matrix& A, double* det){ // general matrix inverse
+  assert(A.nrows() == A.ncols());
   matrix QR = qr(A); // rotate to upper-triangular form
   // and append the rotation matrix (as extra columns)
+  //    cout << "after qr:\n";QR.print();
   int n = QR.nrows();
-
-  reduce(QR,eps); // now row-reduce
-  return QR.slice(0,n,n,n); // return the left-most n columns
+  matrix Q(QR.slice(0,n,n,n));
+  matrix R(QR.slice(0,0,n,n));
+  if(det != nullptr){
+    *det = 1.0;
+    //  cout << "\nR:\n"<<R<<endl;
+    for(int i = 0;i < n;i++){
+      if(R(i,i) < 0){
+        cout << "error at i = "<<i<<"R:\n"; R.print();
+        fflush(stdout);
+      }
+      if(fabs(R(i,i)) < 1.0e-20){
+        *det = 0;
+        break;
+      }
+      *det *= R(i,i);
+      if(fabs(*det)< 1.0e-20){
+        *det = 0;
+        break;
+      }
+    }
+  }
+  reduce(QR); // now row-reduce
+  return Q;
 }
 
+matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
+  assert(A.nrows() == A.ncols());
+  int n = A.nrows();
+  matrix CB(n,2*n);
+  matrix C(CB.slice(0,0,n,n));
+  matrix B(CB.slice(0,n,n,n));
+  cholesky(A,C); // A = C.T()*C
+  B.fill(0);
+  for(int i = 0;i < n;i++) B(i,i) = 1.0; // B = I
+  if(det != nullptr){
+    *det = 1.0;
+    for(int i = 0;i < n;i++){
+      if(C(i,i) < 0){
+        cout << "sym_inv error at i = "<<i<<" C:\n"; C.print();
+        fflush(stdout);
+      }
+      *det *= C(i,i);
+      if(fabs(*det)< 1.0e-20){
+        *det = 0;
+        break;
+      }
+    }
+    *det = *det*(*det);
+  }
+  reduce(CB); // now row-reduce. now B = C_inv
+  return B*B.T(); // A_inv = C_inv*C_inv.T()
+}
+
+void cholesky(const matrix& M, matrix& C){ // user-supplied answer
+  C.fill(0);
+  for(int j = 0;j < M.ncols();j++){
+    for(int i = 0;i <= j;i++){
+      for(int k = 0;k < i;k++) C(i,j) += C(k,i)*C(k,j);
+      C(i,j) = i < j? (M(i,j) - C(i,j))/C(i,i) : sqrt(M(j,j) - C(j,j));
+    }
+  }
+}
+
+matrix cholesky(const matrix& M){ // we return the answer
+  matrix C(M.nrows(),M.ncols());
+  cholesky(M,C);
+  return C;
+}
 
 Array<matrix> svd(const matrix& A, double eps, int maxiters){
   Array<matrix> QR(2);
