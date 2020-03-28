@@ -225,7 +225,7 @@ int main(int argc, char** argv){
     Sigma_a[0] = theta.Sigma_0;
     alpha_score[0] = 0;
     for(int t = 1;t <= T;t++){ // NOTE: the infix notation is more readable, but inefficient.
-      Sigma_hat_inv = (theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1]).inv(&det_Sigma_hat);
+      Sigma_hat_inv = sym_inv(theta.Sigma_Ob + theta.Sigma_Tr + Sigma_a[t-1],&det_Sigma_hat);
       //      det_Sigma_hat = Sigma_hat_inv.inv(); // invert in place
       mu_a[t] = theta.Sigma_Ob*Sigma_hat_inv*mu_a[t-1] + (theta.Sigma_Tr + Sigma_a[t-1])*Sigma_hat_inv*data.x[t];
       Sigma_a[t] = theta.Sigma_Ob*Sigma_hat_inv*(theta.Sigma_Tr+Sigma_a[t-1]);
@@ -240,7 +240,7 @@ int main(int argc, char** argv){
     Sigma_b[T].fill(0);
     beta_score[T-1] = 0;
     for(int t = T-2;t >= 0;t--){
-      Sigma_hat_inv = (theta.Sigma_Ob + Sigma_b[t+1]).inv(&det_Sigma_hat);
+      Sigma_hat_inv = sym_inv(theta.Sigma_Ob + Sigma_b[t+1],&det_Sigma_hat);
       //      det_Sigma_hat = Sigma_hat_inv.inv();
       Sigma_b[t] = Sigma_b[t+1]*Sigma_hat_inv*theta.Sigma_Ob + theta.Sigma_Tr;
       mu_b[t] = Sigma_b[t+1]*Sigma_hat_inv*data.x[t+1] + theta.Sigma_Ob*Sigma_hat_inv*mu_b[t+1];
@@ -253,12 +253,12 @@ int main(int argc, char** argv){
     Sigma_c_hat_inv[T] =  Sigma_a[T];
     gamma_score[T] = alpha_score[T];
     for(int t = 0;t < T;t++){
-      Sigma_c_hat_inv[t] = (Sigma_a[t] + Sigma_b[t]).inv(&det_Sigma_hat);
+      Sigma_c_hat_inv[t] = sym_inv(Sigma_a[t] + Sigma_b[t],&det_Sigma_hat);
       //      det_Sigma_hat = Sigma_c_hat_inv[t].inv();
       Sigma_c[t] = Sigma_a[t]*Sigma_c_hat_inv[t]*Sigma_b[t];
       mu_c[t] = Sigma_a[t]*Sigma_c_hat_inv[t]*mu_b[t] + Sigma_b[t]*Sigma_c_hat_inv[t]*mu_a[t];
       gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_c_hat_inv[t]*(mu_a[t]-mu_b[t]));
-      //cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
+      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
     cout << "mu_c[0] = "<<mu_c[0].T()<<"\nSigma_c[0]:\n"<<Sigma_c[0];
@@ -285,20 +285,13 @@ int main(int argc, char** argv){
       
       for(int t = 1;t < T;t++){ // t <= T?
         Sigma_a_hat = Sigma_a[t-1]+theta.Sigma_Tr;
-        //        if(!Sigma_a_hat.symmetric()) throw "oops!";
         Sigma_b_tilde = Sigma_b[t-1] - theta.Sigma_Tr;
-        //        if(!Sigma_b_tilde.symmetric()) throw "oops!";
-        //        if(!Sigma_a[t-1].symmetric()) throw "oops!";
-
-        Sigma_1 += Sigma_a[t-1]*Sigma_a_hat.inv()*theta.Sigma_Tr;
-        //        if(!Sigma_1.symmetric()) throw "oops!";
-        
+        Sigma_1 += Sigma_a[t-1]*sym_inv(Sigma_a_hat)*theta.Sigma_Tr;
         mu_3 = Sigma_c_hat_inv[t]*(mu_b[t-1]-mu_a[t-1]);
         Sigma_3 += Sigma_c_hat_inv[t]*Sigma_a_hat*Sigma_c_hat_inv[t]*Sigma_b_tilde*Sigma_c_hat_inv[t] + mu_3*mu_3.T();
       }
       theta.Sigma_Tr = Sigma_1 + (theta.Sigma_Tr*Sigma_3*theta.Sigma_Tr);
       theta.Sigma_Tr *= 1.0/T;
-      theta.Sigma_Tr.symmetrize(); // roundoff errors will accumulate
     }
     else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
       theta.Sigma_Tr.fill(0);
