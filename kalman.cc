@@ -10,7 +10,7 @@
 #include "Awk.h"
 #include "Array.h"
 #include "Matrix.h"
-
+//#define sym_inv inv
 using namespace std;
 
 double zero(0);
@@ -214,9 +214,23 @@ int main(int argc, char** argv){
   Array<double> alpha_score(T+1), beta_score(T), gamma_score(T+1);
   Matrix<double> Sigma_hat_inv(nstates,nstates);
   double det_Sigma_hat;
-  for(int i = 0;i < nstates;i++){
-    for(int j = 0;j < nstates;j++)theta.Sigma_Tr(i,j) += 1.0;
+  if(Tr_reestimate){ // perturb the transition matrix
+    for(int i = 0;i < nstates;i++){
+      for(int j = 0;j < nstates;j++)theta.Sigma_Tr(i,j) += 1.0;
+    }
   }
+  if(Ob_reestimate){ // perturb the observation matrix
+    for(int i = 0;i < nstates;i++){
+      for(int j = 0;j < nstates;j++)theta.Sigma_Ob(i,j) += 1.0;
+    }
+  }
+  if(S0_reestimate){ // perturb the initial state
+    for(int i = 0;i < nstates;i++){
+      theta.mu_0[i] += 1.0;
+      for(int j = 0;j < nstates;j++)theta.Sigma_0(i,j) += 1.0;
+    }
+  }
+   
   for(int iter = 0;iter < niters;iter++){
     cout << "Begin iteration "<<iter<<endl;
     cout << "Sigma_0:\n"<<theta.Sigma_0<<"mu_0:\n"<<theta.mu_0<<"Sigma_Ob:\n"<<theta.Sigma_Ob<<"Sigma_Tr\n"<<theta.Sigma_Tr;
@@ -258,7 +272,7 @@ int main(int argc, char** argv){
       Sigma_c[t] = Sigma_a[t]*Sigma_c_hat_inv[t]*Sigma_b[t];
       mu_c[t] = Sigma_a[t]*Sigma_c_hat_inv[t]*mu_b[t] + Sigma_b[t]*Sigma_c_hat_inv[t]*mu_a[t];
       gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_Sigma_hat)+(mu_a[t]-mu_b[t]).T()*Sigma_c_hat_inv[t]*(mu_a[t]-mu_b[t]));
-      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
+      //      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
     cout << "mu_c[0] = "<<mu_c[0].T()<<"\nSigma_c[0]:\n"<<Sigma_c[0];
@@ -292,13 +306,17 @@ int main(int argc, char** argv){
       }
       theta.Sigma_Tr = Sigma_1 + (theta.Sigma_Tr*Sigma_3*theta.Sigma_Tr);
       theta.Sigma_Tr *= 1.0/T;
+      theta.Sigma_Tr.symmetrize();
     }
     else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
       theta.Sigma_Tr.fill(0);
       for(int t = 1;t <= T;t++){
-        theta.Sigma_Tr += (mu_c[t]-mu_c[t-1])*(mu_c[t]-mu_c[t-1]).T();
+        matrix A = Sigma_c[t]+Sigma_c[t-1];
+        A *= .5;
+        theta.Sigma_Tr += A + (mu_c[t]-mu_c[t-1])*(mu_c[t]-mu_c[t-1]).T();
       }
       theta.Sigma_Tr *= 1.0/T;
+      theta.Sigma_Tr.symmetrize();
     }
   }
 }

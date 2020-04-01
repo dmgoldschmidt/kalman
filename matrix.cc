@@ -170,22 +170,39 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
   B.fill(0);
   for(int i = 0;i < n;i++) B(i,i) = 1.0; // B = I
   if(det != nullptr){
-    *det = 1.0;
+    double d = 1.0;
     for(int i = 0;i < n;i++){
       if(C(i,i) < 0){
         cout << "sym_inv error at i = "<<i<<" C:\n"; C.print();
         fflush(stdout);
       }
-      *det *= C(i,i);
-      if(fabs(*det)< 1.0e-20){
-        *det = 0;
+      d *= C(i,i);
+      if(fabs(d)< 1.0e-20){
+        d = 0;
         break;
       }
     }
-    *det = *det*(*det);
+    *det = d*d;
   }
   reduce(CB); // now row-reduce. now B = C_inv
-  return B*B.T(); // A_inv = C_inv*C_inv.T()
+#if 0
+  matrix T = A*B*(B.T());
+  for(int i = 0;i < n;i++){
+    for(int j = 0;j < i;j++){
+      if(fabs(T(i,j)) > 1.0e-10){
+        cout << "A:\n"<<A<<"T:\n"<<T;
+        fflush(stdout);
+        throw "oops!";
+      }
+    }
+    if(fabs(T(i,i)-1.0) > 1.0e-10){
+      cout << "A:\n"<<A<<"T:\n"<<T;
+      fflush(stdout);
+      throw "oops!";
+    }
+  }
+#endif
+  return B*(B.T()); // A_inv = C_inv*C_inv.T()
 }
 
 void cholesky(const matrix& M, matrix& C){ // user-supplied answer
@@ -193,7 +210,7 @@ void cholesky(const matrix& M, matrix& C){ // user-supplied answer
   for(int j = 0;j < M.ncols();j++){
     for(int i = 0;i <= j;i++){
       for(int k = 0;k < i;k++) C(i,j) += C(k,i)*C(k,j);
-      C(i,j) = i < j? (M(i,j) - C(i,j))/C(i,i) : sqrt(M(j,j) - C(j,j));
+      C(i,j) = i < j? ((M(i,j)+M(j,i))/2 - C(i,j))/C(i,i) : sqrt(M(j,j) - C(j,j));
     }
   }
 }

@@ -31,7 +31,8 @@ X(x_t\mid s) := \N(x_t;M_ts + b_t,\Sigma_{Ob}),
 $$
 where $M_t$ is a linear map from the state space to the
 measurement space, $b_t$ is a bias, and $\Sigma_{Ob}$ is an $m\times{m}$ positive definite real symmetric matrix.  Typically, $\Sigma_{Ob}$ is a time-independent model parameter.
-In the simplest case, $b_t = 0$  and $M_t = I$, the identity map, for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  We will call this case the {\em basic} case, and concentrate on it initially. Later, we will consider some generalizations, particularly the case that $M_t = M$ and $b_t = b$ are time-independent model parameters.
+In the simplest case, $b_t = 0$  and $M_t = I$, the identity map, for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  We will call this case the {\em basic} case, and concentrate on it initially. Later, we will consider some generalizations, particularly the case that $M_t = M$ and $b_t = b$ are time-independent model parameters.  Indeed, $b_t$ can be subtracted
+from each data vector in advance, so we can assume without loss of generality that $b_t = 0$.
 
 The state process is a discrete time continuous state Markov process with transition probability density
 from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
@@ -492,6 +493,39 @@ and substituting this into \eqref{Sigma_Tr:2} we have
 \overline{\Sigma}_{Tr}   =\frac{1}{T}\sum_{t=1}^T\Sigma^{(1)}_t+\Sigma_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{\Sigma}_{c,t}^{-1}
    [\Sigma^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{\Sigma}_{c,t}^{-1}\right)\Sigma_{Tr}.
 \end{equation}  
+
+\section{The M matrix}
+We now consider the important generalization of the basic case in which the observation space and the state space are different.
+In particular, they may have different dimensions.  Let the state space have dimension $n$ and the observation space have
+dimension $m$.  We are given a linear map $M: \R^n\rightarrow R^m$ such that if $s_t\in \R^n$ is the state at time $t$, then
+$$
+X(x_t\mid s_t)= \N(x_t;Ms_t,\Sigma_{Ob}).
+$$
+Our first task is to generalize \eqref{comp_sq:1}.
+
+\begin{Lem}\label{comp_sq:3}
+With the notation of \eqref{comp_sq:1}:
+\begin{align}
+  Q(x;\mu_1,\Sigma_1) + Q(x;M\mu_2,\Sigma_2) &= \label{comp_sq:3a}\\
+  Q(x;\mu_1,\Sigma_1) + Q(Mx;\mu_2,\Sigma_2) = \label{comp_sq:3b}
+\end{align}
+\end{Lem}
+\begin{proof}
+\eqref{comp_sq:3a} is immediate from \eqref{comp_sq:1} by making the formal substitution $M\mu_2$ for $\mu_2$.  But \eqref{comp_sq:3b} is a bit more involved.  Expanding the left-hand side, we get
+$$
+x^T(\Sigma_1^{-1}+ M^T\Sigma_2^{-1}M)x -2x^T(\Sigma_1^{-1}\mu_1+ M^T\Sigma_2^{-1}\mu_2) 
++ \mu_1^T\Sigma_1^{-1}\mu_1 + \mu_2^T\Sigma_2^{-1}\mu_2.
+$$
+Completing the square, we get
+$$
+(x-\mu)^T\Sigma^{-1}(x-\mu) -\mu^T\Sigma^{-1}\mu + \mu_1^T\Sigma_1^{-1}\mu_1 + \mu_2^T\Sigma_2^{-1}\mu_2,\quad\text{where}
+$$    
+\begin{align*}
+\Sigma^{-1} &:= \Sigma_1^{-1} + M^T\Sigma_2^{-1}M,\quad\text{and} \\
+\mu &:= \Sigma(\Sigma_1^{-1}\mu_1 + M^T\Sigma_2^{-1}\mu_2).
+\end{align*}
+
+\end{proof}
 \end{document}
 
 

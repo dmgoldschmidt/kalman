@@ -240,7 +240,7 @@ public:
     }
   }
 
-  bool symmetric(void){
+  bool is_symmetric(void){
     for(int i = 0;i < _nrows;i++){
       for(int j = 0;j < i;j++) {
         if(ENTRY(i,j) != ENTRY(j,i)) return false;
