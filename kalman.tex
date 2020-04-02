@@ -16,30 +16,30 @@
 
 
 \section{Introduction}
-Let $\mu$ and $x$ be vectors in $\R^n$ and let $\Sigma$ be an $n\times{n}$ positive
+Let $\mu$ and $x$ be vectors in $\R^n$ and let $\S$ be an $n\times{n}$ positive
 definite real symmetric matrix.  Recall that the gaussian probability density
 on $\R^n$ is given by 
 $$
-\N(x;\mu,\Sigma) := \det(2\pi\Sigma)^{-\frac{1}{2}}\exp\left\{-\frac{1}{2}
-(x - \mu)^T\Sigma^{-1}(x-\mu)\right\}.
+\N(x;\mu,S) := (2\pi)^{-\frac{n}{2}}|S|^{\frac{1}{2}}\exp\left\{-\frac{1}{2}
+(x - \mu)^TS(x-\mu)\right\}.
 $$
-We will make use of the formal identity $\N(x,\mu,\Sigma) = \N(\mu,x,\Sigma)$ below.
+So here and below, capital $S$ denotes an inverse covariance matrix.
 
 We now define a Hidden Markov Model with state space $\R^n$ as follows.  Given the state $s\in\R^n$ and an observation $x_t\in\R^m$ at time $t$, the output density is
 $$
-X(x_t\mid s) := \N(x_t;M_ts + b_t,\Sigma_{Ob}),
+X(x_t\mid s) := \N(x_t;M_ts + b_t,S_{Ob}),
 $$
 where $M_t$ is a linear map from the state space to the
-measurement space, $b_t$ is a bias, and $\Sigma_{Ob}$ is an $m\times{m}$ positive definite real symmetric matrix.  Typically, $\Sigma_{Ob}$ is a time-independent model parameter.
-In the simplest case, $b_t = 0$  and $M_t = I$, the identity map, for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  We will call this case the {\em basic} case, and concentrate on it initially. Later, we will consider some generalizations, particularly the case that $M_t = M$ and $b_t = b$ are time-independent model parameters.  Indeed, $b_t$ can be subtracted
-from each data vector in advance, so we can assume without loss of generality that $b_t = 0$.
-
+measurement space, $b_t$ is a bias, and $S_{Ob}$ is an $m\times{m}$ positive definite real symmetric matrix.  In this paper, $S_{Ob}$ and 
+$M$ are time-independent model parameters which we usually seek to re-estimate from the data.  The bias $b_t$ can usually be 
+subtracted from the data so we assume here that $b_t = 0$ for all $t$. 
+In the simplest case, $M_t = I$ for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  
 The state process is a discrete time continuous state Markov process with transition probability density
 from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
 $$
-Pd(s_1\mid s_0) :=  \N(s_1;s_0+c_t,\Sigma_{Tr}),
+Pd(s_1\mid s_0) :=  \N(s_1;s_0+c_t,S_{Tr}),
 $$
-where $\Sigma_{Tr}$ is a time-independent parameter of the model
+where $S_{Tr}$ is a time-independent model parameter 
 and $c_t$ is a known ``control input'' which we also assume is zero for the time being.
 
 As usual, we are given observations $\{x_t\mid 1\le t\le T\}$ and model parameters $\theta$.  For each observation time $t$ and state $s$, we define
@@ -61,105 +61,95 @@ It is clear from the definitions that the following recursions are satisfied:
 
 We initialize these recursions with
 \begin{align*}
-\alpha_0(s) :&= \N(s;\mu_0,\Sigma_0) \\
-\beta_{T+1}(s) :&= 1 \quad\text{for all $s$},
+\alpha_0(s) :&= \N(s;\mu_0,S_0) \\
+\beta_{T}(s) :&= 1 \quad\text{for all $s$},
 \end{align*}
-where $\Sigma_0$ and $\mu_0$ are model parameters.
+where $S_0$ and $\mu_0$ are model parameters.
 
-Because everything in sight is gaussian, the above integrals can be evaluated in closed form, as we now proceed to show.
-
-\section{Completing the Square}
-
-\begin{Lem}\label{comp_sq:1}
+Because everything in sight is gaussian, the above integrals can be evaluated in closed form
+as follows.
+\section{Completing the Square} 
+\begin{Lem}
  Define the quadratic form
   $$
- Q(x;\mu,\Sigma) := (x-\mu)^T\Sigma^{-1}(x-\mu),
+ Q(x;\mu,S) := (x-\mu)^TS(x-\mu),
   $$
-  where $x$ and $\mu$ are $n$-dimensional vectors and $\Sigma$ is a symmetric positive definite $n\times{n}$
-  matrix.  Then
-  $$
-  Q(x;\mu_1,\Sigma_1)+Q(x;\mu_2,\Sigma_2) = Q(x;\mu,\Sigma) + Q(\mu_2;\mu_1,\Sigma_1+\Sigma_2),
-  %Q_1(x) + Q_2(x) = (x-\mu)^T\Sigma^{-1}(x-\mu) + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
-  $$
-  where
-  \begin{align}
-    \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,\quad\text{and}\label{mu}\\
-    \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2\label{sigma}.
-  \end{align}
+  where $x,\mu\in \R^n$ and  $S$ is a symmetric positive definite $n\times{n}$
+  matrix. Let $M$ be an $m\times{n}$ matrix, $\mu_1\in\R^n$, $\mu_2\in\R^m$,
+  and $S_1$,$S_2$ be symmetric positive definite.  Then 
+\begin{equation}\label{comp_sq:1}
+  Q(x;\mu_1,S_1)+Q(Mx;\mu_2,S_2) = Q(x;\mu,S) + R(\mu_1,\mu_2,\Sigma_1,\Sigma_2),
+\end{equation}
+where $R$ does not depend on $x$, and 
+\begin{align}
+S :&= S_1 + M^TS_2M, \quad\text{and}\label{sigma}\\
+\mu :&= S^{-1}(S_1\mu_1 + M^TS_2\mu_2).\label{mu}
+\end{align}
+Furthermore, if $M = I$, then $S_1S^{-1}S_2 = S_2S^{-1}S_1$,  and
+\begin{equation}\label{comp_sq:R}
+R = (\mu_2-\mu_1)^TS_1S^{-1}S_2(\mu_2-\mu_1).
+\end{equation}
 \end{Lem}
 \begin{proof}
-
-  By expanding the left-hand side, combining like terms, and completing the
-  square, it is straightforward to see that
+  Note that $S_1$ is postive definite and $M^TS_2M$ is positive semi-definite,
+so $S$ is invertible.  Expanding the left-hand side of \eqref{comp_sq:1} and combining
+like terms, we get
 $$
-Q(x;\mu_1,\Sigma_1) + Q(x;\mu_2,\Sigma_2) = (x-\mu)^T\Sigma^{-1}(x-\mu) + C,
+x^T(S_1+ M^TS_2M)x -2x^T(S_1\mu_1+ M^TS_2\mu_2) 
++ \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2.
 $$
-where
+Completing the square, we get
+$$
+(x-\mu)^TS(x-\mu) -\mu^TS\mu + \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2,
+$$
+so 
+\begin{equation}\label{R}
+R = \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2-\mu^TS\mu 
+\end{equation}
+which is independent of $x$ as asserted. Now assume $M = I$. We first note that
 \begin{align}
- \Sigma^{-1} &= \Sigma_1^{-1} + \Sigma_2^{-1},\label{Sigma}\\
-  \Sigma^{-1}\mu &=\Sigma_1^{-1}\mu_1+\Sigma_2^{-1}\mu_2, \quad\text{and}\label{mu:1}\\
-  C &= \mu_1^T\Sigma_1^{-1}\mu_1 +\mu_2^T\Sigma_2^{-1}\mu_2 - \mu^T\Sigma^{-1}\mu.
-  \label{C}
+S_1^{-1}SS_2^{-1} &= S_1^{-1}(S_1+S_2)S_2^{-1} = S_1^{-1}+S_2^{-1} = S_2^{-1}SS_1^{-1},\quad\text{hence}\notag\\
+S_2S^{-1}S_1 &= (S_1^{-1}+S_2^{-1})^{-1} = S_1S^{-1}S_2.\label{symmetry}
 \end{align}
-The problem is to verify \eqref{mu} and \eqref{sigma}, and to put $C$ into the form given in the lemma.
- To begin with, we have
-
-\begin{align}
-  \Sigma_1\Sigma^{-1}\Sigma_2 &= \Sigma_1(\Sigma_1^{-1}+\Sigma_2^{-1})\Sigma_2 = \Sigma_1+\Sigma_2
-  = \Sigma_2\Sigma^{-1}\Sigma_1,\quad\text{whence}\notag\\
-  \Sigma_1^{-1}\Sigma\Sigma_2^{-1} &= (\Sigma_1+\Sigma_2)^{-1} = \Sigma_2^{-1}\Sigma\Sigma_1^{-1},\quad\text{and thus}\notag\\
-  \Sigma &= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2 = \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\Sigma_1,\label{Sigma:1}
-\end{align}
-proving \eqref{sigma}.  Then \eqref{mu:1} becomes
+Moreover, we can re-write \eqref{mu} as
+\begin{equation}\label{mu:1}
+\mu = S^{-1}(S_1\mu_1 + S_2\mu_1 + S_2(\mu_2-\mu_1) = \mu_1 + S^{-1}S_2(\mu_2-\mu_1),
+\end{equation}
+and by symmetry
 \begin{equation}\label{mu:2}
-  \begin{split}
-    \mu &=  \Sigma(\Sigma_1^{-1}\mu_1+\Sigma_2^{-1}\mu_2)\\
-    &=\Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2,
-  \end{split}
+\mu = \mu_2 + S^{-1}S_1(\mu_1-\mu_2).
 \end{equation}
-proving \eqref{mu}.
-
-Now using \eqref{Sigma:1}, we can re-write \eqref{mu:1} as  
-\begin{equation}\label{mu:3}
-  \begin{split}
-  \mu &= \Sigma(\Sigma_1^{-1}\mu_1 + \Sigma_2^{-1}\mu_1 +\Sigma_2^{-1}(\mu_2-\mu_1)) \\
-  &= \Sigma(\Sigma^{-1}\mu_1 + \Sigma_2^{-1}(\mu_2-\mu_1) \\
-  &= \mu_1 + \Sigma_1(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1),
-  \end{split}
-  \end{equation}
-and by symmetry, we also have 
-\begin{equation}\label{mu:4}
-  \mu = \mu_2 + \Sigma_2(\Sigma_1+\Sigma_2)^{-1}(\mu_1-\mu_2).
-\end{equation}
-Then we premultiply \eqref{mu} by $\mu^T$, substituting \eqref{mu:3} into the first term and
-  \eqref{mu:4} into the second, as well as using \eqref{Sigma:1}, to get 
-\begin{align*}
-    \mu^T\Sigma^{-1}\mu &= \mu^T\Sigma_1^{-1}\mu_1 + \mu^T\Sigma_2^{-1}\mu_2 \\
-    &= \mu_1^T\Sigma_1^{-1}\mu_1 + (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}\mu_1
-    +\mu_2^T\Sigma_1\mu_2 + (\mu_1-\mu_2)^T(\Sigma_1+\Sigma_2)^{-1}\mu_2\\
-    &= \mu_1^T\Sigma_1^{-1}\mu_1 + \mu_2^T\Sigma_2^{-1}\mu_2 - (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1).
-\end{align*}
-
-Finally, substituting this result into \eqref{C} yields
-\begin{equation}\label{C:1}
-  C = (\mu_2-\mu_1)^T(\Sigma_1+\Sigma_2)^{-1}(\mu_2-\mu_1)
-\end{equation}
-as required.
+Then from \eqref{mu} we have
+$$
+\mu^TS\mu = \mu^T(S_1\mu_1 + S_2\mu_2),
+$$
+and substituting \eqref{mu:1} in the first term and \eqref{mu:2} in the second, we get
+$$
+\mu^TS\mu = \mu_1^TS_1\mu_1 + (\mu_2-\mu_1)^TS_2S^{-1}S_1\mu_1 + \mu_2^TS_2\mu_2 + (\mu_1-\mu_2)^TS_1S^{-1}S_2\mu_2.
+$$
+Finally, \eqref{symmetry} yields
+$$
+\mu^TS\mu = \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2 - (\mu_2-\mu_1)^TS_1S^{-1}S_2(\mu_2-\mu_1)
+$$
+and combining this with \eqref{R} proves \eqref{comp_sq:R} and completes the proof.
 \end{proof}
 
-\begin{Cor}
-\begin{align}
-  \N(x;\mu_1,\Sigma_1)\N(x;\mu_2,\Sigma_2) &= \N(\mu_1;\mu_2,\Sigma_1+\Sigma_2)
-  \N(x;\mu,\Sigma) \quad\text{where}\label{comp_sq:2}\\
- \mu :&= \Sigma_2(\Sigma_1+\Sigma_2)^{-1}\mu_1+\Sigma_1(\Sigma_1+\Sigma_2)^{-1}\mu_2, \quad\text{and}\notag\\
- \Sigma :&= \Sigma_1(\Sigma_1 + \Sigma_2)^{-1}\Sigma_2.\notag
-\end{align}
+\begin{Cor}\label{comp_sq:2}
+\begin{align*}
+  \N(x;\mu_1,S_1)\N(Mx;\mu_2,S_2) &\propto \N(x;\mu,S_1 + MTS_2M)\quad\text{where}\\
+ \mu :&= S^{-1}(S_1\mu_1 + M^TS_2\mu_2). 
+\end{align*}
+
+Furthermore, if $M = I$ then 
+\begin{equation}\label{exact_prod} 
+  \N(x;\mu_1,S_1)\N(x;\mu_2,S_2) = \N(\mu_1;\mu_2,S_1S^{-1}S_2)\N(x;\mu,S).
+\end{equation}
 In particular,
-\begin{equation}\label{int_prod}
-  \int_{\R^n}N(x;\mu_1,\Sigma_1)\N(x;\mu_2,\Sigma_2)dx = \N(\mu_1;\mu_2,\Sigma_1+\Sigma_2).
+\begin{equation}
+  \int_{\R^n}N(x;\mu_1,S_1)\N(x;\mu_2,S_2)dx = \N(\mu_1;\mu_2,S_1S^{-1}S_2).
   \end{equation}
 \begin{proof}
-  The right-hand and left-hand exponents above are equal by \eqref{comp_sq:1}, and it is
+  The right-hand and left-hand exponents in \eqref{exact_prod} are equal by \eqref{comp_sq:R}, and it is
   straightforward to verify directly that the normalization factors outside the exponentials are also equal. 
 \end{proof}
 \end{Cor}
@@ -511,19 +501,7 @@ With the notation of \eqref{comp_sq:1}:
 \end{align}
 \end{Lem}
 \begin{proof}
-\eqref{comp_sq:3a} is immediate from \eqref{comp_sq:1} by making the formal substitution $M\mu_2$ for $\mu_2$.  But \eqref{comp_sq:3b} is a bit more involved.  Expanding the left-hand side, we get
-$$
-x^T(\Sigma_1^{-1}+ M^T\Sigma_2^{-1}M)x -2x^T(\Sigma_1^{-1}\mu_1+ M^T\Sigma_2^{-1}\mu_2) 
-+ \mu_1^T\Sigma_1^{-1}\mu_1 + \mu_2^T\Sigma_2^{-1}\mu_2.
-$$
-Completing the square, we get
-$$
-(x-\mu)^T\Sigma^{-1}(x-\mu) -\mu^T\Sigma^{-1}\mu + \mu_1^T\Sigma_1^{-1}\mu_1 + \mu_2^T\Sigma_2^{-1}\mu_2,\quad\text{where}
-$$    
-\begin{align*}
-\Sigma^{-1} &:= \Sigma_1^{-1} + M^T\Sigma_2^{-1}M,\quad\text{and} \\
-\mu &:= \Sigma(\Sigma_1^{-1}\mu_1 + M^T\Sigma_2^{-1}\mu_2).
-\end{align*}
+\eqref{comp_sq:3a} is immediate from \eqref{comp_sq:1} by making the formal substitution $M\mu_2$ for $\mu_2$.  But \eqref{comp_sq:3b} is a bit more involved.  
 
 \end{proof}
 \end{document}
