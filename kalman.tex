@@ -103,11 +103,9 @@ Completing the square, we get
 $$
 (x-\mu)^TS(x-\mu) -\mu^TS\mu + \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2,
 $$
-so 
-\begin{equation}\label{R}
-R = \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2-\mu^TS\mu 
-\end{equation}
-as asserted. Now assume $M = I$. We first note that
+as asserted.
+
+Now assume $M = I$. We first note that
 \begin{align}
 S_1^{-1}SS_2^{-1} &= S_1^{-1}(S_1+S_2)S_2^{-1} = S_1^{-1}+S_2^{-1} = S_2^{-1}SS_1^{-1},\quad\text{hence}\notag\\
 S_2S^{-1}S_1 &= (S_1^{-1}+S_2^{-1})^{-1} = S_1S^{-1}S_2.\label{symmetry}
@@ -132,7 +130,7 @@ Finally, \eqref{symmetry} yields
 $$
 \mu^TS\mu = \mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2 - (\mu_2-\mu_1)^TS_1S^{-1}S_2(\mu_2-\mu_1)
 $$
-and combining this with \eqref{R} proves \eqref{comp_sq:R} and completes the proof.
+and combining this with \eqref{R_def} proves \eqref{comp_sq:R} and completes the proof.
 \end{proof}
 
 By virtue of \eqref{symmetry}, we define for $S_1$ positive definite:
@@ -142,24 +140,22 @@ $$
 
 \begin{Cor}\label{comp_sq:2}
 \begin{align*}
-  \N(x;\mu_1,S_1)\N(Mx;\mu_2,S_2) &\propto \N(x;\mu,S_1 + M^TS_2M)\quad\text{where}\\
- \mu :&= S^{-1}(S_1\mu_1 + M^TS_2\mu_2). 
+  \N(x;\mu_1,S_1)\N(Mx;\mu_2,S_2) &= \N_0\N(x;\mu,S)\quad\text{where}\\
+  S :&= S_1+M^TS_2M,\\
+  \mu :&= S^{-1}(S_1\mu_1 + M^TS_2\mu_2)\quad\text{and} \\
+  \N_0 :&= (2\pi)^{-\frac{n}{2}}|S_1*S_2|\exp\{-\frac{1}{2}(\mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2-\mu^TS\mu)\}.
 \end{align*}
+
+In particular, $\N_0$ does not depend on $x$, and
+\begin{equation}\label{comp_sq:int}
+  \int_{\R^{n}}  \N(x;\mu_1,S_1)\N(Mx;\mu_2,S_2)dx = \N_0.
+\end{equation}
 
 Furthermore, if $M = I$ then 
 \begin{equation}\label{exact_prod} 
-  \N(x;\mu_1,S_1)\N(x;\mu_2,S_2) = \N(\mu_1;\mu_2,S_1*S_2)\N(x;\mu,S_1+S_2).
+  N_0 = \N(\mu_1;\mu_2,S_1*S_2).
 \end{equation}
-In particular,
-\begin{equation}
-  \int_{\R^n}N(x;\mu_1,S_1)\N(x;\mu_2,S_2)dx = \N(\mu_1;\mu_2,S_1*S_2).
-  \end{equation}
-\begin{proof}
-  The right-hand and left-hand exponents in \eqref{exact_prod} are equal by \eqref{comp_sq:R}, and it is
-  straightforward to verify directly that the normalization factors outside the exponentials are also equal. 
-\end{proof}
 \end{Cor}
-
 
 \section{The Forward Pass}
   Now we can inductively evaluate \eqref{alpha:0}. To do so, we split the computation
@@ -176,8 +172,8 @@ In particular,
 %  \widehat{S}_{a,t} &= S_{Tr}(S_{Tr}+S_{a,t-1})^{-1}S_{a,t-1},\\
   S_{a,t} &= M^TS_{Ob}M + S_{Tr}*S_{a,t-1},\\
   \mu_{a,t} &= S_{a,t}^{-1}(M^TS_{Ob}x_t + S_{Tr}*S_{a,t-1}\mu_{a,t-1})\\
-  R_{a,t} &= R(x_t,\mu_{a,t-1},M^TS_{Ob}M,S_{Tr}*S_{a,t-1}),\\
-  P_{a,t} &:= R_{a,t}P_{a,t-1},\quad\text{and}\\
+  N_{a,t} &= \N_0(x_t,\mu_{a,t-1},S_{Ob},S_{Tr}*S_{a,t-1}),\\
+  P_{a,t} &:= P_{a,t-1},\quad\text{and}\\
   P_{a,0} &:= 1.
 \end{align*}
 
@@ -202,7 +198,7 @@ Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:1} yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
   &= P_{a,t-1}\N(Ms;x_t,S_{Ob})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1}) \\
-  &= P_{a,t-1}R_{a,t}\N(s;\mu_{a,t},S_{a,t}), \\
+  &= P_{a,t-1}\N_{a,t}\N(s;\mu_{a,t},S_{a,t}), \\
   &= P_{a,t}\N(s;\mu_{a,t},S_{a,t}).
 \end{align*}
 \end{proof}
@@ -217,8 +213,8 @@ and then we integrate with respect to $Pd(u\mid s)du$ for the time update.
 \begin{align*}
   S_{b,t} :&= (M^TS_{Ob}M + S_{b,t+1})*S_{Tr},\\
   \mu_{b,t} :&= (M^TS_{Ob}M + S_{b,t+1})^{-1}(M^TS_{Ob}x_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
-  R_{b,t} :&= R(x_{t-1},\mu_{b,t},S_{Ob},S_{b,t}),\quad\text{and}\\
-  P_{b,t}:&=P_{b,t+1}R_{b,t+1},
+  \N_{b,t} :&= \N_0(x_{t-1},\mu_{b,t},S_{Ob},S_{b,t}),\quad\text{and}\\
+  P_{b,t}:&=P_{b,t+1}\N_{b,t+1},
 \end{align*}
 with initial values at $t = T$ given below. Then for each state $s$ and time $t < T$,
 $$
@@ -237,21 +233,20 @@ assume the following values
 \begin{align*}
   S_{b,T} :&= I,\\
   \mu_{b,T} :&= 0,\\
-  P_{b,T} := 1;
+  P_{b,T} :&= 1;
 \end{align*}
   For $t <  T-1$, we have 
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_{Ob})\N(u;\mu_{b,t+1},S_{b,t+1})\\
-    &= P_{b,t+1}R_{b,t+1}\N(u;\mu_{b,t},M^TS_{Ob}M+S_{b,t+1})
+    &= P_{b,t+1}\N_{b,t+1}\N(u;\mu_{b,t},M^TS_{Ob}M+S_{b,t+1})
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
     &= P_{b,t+1}R_{b,t+1}\int_{\R^n}\N(u;\mu_{b,t},M^TS_{Ob}M + S_{b,t+1})\N(u;s,S_{Tr})du\\
-    &=P_{b,t+1}R_{b,t+1}\N(s;\mu_{b,t},S_{b,t}),\quad\text{so that}\\
-    P_{b,t} &= P_{b,t+1}R_{b,t+1}.
+    &=P_{b,t+1}R_{b,t+1}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
 \end{proof}
 
@@ -261,26 +256,19 @@ at time $t$.
 \begin{Thm}
   Let notation be as in \eqref{alpha:1} and \eqref{beta:1}.  Define
 \begin{align*}
-  \widehat{S}_{c,t} :&= S_{a,t}+S_{b,t}, \quad\text{and}\\
-  P_{c,t} :&= \int_{\R^n}\alpha_t(s)\beta_t(s)ds,\quad\text{then} \\
-      \gamma_t(s) &= \N(s;\mu_{c,t},S_{c,t}),\quad\text{where}\\
-      S_{c,t} &:= S_{a,t}\widehat{S}_{c,t}^{-1}S_{b,t}
-      \quad\text{and}\\
-      \mu_{c,t} &:= S_{a,t}\widehat{S}_{c_t}^{-1}\mu_{b,t} +
-      S_{b,t}\widehat{S}_{c_t}^{-1}\mu_{a,t}.
+  S_{c,t} :&= S_{a,t}*S_{b,t}, \\
+  \mu_{c,t} :&= S_{c,t}^{-1}(S_{a,t}\mu_{a,t} + S_{b,t}\mu_{b,t}), \quad\text{and}\\
+  P_{c,t} :&= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}+S_{b,t}), \quad\text{then} \\
+ \gamma_t(s) &= \N(s;\mu_{c,t},S_{c,t}).
   \end{align*}
 \end{Thm}
 \begin{proof}
   From \eqref{alpha:1} and \eqref{beta:1} we have (using \eqref{comp_sq:2}
   as usual)
   \begin{align*}
-  \alpha_t(s)\beta_t(s) &= P_{a,t}P_{b,t}\N(s;\mu_{a,t},S_{a,t})
-  \N(s;\mu_{b,t},S_{b,t})ds\\
-  &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}+S_{b,t})\N(s;\mu_{c,t},
-  S_{c,t}), \quad\text{whence}\\
-  P_{c,t} &= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}+S_{b,t})
+  \gamma_t{s} \propto \alpha_t(s)\beta_t(s) &= P_{a,t}P_{b,t}\N(s;\mu_{a,t},S_{a,t})\N(s;\mu_{b,t},S_{b,t})\\
+  &= P_{c,t}\N(s;\mu_{c,t},S_{c,t}).
   \end{align*}
-by \eqref{exact_prod}, and the theorem follows.
 \end{proof}
 
 We also need the joint posterior probability density of state $u$ at time $t-1$ and state $s$ at time $t$,
@@ -288,24 +276,24 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   $u,s$  at times $t-1,t$ is
   \begin{align}
     \hat{\gamma}_t(s,u) &\propto \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \notag\\
-    &= \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})  \N(s;x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t})\notag\\
-    &\propto \N(u;\mu^{(1)}_t,S^{(1)}_t)\N(s;\mu_{a,t-1},\widehat{S}_{a,t})\N(s;\mu_{b,t-1},
-    \widetilde{S}_{b,t})\notag\\
-    &\propto \N(u;\mu^{(1)}_t,S^{(1)}_t)\N(s;\mu^{(2)}_t,S^{(2)}_t),\label{gamma_hat}
+    &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})  \N(Ms;x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t})\notag\\
+    &\propto \N(u;\mu^{(1)}_t,S_t^{(1)})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1})\N(s;\mu_{b,t-1},M^TS_{Ob}M+S_{b,t})\notag\\
+    &\propto \N(u;\mu^{(1)}_t,S_t^{(1)})\N(s;\mu^{(2)}_t,S^{(2)}_t),\label{gamma_hat}
   \end{align}
   where we have discarded factors which do not depend on either $u$ or $s$, and 
   \begin{align}
-    S^{(1)}_t &:= S_{a,t-1}\widehat{S}_{a,t}^{-1}S_{Tr},\notag\\
-    \mu^{(1)}_t &:= S_{a,t-1}\widehat{S}_{a,t}^{-1}s + S_{Tr}\widehat{S}_{a,t}^{-1}\mu_{a,t-1},\label{mu(1)}\\
-    S^{(2)}_t &:= \widehat{S}_{a,t}(\widehat{S}_{a,t}+\widetilde{S}_{b,t})^{-1}\widetilde{S}_{b,t}
-    = \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\widetilde{S}_{b,t},\notag\quad\text{and}\\
-    \mu^{(2)}_t &:= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-    \widetilde{S}_{b,t}\widehat{S}_{c,t}^{-1}\mu_{a,t-1}\label{mu(2)}.
+    S^{(1)}_t &:= S_{a,t-1}+S_{Tr},\notag\\
+   \mu^{(1)}_t &:= (S_t^{(1)})^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}),\label{mu(1)}\\
+    S^{(2)}_t &:= S_{Tr}*S_{a,t-1} + M^TS_{Ob}M+S_{b,t},\notag\quad\text{and}\\
+    \mu^{(2)}_t &:= (S^{(2)})^{-1}(S_{Tr}*S_{a,t-1}\mu_{a,t-1} + (M^TS_{Ob}M+S_{b,t})\mu_{b,t-1})\label{mu(2)}.
   \end{align}
 
-  Note that the second factor in \eqref{gamma_hat} does not depend on $u$, and the first factor depends on $s$
-  only in the mean, which means that the integral of the first factor with respect to $u$ is always unity
-  and does not depend on $s$, and thus the double integral of \eqref{gamma_hat} is still unity and no
+  Note that
+  $$
+  \int_{\R^{2n}}\N(u;\mu^{(1)},S^{(1)})\N(s;\mu^{(2)}S^{(2)})duds = \int_{\R^n}\N(s;\mu^{(2)}S^{(2)}ds = 1 
+  $$
+  
+  because the second factor does not depend on $u$, so \eqref{gamma_hat} is a bona-fide density and no
   normalization factor is required.
   
 \section{Re-estimation}
