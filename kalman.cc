@@ -153,7 +153,7 @@ int main(int argc, char** argv){
 
   int seed = 12345;
   int nstates = 5;
-  int data_dim = 5
+  int data_dim = 5;
   int ntrain = 0;
   int ntest = 0;
 
@@ -223,10 +223,7 @@ int main(int argc, char** argv){
   // OK, the data is ready to go
 
   // Begin Baum-Welch iterations
-  Array<double> alpha_score(T+1), beta_score(T), gamma_score(T+1);
-  Matrix<double> S_Tr_star_S_a_t1(nstates,nstates);
-  double det_S;
-  Matrix<double> S_mu(nstates,nstates);
+  Array<double> alpha_score(T+1), beta_score(T), gamma_score(T+1), detS_a(T+1),detS_b(T+1);
   if(Tr_reestimate){ // perturb the transition matrix
     for(int i = 0;i < nstates;i++){
       for(int j = 0;j < nstates;j++)theta.S_Tr(i,j) += 1.0;
@@ -245,63 +242,74 @@ int main(int argc, char** argv){
   }
   if(M_reestimate){ // perturb the M-matrix
     for(int i = 0;i < data_dim;i++){
-      for(int j = 0;j < nstates;j++) M(i,j) += 1.0;
+      for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
     }
   }
+  double det_S_Ob,det_S_Tr,R;
+  ColVector<double> S_mu(nstates),S1_mu1(nstates),S2_mu2(nstates);
   Matrix<double> MTS_Ob(nstates,data_dim);
   Matrix<double> MTS_ObM(nstates,nstates);
+  Matrix<double> S_hat(nstates,nstates);
   for(int iter = 0;iter < niters;iter++){
     cout << "Begin iteration "<<iter<<endl;
     cout << "S_0:\n"<<theta.S_0<<"mu_0:\n"<<theta.mu_0<<"S_Ob:\n"<<theta.S_Ob<<"S_Tr\n"<<theta.S_Tr
          << "M:\n"<<theta.M;
     // alpha pass
-    MTS_Ob = M.T()*theta.S_Ob;
-    MTS_ObM = MTS_Ob*M;
+    MTS_Ob = theta.M.T()*theta.S_Ob;
+    MTS_ObM = MTS_Ob*theta.M;
     mu_a[0] = theta.mu_0;
     S_a[0] = theta.S_0;
+    detS_a[0] = det(S_a[0]); // initialization
+    det_S_Ob = det(theta.S_Ob);
+    det_S_Tr = det(theta.S_Tr);
     alpha_score[0] = 0;
+    double detS_hat;
     for(int t = 1;t <= T;t++){ // NOTE: the infix notation is more readable, but inefficient.
-      S_Tr_star_S_a_t1 = theta.S_Tr*sym_inv(theta.S_Tr+S_a[t-1])*S_a[t-1];
-      S1_mu1 = MTS_Ob*data.x[t];
-      S2_mu2 = S_TR_star_S_a_t1*mu_a[t-1];
-      S_mu =  S1_mu1 + S2_mu2;  
-      S_a[t] = MTS_ObM + S_Tr_star_S_a_t1;
-      mu_a[t] = sym_inv(S_a[t],&det_S)*S_mu;
-      R = data.x[t].T()*theta.S_OB*data.x[t] + mu_a[t-1].T()*S2_mu2 - mu_a[t].T()*S_mu
-      alpha_score[t] = alpha_score[t-1] + .5*(log(det_S) + (mu_a[t-1]-data.x[t]).T()*S_hat_inv*(mu_a[t-1]-data.x[t]));
-      //cout << "t = "<<t<<endl<<"x[t]:\n"<<data.x[t]<<"S_a[t]:\n"<<S_a[t]<<"mu_a[t]:\n"<<mu_a[t]<<"alpha_score = "<<alpha_score[t]<<endl;;
-    }
     
+      S_hat = theta.S_Tr*sym_inv(theta.S_Tr+S_a[t-1],&detS_hat)*S_a[t-1];
+      detS_hat = det_S_Tr*detS_a[t-1]/detS_hat; 
+      S1_mu1 = MTS_Ob*data.x[t];
+      S2_mu2 = S_hat*mu_a[t-1];
+      S_mu =  S1_mu1 + S2_mu2;  
+      S_a[t] = MTS_ObM + S_hat;
+      mu_a[t] = sym_inv(S_a[t],&detS_a[t])*S_mu; 
+      R = data.x[t].T()*theta.S_Ob*data.x[t] + mu_a[t-1].T()*S2_mu2 - mu_a[t].T()*S_mu;
+      alpha_score[t] = alpha_score[t-1] + .5*(log(detS_hat*det_S_Ob/detS_a[t]) - R); 
+    }
+      
     // beta pass
-    mu_b[T-1] = data.x[T];
-    S_b[T-1] = theta.S_Ob + theta.S_Tr;
-    mu_b[T-1] = data.x[T-1];
+    mu_b[T].fill(0);
     S_b[T].fill(0);
-    beta_score[T-1] = 0;
-    for(int t = T-2;t >= 0;t--){
-      S_hat_inv = sym_inv(theta.S_Ob + S_b[t+1],&det_S_hat);
-      //      det_S_hat = S_hat_inv.inv();
-      S_b[t] = S_b[t+1]*S_hat_inv*theta.S_Ob + theta.S_Tr;
-      mu_b[t] = S_b[t+1]*S_hat_inv*data.x[t+1] + theta.S_Ob*S_hat_inv*mu_b[t+1];
-      beta_score[t] = beta_score[t+1] - .5*(log(det_S_hat)+(mu_b[t+1]-data.x[t+1]).T()*S_hat_inv*(mu_b[t+1]-data.x[t+1]));
+    for(int i = 0;i < nstates;i++)S_b[T](i,i) = 1.0;
+    beta_score[T] = 0;
+    detS_b[T] = 1.0;
+    for(int t = T-1;t >= 0;t--){
+      S_hat = MTS_ObM + S_b[t+1];
+      S_b[t] = S_hat*sym_inv(S_hat + theta.S_Tr)*theta.S_Tr;
+      S1_mu1 = MTS_Ob*data.x[t+1];
+      S2_mu2 = S_b[t+1]*mu_b[t+1];
+      S_mu = S1_mu1 + S2_mu2;
+      mu_b[t] = sym_inv(S_hat,&detS_hat)*(S1_mu1 + S2_mu2);
+      R = data.x[t+1]*theta.S_Ob*data.x[t+1] + mu_b[t+1]*S2_mu2 - mu_b[t].T()*S_hat*mu_b[t];
+      beta_score[t] = beta_score[t+1] + .5*(log(det_S_Ob*detS_b[t+1]/detS_hat) - R); 
+      detS_b[t] = det(S_b[t]); 
     }
 
     // gamma calculation
-    S_c[T] = S_a[T];
-    mu_c[T] = mu_a[T];
-    S_c_hat_inv[T] =  S_a[T];
-    gamma_score[T] = alpha_score[T];
-    for(int t = 0;t < T;t++){
-      S_c_hat_inv[t] = sym_inv(S_a[t] + S_b[t],&det_S_hat);
-      //      det_S_hat = S_c_hat_inv[t].inv();
-      S_c[t] = S_a[t]*S_c_hat_inv[t]*S_b[t];
-      mu_c[t] = S_a[t]*S_c_hat_inv[t]*mu_b[t] + S_b[t]*S_c_hat_inv[t]*mu_a[t];
-      gamma_score[t] = alpha_score[t]+beta_score[t] - .5*(log(det_S_hat)+(mu_a[t]-mu_b[t]).T()*S_c_hat_inv[t]*(mu_a[t]-mu_b[t]));
+    double detS_c;
+    for(int t = 0;t <= T;t++){
+      S_c[t] = S_a[t] + S_b[t];
+      S_hat = sym_inv(S_c[t],&detS_c);
+      mu_c[t] = S_hat*(S_a[t]*mu_a[t] + S_b[t]*mu_b[t]);
+      R = (mu_a[t]-mu_b[t]).T()*S_a[t]*S_hat*S_b[t]*(mu_a[t]-mu_b[t]);
+      gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(detS_a[t]*detS_b[t]/detS_c)-R);
       //      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
     cout << "mu_c[0] = "<<mu_c[0].T()<<"\nS_c[0]:\n"<<S_c[0];
-
+  }
+}
+#if 0
     //    Re-estimation
     if(S0_reestimate){
       theta.mu_0 = mu_c[0];theta.S_0 = S_c[0];
@@ -447,3 +455,4 @@ int main(int argc, char** argv){
                  stake,stake_stats.mean(), stake_sigma, sharpe, max_drawdown*100,nobet);
 #endif
 
+#endif

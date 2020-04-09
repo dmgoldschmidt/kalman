@@ -53,7 +53,7 @@ int ut0(matrix& A, double eps){// upper-triangularize in place by Givens row rot
 
 
 int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rotations
-  int nrot = 0;
+  int nrot = 0; // eps has a default argument, but eps is not used!
   Givens R;
 
   for(int i = 1;i < A.nrows();i++){
@@ -67,6 +67,19 @@ int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rota
   }
   return nrot;
 }
+
+double det(const matrix& A){
+  assert(A.nrows() == A.ncols());
+  matrix B = A.copy();
+  ut(B);
+  double d = 0;
+  for(int i = 0;i < B.nrows();i++){
+    d *= B(i,i);
+    if(d < 1.0e-20)return 0;
+  }
+  return d;
+}
+
 // template<>
 // double Matrix<double>::inv(void){
 //   assert(_nrows == _ncols);

@@ -437,7 +437,7 @@ int ut(matrix& A, double eps = 1.0e-10); // upper-triangularize in place by Give
 matrix qr(const matrix& A);
 void reduce(matrix& A, double eps = 1.0e-10); // row-reduce upper-triangular A in place
 void solve(matrix& A, double eps = 1.0e-10); // solve linear equations in-place 
-
+double det(const matrix& A);
 Array<matrix> svd(const matrix& A, double eps = 1.0e-10, int maxiters = 10);
 struct Svd{
   int ncols;
