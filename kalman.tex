@@ -143,7 +143,7 @@ $$
   \N(x;\mu_1,S_1)\N(Mx;\mu_2,S_2) &= \N_0\N(x;\mu,S)\quad\text{where}\\
   S :&= S_1+M^TS_2M,\\
   \mu :&= S^{-1}(S_1\mu_1 + M^TS_2\mu_2)\quad\text{and} \\
-  \N_0 :&= (2\pi)^{-\frac{n}{2}}|S_1*S_2|\exp\{-\frac{1}{2}(\mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2-\mu^TS\mu)\}.
+  \N_0 :&= \left(\frac{|S_1|\cdot|S_2|}{2\pi|S|}\right)^{\frac{1}{2}}\exp\{-\frac{1}{2}(\mu_1^TS_1\mu_1 + \mu_2^TS_2\mu_2-\mu^TS\mu)\}.
 \end{align*}
 
 In particular, $\N_0$ does not depend on $x$, and
@@ -153,7 +153,7 @@ In particular, $\N_0$ does not depend on $x$, and
 
 Furthermore, if $M = I$ then 
 \begin{equation}\label{exact_prod} 
-  N_0 = \N(\mu_1;\mu_2,S_1*S_2).
+  \N_0 = \N(\mu_1;\mu_2,S_1*S_2).
 \end{equation}
 \end{Cor}
 
@@ -170,17 +170,18 @@ Furthermore, if $M = I$ then
   First, for $1\le t \le T$ we inductively define
 \begin{align*}
 %  \widehat{S}_{a,t} &= S_{Tr}(S_{Tr}+S_{a,t-1})^{-1}S_{a,t-1},\\
-  S_{a,t} &= M^TS_{Ob}M + S_{Tr}*S_{a,t-1},\\
+  S_{a,t} :&= M^TS_{Ob}M + S_{Tr}*S_{a,t-1},\\
   \mu_{a,t} &= S_{a,t}^{-1}(M^TS_{Ob}x_t + S_{Tr}*S_{a,t-1}\mu_{a,t-1})\\
-  N_{a,t} &= \N_0(x_t,\mu_{a,t-1},S_{Ob},S_{Tr}*S_{a,t-1}),\\
-  P_{a,t} &:= P_{a,t-1},\quad\text{and}\\
-  P_{a,0} &:= 1.
+  R_{a,t} :&= x_t^TS_{Ob}x_t + \mu_{a,t-1}^T(S_{Tr}*S_{a,t-1})\mu_{a,t-1} - \mu_{a,t}^TS_{a,t}\mu_{a,t},\\
+  N_{a,t} :&= \left(\frac{|S_{Ob}|\cdot|S_{Tr}*S_{a,t-1}|}{2\pi|S_{a,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
+  P_{a,t} :&= P_{a,t-1}N_{a,t}, \quad\text{and}\\
+  P_{a,0} :&= 1.
 \end{align*}
 
 \begin{Thm}\label{alpha:1}
   For each state $s$ and time $t \ge 1$,
 $$
-  \alpha_t(s) = P_{a,t}N(s;\mu_{a,t},S_{a,t}).
+  \alpha_t(s) = P_{a,t}N(s;\mu_{a,t},S_{a,t})
 $$
 \end{Thm}
 
@@ -190,16 +191,15 @@ Proceeding by induction on $t$, we note that the case $t = 0$ holds by definitio
 For the time update, we have, using \eqref{comp_sq:2}
 \begin{align}
   \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
- &= P_{a,t-1}\int_{\R^n}\N(u;s,S_{Tr})\N(u;\mu_{a,t-1},S_{a,t-1})du \notag\\
- &= P_{a,t-1}\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1}).
+  &= P_{a,t-1}\int_{\R^n}\N(u;s,S_{Tr})\N(u;\mu_{a,t-1},S_{a,t-1})du \notag\\
+  &= P_{a,t-1}\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1}).
 \end{align}
 
-Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:1} yields
+Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:2} again yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
   &= P_{a,t-1}\N(Ms;x_t,S_{Ob})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1}) \\
-  &= P_{a,t-1}\N_{a,t}\N(s;\mu_{a,t},S_{a,t}), \\
-  &= P_{a,t}\N(s;\mu_{a,t},S_{a,t}).
+  &= P_{a,t_1}N_{a,t}\N(s;\mu_{a,t},S_{a,t}).
 \end{align*}
 \end{proof}
 
@@ -209,22 +209,24 @@ the measurement update first by multiplying by $X(x_{t+1}\mid u)$ to obtain $\ha
 and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  
 
 \begin{Thm}\label{beta:1}
-  Recursively define
+  For $t < T$, inductively define
 \begin{align*}
-  S_{b,t} :&= (M^TS_{Ob}M + S_{b,t+1})*S_{Tr},\\
-  \mu_{b,t} :&= (M^TS_{Ob}M + S_{b,t+1})^{-1}(M^TS_{Ob}x_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
-  \N_{b,t} :&= \N_0(x_{t-1},\mu_{b,t},S_{Ob},S_{b,t}),\quad\text{and}\\
-  P_{b,t}:&=P_{b,t+1}\N_{b,t+1},
+  \hat{S}_{b,t} :&= M^TS_{Ob}M + S_{b,t+1};\\
+  S_{b,t} :&= \hat{S}_{b,t}*S_{Tr},\\
+  \mu_{b,t} :&= \hat{S}_{b,t}^{-1}(M^TS_{Ob}x_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
+  R_{b,t} :&= x_{t+1}^TS_{Ob}x_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \mu_{b,t}^T\hat{S}_{b,t}\mu_{b,t},\\
+  N_{b,t} :&= \left(\frac{|S_{Ob}|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}},\quad\text{and}\\
+  P_{b,t}:&=P_{b,t+1}N_{b,t},
 \end{align*}
 with initial values at $t = T$ given below. Then for each state $s$ and time $t < T$,
 $$
-  \beta_t(s) = P_{b,t}N(s;\mu_{b,t},S_{b,t}),
+  \beta_t(s) = P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
 $$
 \end{Thm}
 
 \begin{proof}
 We proceed by reverse induction on $t$. However, to get started we first must  deal with
-the special case $\beta_{T}(u)$, the conditional probability of the future observations given
+the special case of $\beta_{T}(u)$, the conditional probability of the future observations given
 state $u$ at time $T$, but of course there are no such observations.  In the standard discrete
 state HMM, we set $\beta(s) = 1$ for all states $s$, and this will work in our case as well by
 setting $S_{b,T} = 0$ if $M$ is 1-1, but we really need a proper gaussian 
@@ -235,18 +237,18 @@ assume the following values
   \mu_{b,T} :&= 0,\\
   P_{b,T} :&= 1;
 \end{align*}
-  For $t <  T-1$, we have 
+  For $t <  T$, we have the measurement update 
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_{Ob})\N(u;\mu_{b,t+1},S_{b,t+1})\\
-    &= P_{b,t+1}\N_{b,t+1}\N(u;\mu_{b,t},M^TS_{Ob}M+S_{b,t+1})
+    &= P_{b,t+1}N_{b,t}\N(u;\mu_{b,t},\hat{S}_{b,t})
   \end{align*}
 
-  Then a second application of \eqref{comp_sq:2} yields
+  Then a second application of \eqref{comp_sq:2} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
-    &= P_{b,t+1}R_{b,t+1}\int_{\R^n}\N(u;\mu_{b,t},M^TS_{Ob}M + S_{b,t+1})\N(u;s,S_{Tr})du\\
-    &=P_{b,t+1}R_{b,t+1}\N(s;\mu_{b,t},S_{b,t}).
+    &= P_{b,t+1}N_{b,t}\int_{\R^n}\N(u;\mu_{b,t},\hat{S}_{b,t})\N(u;s,S_{Tr})du\\
+    &=P_{b,t+1}N_{b,t}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
 \end{proof}
 
