@@ -34,6 +34,7 @@ struct Theta { // Model parameters
     S_Ob.reset(data_dim,data_dim,&zero);
     S_Tr.reset(nstates,nstates,&zero);
     M.reset(data_dim,nstates);
+    M.fill(0);
     mu_0.reset(nstates);
     for(int s = 0;s < nstates;s++){
       S_0(s,s) = fabs(normal.dev());
@@ -42,7 +43,7 @@ struct Theta { // Model parameters
     }
     for(int d = 0;d < data_dim;d++){
       S_Ob(d,d) = fabs(normal.dev());
-      for(int s = 0;s < nstates;s++) M(d,s) = normal.dev();
+      for(int s = 0;s < nstates;s++) M(s,s) = 1.0;//normal.dev();
     }
   }
 };
@@ -250,6 +251,7 @@ int main(int argc, char** argv){
   Matrix<double> MTS_Ob(nstates,data_dim);
   Matrix<double> MTS_ObM(nstates,nstates);
   Matrix<double> S_hat(nstates,nstates);
+  niters = 1;
   for(int iter = 0;iter < niters;iter++){
     cout << "Begin iteration "<<iter<<endl;
     cout << "S_0:\n"<<theta.S_0<<"mu_0:\n"<<theta.mu_0<<"S_Ob:\n"<<theta.S_Ob<<"S_Tr\n"<<theta.S_Tr
@@ -290,7 +292,7 @@ int main(int argc, char** argv){
       S2_mu2 = S_b[t+1]*mu_b[t+1];
       S_mu = S1_mu1 + S2_mu2;
       mu_b[t] = sym_inv(S_hat,&detS_hat)*(S1_mu1 + S2_mu2);
-      R = data.x[t+1]*theta.S_Ob*data.x[t+1] + mu_b[t+1]*S2_mu2 - mu_b[t].T()*S_hat*mu_b[t];
+      R = data.x[t+1].T()*theta.S_Ob*data.x[t+1] + mu_b[t+1].T()*S2_mu2 - mu_b[t].T()*S_hat*mu_b[t];
       beta_score[t] = beta_score[t+1] + .5*(log(det_S_Ob*detS_b[t+1]/detS_hat) - R); 
       detS_b[t] = det(S_b[t]); 
     }
@@ -303,7 +305,7 @@ int main(int argc, char** argv){
       mu_c[t] = S_hat*(S_a[t]*mu_a[t] + S_b[t]*mu_b[t]);
       R = (mu_a[t]-mu_b[t]).T()*S_a[t]*S_hat*S_b[t]*(mu_a[t]-mu_b[t]);
       gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(detS_a[t]*detS_b[t]/detS_c)-R);
-      //      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
+      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
     cout << "mu_c[0] = "<<mu_c[0].T()<<"\nS_c[0]:\n"<<S_c[0];

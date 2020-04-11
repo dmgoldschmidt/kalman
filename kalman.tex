@@ -288,7 +288,7 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
     S^{(1)}_t &:= S_{a,t-1}+S_{Tr},\notag\\
    \mu^{(1)}_t &:= (S_t^{(1)})^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}),\label{mu(1)}\\
     S^{(2)}_t &:= S_{Tr}*S_{a,t-1} + M^TS_{Ob}M+S_{b,t},\notag\quad\text{and}\\
-    \mu^{(2)}_t &:= (S^{(2)})^{-1}(S_{Tr}*S_{a,t-1}\mu_{a,t-1} + (M^TS_{Ob}M+S_{b,t})\mu_{b,t-1})\label{mu(2)}.
+    \mu^{(2)}_t &:= (S_t^{(2)})^{-1}(S_{Tr}*S_{a,t-1}\mu_{a,t-1} + (M^TS_{Ob}M+S_{b,t})\mu_{b,t-1})\label{mu(2)}.
   \end{align}
 
   Note that
@@ -300,10 +300,10 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   normalization factor is required.
   
 \section{Re-estimation}
-Given a state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$, the
-joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_{Tr},S_{Ob}\}$ is
+Given a particular state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
+the joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_{Tr},S_{Ob},M\}$ is
 $$
-P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^T\N(x_t;s_t,S_{Ob})\N(s_t;s_{t-1},S_{Tr}).
+P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^T\N(x_t;Ms_t,S_{Ob})\N(s_t;s_{t-1},S_{Tr}).
 $$
 
 Note that $P(X,S\mid\theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$.
@@ -324,10 +324,10 @@ so choosing $\bar{\theta}$ to maximize $E(\theta,\bar{\theta})$ will increase th
 Recall the notation $Q(x;\mu,S)$ from \eqref{comp_sq:1}.  Then we have
 \begin{align}
   E(\theta,\bar{\theta}) &= -(2T+1)\frac{n\log(2\pi)}{2} + \frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
-  E_0 :&=\int_{\R^{Tn}}P(X,S\mid\theta)\{\log\det\overline{S}^{-1}_0 - Q(s_0;\bar{\mu}_0,\overline{S}_0^{-1})\}dS,\label{E0}\\
-  E_1 :&= \int_{\R^{Tn}}P(X,S\mid\theta)\left\{\sum_{t=1}^T\log\det\overline{S}^{-1}_{Ob} - Q(x_t;s_t,\overline{S}_{Ob}^{-1})\right\}dS,
+  E_0 :&=\int_{\R^{Tn}}P(X,S\mid\theta)\{\log|\overline{S}_0| - Q(s_0;\bar{\mu}_0,\overline{S}_0)\}dS,\label{E0}\\
+  E_1 :&= \int_{\R^{Tn}}P(X,S\mid\theta)\left\{\sum_{t=1}^T\log|\overline{S}_{Ob}| - Q(x_t;Ms_t,\overline{S}_{Ob})\right\}dS,
 \label{E1}\\
-  E_2 :&= \int_{\R^{Tn}}P(X,S\mid\theta)\left\{\sum_{t=1}^T\log\det\overline{S}^{-1}_{Tr} - Q(s_t;s_{t-1},\overline{S}_{Tr}^{-1})\right\}dS,
+  E_2 :&= \int_{\R^{Tn}}P(X,S\mid\theta)\left\{\sum_{t=1}^T\log|\overline{S}_{Tr}| - Q(s_t;s_{t-1},\overline{S}_{Tr})\right\}dS,
 \label{E2}
 \end{align}
 Since the expected value of a constant is just that constant, $-n\log(2\pi)/2$ can be moved outside each
@@ -341,26 +341,26 @@ $\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation
 outside the integral in \eqref{E1} we have the same collapse to the marginalization at $s_t$ of the posterior, which
 is just $\gamma_t(s_t)$.  It follows that
 \begin{align*}
-E_0 &= \log\det(\overline{S}^{-1}_0) - \int_{\R^n}\gamma_0(s)Q(s;\bar{\mu}_0,\overline{S}_0)ds,\quad\text{and}\\
-E_1 &= T\log\det(\overline{S}^{-1}_{Ob}) - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)Q(x_t;s,\overline{S}_{Ob})ds.
+E_0 &= \log|\overline{S}_0| - \int_{\R^n}\gamma_0(s)Q(s;\bar{\mu}_0,\overline{S}_0)ds,\quad\text{and}\\
+E_1 &= T\log|\overline{S}_{Ob}| - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)Q(x_t;Ms,\overline{S}_{Ob})ds.
 \end{align*}
 
 The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
 the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
 $$
-E_2 = T\log\det(\overline{S}^{-1}_{Tr}) - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)Q(s;u,\overline{S}_{Tr})duds,
+E_2 = T\log|\overline{S}_{Tr}| - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)Q(s;u,\overline{S}_{Tr})duds,
 $$
 where $\hat{\gamma}_t(s,u)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
 at time $t$ given by \eqref{gamma_hat}.
 
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors (when $n=1$).
-In particular, if $m=n$, $A$ is symmetric, and $f(A) = \det(A)$,  then the usual expansion 
+In particular, if $m=n$, $A$ is symmetric, and $f(A) = |A|$,  then the usual expansion 
 in minors along the $i^{th}$ row shows that 
 $$
-\frac{\partial{\det(A)}}{\partial{A}} = (2-\delta_{ij})A^* = (2-\delta_{ij})\det(A)A^{-1},\quad\text{and}
-\quad\frac{\partial{\log\det(A)}}{\partial{A}} = (2-\delta_{ij})A^{-1}. 
+\frac{\partial{|A|}}{\partial{A}} = (2-\delta_{ij})A^* = (2-\delta_{ij})|A|A^{-1},\quad\text{and therefore}
+\quad\frac{\partial{\log|A|}}{\partial{A}} = (2-\delta_{ij})A^{-1}. 
 $$
 Here $A^*$ is the adjoint matrix and the notation $(2-\delta_{ij})A^*$ means to multiply all off-diagonal elements of $A^*$ by 2
 and leave the diagonal unchanged.  This is of course necessary due the the symmetry $A = A^T$.
@@ -374,6 +374,52 @@ $$
 \frac{\partial{Q(x;\mu,S)}}{\partial{\mu}} = 2S(\mu-x).
 $$
 
+Finally, to reestimate the $M$-matrix, we need
+$$
+\frac{\partial{Q(x;M\mu,S)}}{\partial{M}}.
+$$
+
+\begin{Lem}\label{dM}
+  $$
+  \frac{\partial{Q(x;M\mu,S)}}{\partial{M}} = -2SMx\mu^T + 2SM\mu\mu^T.
+  $$
+\end{Lem}
+\begin{proof}
+Expanding, we have
+$$
+Q := (x-M\mu)^TS(x-M\mu) = x^TSx - 2x^TSM\mu + \mu^TM^TSM\mu.
+$$
+Differentiating the linear term is just a special case of
+$$
+\frac{\partial}{\partial{M}}y^TMx = yx^T.
+$$
+For the quadratic term, we have
+$$
+Q_0 := \mu^TM^TSM\mu = \sum_{i,j,k,l}\mu_iM_{ji}S_{jk}M_{kl}\mu_l.
+$$
+Collecting terms which involve $M_{qr}$, if $j=q$ and $i=r$, we get
+$$
+M_{qr}\mu_r\sum_{k,l}S_{qk}M_{kl}\mu_l.
+$$
+If $k=q$ and $l=r$, we get
+$$
+M_{qr}\mu_r\sum_{i,j}\mu_iM_{ji}S_{jq},
+$$
+which is the same as the previous case after replacing $i$ by $l$ and $j$ by $k$, except
+that the term $\mu_r^2M_{qr}^2S_{qq}$
+(which is the case $j = k = q,i = l = r$) has been counted twice.
+We'll call this term the exceptional term. Then
+\begin{align*}
+  \frac{\partial{Q_0}}{\partial{M_{qr}}} &= 2\mu_r\sum_{(k,l)\neq(q,r)}S_{qk}M_{kl}\mu_l + 2\mu_r^2M_{qr}S_{qq}\\
+    &= 2\mu_r\sum_{k,l}S_{qk}M_{kl}\mu_l,
+\end{align*}
+So the exceptional term isn't really exceptional after all.  We conclude that
+$$
+\frac{\partial{Q_0}}{\partial{M}} = 2SM\mu\mu^T
+$$
+as asserted.
+\end{proof}
+      
 Armed with these formulas, we first minimize $E_0$ with respect to $\bar{\mu}_0$: 
  
 \begin{align}
