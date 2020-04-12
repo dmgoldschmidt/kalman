@@ -280,20 +280,23 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   \begin{align}
     \hat{\gamma}_t(s,u) &\propto \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \notag\\
     &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})  \N(Ms;x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t})\notag\\
-    &\propto \N(u;\mu^{(1)}_t,S_t^{(1)})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1})\N(s;\mu_{b,t-1},M^TS_{Ob}M+S_{b,t})\notag\\
-    &\propto \N(u;\mu^{(1)}_t,S_t^{(1)})\N(s;\mu^{(2)}_t,S^{(2)}_t),\label{gamma_hat}
+    &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1})\N(s;\mu_{b,t-1},M^TS_{Ob}M+S_{b,t})\notag\\
+    &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{s,t},S_{s,t}),\label{gamma_hat}
   \end{align}
   where we have discarded factors which do not depend on either $u$ or $s$, and 
-  \begin{align}
-    S^{(1)}_t &:= S_{a,t-1}+S_{Tr},\notag\\
-   \mu^{(1)}_t &:= (S_t^{(1)})^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}),\label{mu(1)}\\
-    S^{(2)}_t &:= S_{Tr}*S_{a,t-1} + M^TS_{Ob}M+S_{b,t},\notag\quad\text{and}\\
-    \mu^{(2)}_t &:= (S_t^{(2)})^{-1}(S_{Tr}*S_{a,t-1}\mu_{a,t-1} + (M^TS_{Ob}M+S_{b,t})\mu_{b,t-1})\label{mu(2)}.
-  \end{align}
+  \begin{equation}\label{gamma_su}
+    \begin{split}
+      S_{u,t} &:= S_{a,t-1}+S_{Tr},\\
+      \mu_{u,t} &:= S_{u,t}^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}),\\
+      S_{s,t} &:= S_{Tr}*S_{a,t-1} + \hat{S}_{b,t-1},\quad\text{and}\\
+      \mu_{s,t} &:= S_{s,t}^{-1}(S_{Tr}*S_{a,t-1}\mu_{a,t-1} + \hat{S}_{b,t-1}\mu_{b,t-1}). 
+    \end{split}
+  \end{equation}
+  
 
   Note that
   $$
-  \int_{\R^{2n}}\N(u;\mu^{(1)},S^{(1)})\N(s;\mu^{(2)}S^{(2)})duds = \int_{\R^n}\N(s;\mu^{(2)}S^{(2)}ds = 1 
+  \int_{\R^{2n}}\N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{s,t}S_{s,t})duds = \int_{\R^n}\N(s;\mu_{s,t}S_{s,t})ds = 1 
   $$
   
   because the second factor does not depend on $u$, so \eqref{gamma_hat} is a bona-fide density and no
@@ -375,13 +378,10 @@ $$
 $$
 
 Finally, to reestimate the $M$-matrix, we need
-$$
-\frac{\partial{Q(x;M\mu,S)}}{\partial{M}}.
-$$
 
 \begin{Lem}\label{dM}
   $$
-  \frac{\partial{Q(x;M\mu,S)}}{\partial{M}} = -2SMx\mu^T + 2SM\mu\mu^T.
+  \frac{\partial{Q(x;M\mu,S)}}{\partial{M}} = -2Sx\mu^T + 2SM\mu\mu^T.
   $$
 \end{Lem}
 \begin{proof}
@@ -420,98 +420,126 @@ $$
 as asserted.
 \end{proof}
       
-Armed with these formulas, we first minimize $E_0$ with respect to $\bar{\mu}_0$: 
+Armed with these formulas, we first optimize $E_0$ with respect to $\bar{\mu}_0$: 
  
 \begin{align}
 0 = \frac{\partial{E_0}}{\partial{\bar{\mu}_0}} &= \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\bar{\mu}_0,\overline{S}_0)}}{\partial{\bar{\mu}_0}}ds \notag\\
-&= \int_{\R^n}\gamma_0(s)(2\overline{S}_0^{-1}(\bar{\mu}_0-s))ds\notag\\
-&= 2\overline{S}_0^{-1}\int_{\R^n}\gamma_0(s)(\bar{\mu}_0-s)ds \notag\\
-&= 2\overline{S}_0^{-1}(\bar{\mu}_0-\mu_{c,0}), \quad\text{hence}\notag\\
+&= \int_{\R^n}\gamma_0(s)(2\overline{S}_0(\bar{\mu}_0-s))ds\notag\\
+&= 2\overline{S}_0\int_{\R^n}\gamma_0(s)(\bar{\mu}_0-s)ds \notag\\
+&= 2\overline{S}_0(\bar{\mu}_0-\mu_{c,0}), \quad\text{hence}\notag\\
 \bar{\mu}_0 &= \mu_{c,0}\label{mu_0}
 \end{align}
 
-Next, we maximize $E_0$ with respect to $\overline{S}_0^{-1}$, and we can set $\bar{\mu}_0 = \mu_{c,0}$ by \eqref{mu_0}:
+Next, we optimize $E_0$ with respect to $\overline{S}_0$, and we can set $\bar{\mu}_0 = \mu_{c,0}$ by \eqref{mu_0}:
 \begin{align*}
-0 = \frac{\partial{E_0}}{\partial{\overline{S}_0^{-1}}} &= \frac{\partial{\log\det(\overline{S}_0^{-1})}}{\partial\overline{S}_0^{-1}} - \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\overline{S}_0^{-1})}}{\partial{\overline{S}_0^{-1}}}ds \\
-&= (2-\delta_{ij})\overline{S}_0 - (2-\delta_{ij})\int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
+  0 = \frac{\partial{E_0}}{\partial{\overline{S}_0}} &= \frac{\partial\log|\overline{S}_0|}{\partial\overline{S}_0}
+  -\int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\overline{S}_0)}}{\partial\overline{S}_0}ds \\
+&= (2-\delta_{ij})\overline{S}_0^{-1} - (2-\delta_{ij})\int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
 \end{align*}
 Not surprisingly, it follows that
 \begin{equation}\label{Sigma_0}
-  \overline{S}_0 = \int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds = S_{c,o}.
-  \end{equation}
-
-To minimize $E_1$, we differentiate with respect to $\overline{S}_{ob}^{-1}$:
-\begin{align*}
-  0 = \frac{\partial{E_1}}{\partial{\overline{S}_{Ob}^{-1}}} &= T\frac{\partial{\log\det(\overline{S}_{Ob}^{-1})}}{\partial\overline{S}_{Ob}^{-1}}
-  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(s;x_t,\overline{S}_{Ob}^{-1})}}{\partial{\overline{S}_{Ob}^{-1}}}ds \\
-  &= (2-\delta{ij})T\overline{S}_{Ob} - (2-\delta_{ij})\sum_{t=1}^T\int_{\R^n}\gamma_t(s)(s-x_t)(s-x_t)^Tds.
-\end{align*}
-Thus,  we see that
-\begin{equation}\label{Sigma_Ob}
-  \overline{S}_{Ob} = \frac{1}{T}\sum_{t=1}^T [S_{c,t} + (\mu_{c,t}-x_t)(\mu_{c,t}-x_t)^T].
-\end{equation}
-
-Finally, we minimize $E_2$ by differentiating with respect to $\overline{S}_{Tr}^{-1}$:
-\begin{equation}\label{Sigma_Tr:0}
   \begin{split}
-  0 &= \frac{\partial{E_2}}{\partial{\overline{S}_{Tr}^{-1}}} = \frac{\partial{\log\det(\overline{S}_{Tr}^{-1})}}{\partial\overline{S}_{Tr}^{-1}}
-  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\overline{S}_{Tr}^{-1})}}{\partial\overline{S}_{Tr}^{-1}}duds \\
-      &= (2-\delta_{ij})T\overline{S}_{Tr} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu^{(1)}_t,S^{(1)}_t)\N(s;\mu^{(2)}_tS^{(2)}_t)(u-s)(u-s)^Tduds.
+    \overline{S}_0^{-1} &= \int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds = S_{c,0}^{-1}, \quad\text{i.e.}\\
+    \overline{S}_0 &= S_{c,0}.
   \end{split}
 \end{equation}
 
-As noted earlier, $\N(s,\mu^{(2)}_t,S^{(2)}_t)$ does not depend on $u$, so we can integrate first with respect to $u$, with a result
-analagous to \eqref{Sigma_Ob}:
+To optimize $E_1$, we first differentiate with respect to $\overline{S}_{ob}$:
+\begin{align*}
+  0 = \frac{\partial{E_1}}{\partial{\overline{S}_{Ob}}} &=
+  T\frac{\partial{\log|\overline{S}_{Ob}|}}{\partial\overline{S}_{Ob}}
+  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(x_t;\overline{M}s,\overline{S}_{Ob})}}{\partial{\overline{S}_{Ob}}}ds \\
+  &= (2-\delta{ij})T\overline{S}_{Ob}^{-1} - (2-\delta_{ij})\sum_{t=1}^T
+  \int_{\R^n}\gamma_t(s)(x_t-\overline{M}s)(x_t-\overline{M}s)^Tds.
+\end{align*}
+Thus,  we see that
+\begin{equation}\label{S_Ob}
+  \begin{split}
+    \overline{S}_{Ob}^{-1} &= \frac{1}{T}\sum_{t=1}^T\int_{\R^n}\gamma_t(s)(x_tx_t^T - x_ts^T\overline{M}^T
+    - \overline{M}sx_t^T + \overline{M}ss^T\overline{M}^T)ds \\
+    &= \frac{1}{T}\sum_{t=1}^T(x_tx_t^T - x_t\mu_{c,t}^T\overline{M}^T - \overline{M}\mu_{c,t}x_t^T +
+    \overline{M}(S_{c,t}^{-1}+\mu_{c,t}\mu_{c,t}^T)\overline{M}^T)\\
+    &= \frac{1}{T}\sum_{t=1}^T(x_t-\overline{M}\mu_{c,t)}(x_t-\overline{M}\mu_{c,t})^T +
+    \overline{M}S_{c,t}^{-1}\overline{M}^T.
+  \end{split}
+\end{equation}
+
+We then differentiate with respect to $\overline{M}$ using \eqref{dM}:
+\begin{align*}
+  0 = \frac{\partial{E_1}}{\partial{\overline{M}}} &=
+  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(x_t;\overline{M}s,\overline{S}_{Ob})}}{\partial{\overline{M}}}ds \\
+  &= 2\sum_{t=1}^T\int_{\R^n}\gamma_t(s)(\overline{S}_{Ob}x_ts^T - \overline{S}_{ob}\overline{M}ss^T)ds \\
+  &= 2\sum_{t=1}^T(\overline{S}_{Ob}x_t\mu_{c,t}^T - \overline{S}_{Ob}\overline{M}(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T).
+\end{align*}
+Multiplying by $S_{Ob}^{-1}$, we find that
+\begin{equation}\label{M_bar}
+  \begin{split}
+    \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
+    \Gamma_1 :&= \sum_{t=1}^Tx_t\mu_{c,t}^T, \quad\text{and}\\
+    \Gamma_2 :&= \sum_{i=1}^TS_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T.
+  \end{split}
+\end{equation}
+
+It is important to note here that \eqref{M_bar} is independent of $S_{Ob}$, so to optimize $E_1$, we can first
+solve for $\overline{M}$ and then use the result to solve for $\overline{S}_{Ob}$.  
+
+Finally, we optimize $E_2$ by differentiating with respect to $\overline{S}_{Tr}$ and using \eqref{gamma_su}:
+\begin{equation}\label{Sigma_Tr:0}
+  \begin{split}
+  0 &= \frac{\partial{E_2}}{\partial{\overline{S}_{Tr}}} = \frac{\partial{\log|\overline{S}_{Tr}|}}{\partial\overline{S}_{Tr}}
+  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\overline{S}_{Tr})}}{\partial\overline{S}_{Tr}}duds \\
+      &= (2-\delta_{ij})T\overline{S}_{Tr}^{-1} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{s,t}S_{s,t})(u-s)(u-s)^Tduds.
+  \end{split}
+\end{equation}
+
+As noted earlier, $\N(s,\mu_{s,t},S_{s,t})$ does not depend on $u$, so we can integrate first with respect to $u$, with a result
+analagous to \eqref{S_Ob}:
 $$
-  \int_{-\infty}^{\infty}\N(u;\mu^{(1)}_t,S^{(1)}_t)(u-s)(u-s)^Tdu = S^{(1)}_t + (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^T.
+  \int_{-\infty}^{\infty}\N(u;\mu_{u,t},S_{u,t})(u-s)(u-s)^Tdu = S_{u,t} + (s-\mu_{u,t})(s-\mu_{u,t})^T.
 $$
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
-  \overline{S}_{Tr} =  \frac{1}{T}\left(\sum_{t=1}^TS^{(1)}_t +\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,S^{(2)}_t)
-  (s-\mu^{(1)}_t)(s-\mu^{(1)}_t)^Tds\right).
+  \overline{S}_{Tr}^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{u,t} +\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})
+  (s-\mu_{u,t})(s-\mu_{u,t})^Tds\right).
 \end{equation}
 
-However, there is a problem evaluating this integral because after checking \eqref{mu(1)}, we see that $\mu^{(1)}_t$
+However, there is a problem evaluating this integral because after checking \eqref{gamma_su}, we see that $\mu_{u,t}$
 depends on $s$, namely  
 \begin{equation}\label{s-mu_1}
-    \begin{split}
-s - \mu^{(1)}_t &= (I - S_{a,t-1}\widehat{S}_{a,t}^{-1})s - S_{Tr}\widehat{S}_{a,t}^{-1}\mu_{a,t-1}, \\
-  &= (\widehat{S}_{a,t}\widehat{S}_{a,t}^{-1} - S_{a,t-1}\widehat{S}_{a,t}^{-1})s  - 
-  S_{Tr}\widehat{S}_{a,t}^{-1}\mu_{a,t-1},\\
-  &= (\widehat{S}_{a,t} - S_{a,t-1})\widehat{S}_{a,t}^{-1}s - S_{Tr}\widehat{S}_{a,t}^{-1}\mu_{a,t-1},\\
-  &= S_{Tr}\widehat{S}_{a,t}^{-1}s - S_{Tr}\widehat{S}_{a,t}^{-1}\mu_{a,t-1},\\
-  &= S_{Tr}\widehat{S}_{a,t}^{-1}(s - \mu_{a,t-1}).
-    \end{split}
+  \begin{split}
+    s-\mu_{u,t} &= (I - S_{u,t}^{-1}S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= (S_{u,t}^{-1}S_{u,t} - S_{u,t}^{-1}S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{u,t}^{-1}(S_{u,t} - S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{u,t}^{-1}S_{a,t-1}(s - \mu_{a,t-1}).
+  \end{split}
 \end{equation}
 
 
-Fortunately, neither $\mu^{(2)}_t,S^{(2)}_t,$ nor $S^{(1)}_t$ depends on $s$,
-so \eqref{Sigma_Tr:1} becomes
+Fortunately, neither $\mu_{s,t},S_{s,t},$ nor $S_{u,t}$ depends on $s$,
+so using \eqref{gamma_su}, \eqref{Sigma_Tr:1} becomes
 \begin{align}
-  \overline{S}_{Tr} &= \frac{1}{T}\sum_{t=1}^TS^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
-    \int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,S^{(2)}_t)S_{Tr}\widehat{S}_{a,t}^{-1}(s-\mu_{a,t-1})
-    s-\mu_{a,t-1})^T\widehat{S}_{a,t}^{-1}S_{Tr}ds\notag\\
-    &=\frac{1}{T}\sum_{t=1}^TS^{(1)}_t +\frac{1}{T}\sum_{t=1}^TS_{Tr}\widehat{S}_{a,t}^{-1}
-    \left[\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,S^{(2)}_t)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\widehat{S}_{a,t}^{-1}S_{Tr}\notag\\
-   &=\frac{1}{T}\sum_{t=1}^TS^{(1)}_t+S_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{S}_{a,t}^{-1}
-   [S^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{S}_{a,t}^{-1}\right)S_{Tr}.\label{Sigma_Tr:2}
+  \overline{S}_{Tr}^{-1} &= \frac{1}{T}\sum_{t=1}^TS_{u,t} + \frac{1}{T}\sum_{t=1}^T
+    \int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})S_{u,t}^{-1}S_{a,t-1}(s-\mu_{a,t-1})
+    (s-\mu_{a,t-1})^TS_{a,t-1}S_{u,t}^{-1}ds\notag\\
+    &=\frac{1}{T}\sum_{t=1}^TS_{u,t} +\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}S_{a,t-1}
+    \left[\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]S_{a,t-1}S_{u,t}^{-1}\notag\\
+   &=\frac{1}{T}\sum_{t=1}^TS_{u,t}+\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}S_{a,t-1}
+   [S_{s,t}+(\mu_{s,t}-\mu_{a,t-1})(\mu_{s,t}-\mu_{a,t-1})^T]S_{a,t-1}S_{u,t}^{-1}.\label{Sigma_Tr:2}
   \end{align}
 
-Finally, we can make the following simplification by using \eqref{mu(2)}.
+Finally, we can make the following simplification by using \eqref{gamma_su}.
 \begin{align*}
-  \mu^{(2)} - \mu_{a,t-1} &= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{S}_{b,t-1}\widehat{S}_{c,t}^{-1}-I)\mu_{a,t-1}\\
-  &= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{S}_{b,t-1}\widehat{S}_{c,t}^{-1}-\widehat{S}_{c,t}\widehat{S}_{c,t}^{-1})\mu_{a,t-1}\\
-  &=  \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{S}_{b,t-1}-\widehat{S}_{c,t})\widehat{S}_{c,t}^{-1}\mu_{a,t-1}\\
-  &= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
+  \mu_{s,t} - \mu_{a,t-1} &= (S_{s,t}^{-1}S_{Tr}*S_{a,t-1} - I)\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
+  &= (S_{s,t}^{-1}S_{Tr}*S_{a,t-1} - S_{s,t}^{-1}S_{s,t})\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
+  &= -S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
+  &= S_{s,t}^{-1}\hat{S}_{b,t-1}(\mu_{b,t-1}-\mu_{a,t-1}).
 \end{align*}
 and substituting this into \eqref{Sigma_Tr:2} we have
 \begin{equation}\label{Sigma_Tr:3}
-\overline{S}_{Tr}   =\frac{1}{T}\sum_{t=1}^TS^{(1)}_t+S_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{S}_{c,t}^{-1}
-   [S^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{S}_{c,t}^{-1}\right)S_{Tr}.
+\overline{S}_{Tr} = \frac{1}{T}\sum_{t=1}^TS_{u,t}+\frac{1}{T}\sum_{t=1}^TS_{s,t}^{-1}\hat{S}_{b,t-1}
+   [S_{s,t}+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\hat{S}_{b,t-1}S_{s,t}^{-1}.
 \end{equation}  
+\end{document}
 
 \section{The M matrix}
 We now consider the important generalization of the basic case in which the observation space and the state space are different.
@@ -535,91 +563,4 @@ With the notation of \eqref{comp_sq:1}:
 \end{proof}
 \end{document}
 
-
-
-
-
-so we can make the affine change of variable 
-$$
-v := S_{Tr}\widehat{S}_{a,t}^{-1}(s - \mu_{a,t-1}),\quad dv = \det(S_{Tr}\widehat{S}_{a,t}^{-1})ds
-$$
-in \eqref{Sigma_Tr:1}, which yields
-\begin{equation} \label{Sigma_tr:2}
-  \begin{split}
-  \overline{S}_{Tr} &= \frac{1}{T}\sum_{t=1}^T \left(S^{(1)}_t +\det(\widehat{S}_{a,t}S_{Tr}^{-1})
-  \int_{-\infty}^{\infty}\N(v;\mu^{(3)}_t,S_t^{(3)})vv^T dv\right)\\
-  &=  \frac{1}{T}\sum_{t=1}^T \left(S^{(1)}_t +\det(\widehat{S}_{a,t}S_{Tr}^{-1}) (S^{(3)}_t
-  + \mu^{(3)}_t(\mu^{(3)}_t)^T)\right).
-  \end{split}
-\end{equation}
-where
-\begin{align*}
-S_t^{(3)} :&= S_{Tr}\widehat{S}^{-1}_{a,t}S^{(2)}_t\widehat{S}_{a,t}^{-1}S_{Tr},\quad\text{and}\\
-\mu_t^{(3)} :&= S_{Tr}\widehat{S}_{a,t}^{-1}(\mu_t^{(2)} - \mu_{a,t-1}).
-\end{align*}
-
-However, by a calculation entirely analagous to \eqref{s-mu_1}, we find that
-$$
-S_{tr}\widehat{S}_{a,t}^{-1}(\mu_t^{(2)}-\mu_{a,t-1})=
-(\widehat{S}_{a,t}+\widetilde{S}_{b,t})^{-1}(\mu_{b,t-1}-\mu_{a,t-1}),
-$$
-which yields
-$$
-\mu_t^{(3)} = S_{Tr}(\widehat{S}_{a,t}+\widetilde{S}_{b,t})^{-1}(\mu_{b,t-1}-\mu_{a,t-1}).
-$$
-
-
-\eqref{Sigma_Tr:1} becomes
-\begin{align}
-  \overline{S}_{Tr} &= \frac{1}{T}\sum_{t=1}^TS^{(1)}_t + \frac{1}{T}\sum_{t=1}^T
-    \int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,S^{(2)}_t)S_{Tr}\widehat{S}_{a,t}^{-1}(s-\mu_{a,t-1})
-    s-\mu_{a,t-1})^T\widehat{S}_{a,t}^{-1}S_{Tr}ds\notag\\
-    &=\frac{1}{T}\sum_{t=1}^TS^{(1)}_t +\frac{1}{T}\sum_{t=1}^TS_{Tr}\widehat{S}_{a,t}^{-1}
-    \left[\int_{-\infty}^{\infty}\N(s;\mu^{(2)}_t,S^{(2)}_t)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\widehat{S}_{a,t}^{-1}S_{Tr}\notag\\
-   &=\frac{1}{T}\sum_{t=1}^TS^{(1)}_t+S_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{S}_{a,t}^{-1}
-   [S^{(2)}_t+(\mu^{(2)}_t-\mu_{a,t-1})(\mu^{(2)}_t-\mu_{a,t-1})^T]\widehat{S}_{a,t}^{-1}\right)S_{Tr}.\label{Sigma_Tr:2}
-  \end{align}
-
-Finally, we can make the following simplification by using \eqref{mu(2)} and defining
-$$
-\widehat{S}_{c,t} = \widehat{S}_{a,t} + \widetilde{S}_{b,t}.
-$$
-Then
-\begin{align*}
-  \mu^{(2)} - \mu_{a,t-1} &= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{S}_{b,t-1}\widehat{S}_{c,t}^{-1}-I)\mu_{a,t-1}\\
-  &= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{S}_{b,t-1}\widehat{S}_{c,t}^{-1}-\widehat{S}_{c,t}\widehat{S}_{c,t}^{-1})\mu_{a,t-1}\\
-  &=  \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}\mu_{b,t-1} +
-  (\widetilde{S}_{b,t-1}-\widehat{S}_{c,t})\widehat{S}_{c,t}^{-1}\mu_{a,t-1}\\
-  &= \widehat{S}_{a,t}\widehat{S}_{c,t}^{-1}(\mu_{b,t-1} -\mu_{a,t-1}),
-\end{align*}
-and substituting this into \eqref{Sigma_Tr:2} we have
-\begin{equation}\label{Sigma_Tr:3}
-\overline{S}_{Tr}   =\frac{1}{T}\sum_{t=1}^TS^{(1)}_t+S_{Tr}\left(\frac{1}{T}\sum_{t=1}^T\widehat{S}_{c,t}^{-1}
-   [S^{(2)}_t+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\widehat{S}_{c,t}^{-1}\right)S_{Tr}.
-\end{equation}  
-
-
-
-By definition, $P_{c,t}$ is the posterior probability density of all the data and is therefore independent of $t$.
-However, as a useful check on our calculations, we can derive this directly:
-\begin{align*}
-  \frac{P_{c,t}}{P_{c,t+1}} &= \frac{P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}+S_{b,t}}
-  {P_{a,t+1}P_{b,t+1}\N(\mu_{a,t+1};\mu_{b,t+1},S_{a,t+1}+S_{b,t+1})}\\
-  &=\frac{P_{a,t}P_{b,t+1}\N(x_{t+1};\mu_{t+1},\widehat{S}_{b,t+1})\N(\mu_{a,t};\mu_{b,t},S_{a,t}+S_{b,t})}
-  {P_{a,t}P_{b,t+1}\N(x_{t-1};\mu_{a,t}S_{Ob}+\widehat{S}_{a,t})\N(\mu_{a,t+1};\mu_{b,t+1},S_{a,t+1}+S_{b,t+1})}\\
-\end{align*}
-
- %  \hat{\beta}_T(u) &= \N(Mu;x_T,S_{Ob})\N(u;0,I) = R_{b,T}\N(u,M^Tx_T,M^TS_{Ob}M+I),\quad\text{and}\\
-%  \beta_{T-1}(s) &= \int_{\R^n}\N(Mu;x_T,S_{Ob})\N(u;s,S_{Tr})du \\
-%  &= \N(s;x_T,S_{Ob}*S_{Tr})
-%\end{align*}
-
-  Thus, our initial values at $t = T-1$ are
-  \begin{align*}
-  P_{b,T-1} &= 1,\\
-  \mu_{b,T-1} &= x_T, \quad\text{and}\\
-  S_{b,T-1} &= S_{Ob}*S_{Tr}.
-  \end{align*}
 
