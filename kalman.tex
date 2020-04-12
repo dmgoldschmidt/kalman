@@ -168,15 +168,15 @@ Furthermore, if $M = I$ then
   in state $s$, to get $\alpha_t(s)$.
 
   First, for $1\le t \le T$ we inductively define
-\begin{align*}
-%  \widehat{S}_{a,t} &= S_{Tr}(S_{Tr}+S_{a,t-1})^{-1}S_{a,t-1},\\
-  S_{a,t} :&= M^TS_{Ob}M + S_{Tr}*S_{a,t-1},\\
-  \mu_{a,t} &= S_{a,t}^{-1}(M^TS_{Ob}x_t + S_{Tr}*S_{a,t-1}\mu_{a,t-1})\\
-  R_{a,t} :&= x_t^TS_{Ob}x_t + \mu_{a,t-1}^T(S_{Tr}*S_{a,t-1})\mu_{a,t-1} - \mu_{a,t}^TS_{a,t}\mu_{a,t},\\
-  N_{a,t} :&= \left(\frac{|S_{Ob}|\cdot|S_{Tr}*S_{a,t-1}|}{2\pi|S_{a,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
-  P_{a,t} :&= P_{a,t-1}N_{a,t}, \quad\text{and}\\
-  P_{a,0} :&= 1.
-\end{align*}
+  \begin{align*}
+    \hat{S}_{a,t} &= S_{Tr}*S_{a,t-1},\\
+    S_{a,t} &:= M^TS_{Ob}M + \hat{S}_{a,t},\\
+    \mu_{a,t} &:= S_{a,t}^{-1}(M^TS_{Ob}x_t + \hat{S}_{a,t}\mu_{a,t-1})\\
+    R_{a,t} &:= x_t^TS_{Ob}x_t + \mu_{a,t-1}^T(\hat{S}_{a,t})\mu_{a,t-1} - \mu_{a,t}^TS_{a,t}\mu_{a,t},\\
+    N_{a,t} &:= \left(\frac{|S_{Ob}|\cdot|\hat{S}_{a,t}|}{2\pi|S_{a,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
+    P_{a,t} &:= P_{a,t-1}N_{a,t}, \quad\text{and}\\
+    P_{a,0} &:= 1.
+  \end{align*}
 
 \begin{Thm}\label{alpha:1}
   For each state $s$ and time $t \ge 1$,
@@ -192,13 +192,13 @@ For the time update, we have, using \eqref{comp_sq:2}
 \begin{align}
   \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
   &= P_{a,t-1}\int_{\R^n}\N(u;s,S_{Tr})\N(u;\mu_{a,t-1},S_{a,t-1})du \notag\\
-  &= P_{a,t-1}\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1}).
+  &= P_{a,t-1}\N(s;\mu_{a,t-1},\hat{S}_{a,t}).
 \end{align}
 
 Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:2} again yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
-  &= P_{a,t-1}\N(Ms;x_t,S_{Ob})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1}) \\
+  &= P_{a,t-1}\N(Ms;x_t,S_{Ob})\N(s;\mu_{a,t-1},\hat{S}_{a,t}) \\
   &= P_{a,t_1}N_{a,t}\N(s;\mu_{a,t},S_{a,t}).
 \end{align*}
 \end{proof}
@@ -280,7 +280,7 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   \begin{align}
     \hat{\gamma}_t(s,u) &\propto \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \notag\\
     &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})  \N(Ms;x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t})\notag\\
-    &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},S_{Tr}*S_{a,t-1})\N(s;\mu_{b,t-1},M^TS_{Ob}M+S_{b,t})\notag\\
+    &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},\hat{S}_{a,t})\N(s;\mu_{b,t-1},\hat{S}_{b,t-1})\notag\\
     &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{s,t},S_{s,t}),\label{gamma_hat}
   \end{align}
   where we have discarded factors which do not depend on either $u$ or $s$, and 
@@ -288,8 +288,8 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
     \begin{split}
       S_{u,t} &:= S_{a,t-1}+S_{Tr},\\
       \mu_{u,t} &:= S_{u,t}^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}),\\
-      S_{s,t} &:= S_{Tr}*S_{a,t-1} + \hat{S}_{b,t-1},\quad\text{and}\\
-      \mu_{s,t} &:= S_{s,t}^{-1}(S_{Tr}*S_{a,t-1}\mu_{a,t-1} + \hat{S}_{b,t-1}\mu_{b,t-1}). 
+      S_{s,t} &:= \hat{S}_{a,t} + \hat{S}_{b,t-1},\quad\text{and}\\
+      \mu_{s,t} &:= S_{s,t}^{-1}(\hat{S}_{a,t}\mu_{a,t-1} + \hat{S}_{b,t-1}\mu_{b,t-1}). 
     \end{split}
   \end{equation}
   
@@ -459,7 +459,7 @@ Thus,  we see that
     - \overline{M}sx_t^T + \overline{M}ss^T\overline{M}^T)ds \\
     &= \frac{1}{T}\sum_{t=1}^T(x_tx_t^T - x_t\mu_{c,t}^T\overline{M}^T - \overline{M}\mu_{c,t}x_t^T +
     \overline{M}(S_{c,t}^{-1}+\mu_{c,t}\mu_{c,t}^T)\overline{M}^T)\\
-    &= \frac{1}{T}\sum_{t=1}^T(x_t-\overline{M}\mu_{c,t)}(x_t-\overline{M}\mu_{c,t})^T +
+    &= \frac{1}{T}\sum_{t=1}^T(x_t-\overline{M}\mu_{c,t})(x_t-\overline{M}\mu_{c,t})^T +
     \overline{M}S_{c,t}^{-1}\overline{M}^T.
   \end{split}
 \end{equation}
@@ -471,7 +471,7 @@ We then differentiate with respect to $\overline{M}$ using \eqref{dM}:
   &= 2\sum_{t=1}^T\int_{\R^n}\gamma_t(s)(\overline{S}_{Ob}x_ts^T - \overline{S}_{ob}\overline{M}ss^T)ds \\
   &= 2\sum_{t=1}^T(\overline{S}_{Ob}x_t\mu_{c,t}^T - \overline{S}_{Ob}\overline{M}(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T).
 \end{align*}
-Multiplying by $S_{Ob}^{-1}$, we find that
+Multiplying through by $\frac{1}{2}S_{Ob}^{-1}$, we find that
 \begin{equation}\label{M_bar}
   \begin{split}
     \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
@@ -495,11 +495,11 @@ Finally, we optimize $E_2$ by differentiating with respect to $\overline{S}_{Tr}
 As noted earlier, $\N(s,\mu_{s,t},S_{s,t})$ does not depend on $u$, so we can integrate first with respect to $u$, with a result
 analagous to \eqref{S_Ob}:
 $$
-  \int_{-\infty}^{\infty}\N(u;\mu_{u,t},S_{u,t})(u-s)(u-s)^Tdu = S_{u,t} + (s-\mu_{u,t})(s-\mu_{u,t})^T.
+  \int_{-\infty}^{\infty}\N(u;\mu_{u,t},S_{u,t})(u-s)(u-s)^Tdu = S_{u,t}^{-1} + (s-\mu_{u,t})(s-\mu_{u,t})^T.
 $$
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
-  \overline{S}_{Tr}^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{u,t} +\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})
+  \overline{S}_{Tr}^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{u,t}^{-1} +\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})
   (s-\mu_{u,t})(s-\mu_{u,t})^Tds\right).
 \end{equation}
 
@@ -510,7 +510,8 @@ depends on $s$, namely
     s-\mu_{u,t} &= (I - S_{u,t}^{-1}S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= (S_{u,t}^{-1}S_{u,t} - S_{u,t}^{-1}S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= S_{u,t}^{-1}(S_{u,t} - S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{u,t}^{-1}S_{a,t-1}(s - \mu_{a,t-1}).
+    &= S_{u,t}^{-1}S_{a,t-1}(s - \mu_{a,t-1}),\\
+    &= S_{Tr}^{-1}\hat{S}_{a,t}.
   \end{split}
 \end{equation}
 
@@ -518,49 +519,27 @@ depends on $s$, namely
 Fortunately, neither $\mu_{s,t},S_{s,t},$ nor $S_{u,t}$ depends on $s$,
 so using \eqref{gamma_su}, \eqref{Sigma_Tr:1} becomes
 \begin{align}
-  \overline{S}_{Tr}^{-1} &= \frac{1}{T}\sum_{t=1}^TS_{u,t} + \frac{1}{T}\sum_{t=1}^T
-    \int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})S_{u,t}^{-1}S_{a,t-1}(s-\mu_{a,t-1})
-    (s-\mu_{a,t-1})^TS_{a,t-1}S_{u,t}^{-1}ds\notag\\
-    &=\frac{1}{T}\sum_{t=1}^TS_{u,t} +\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}S_{a,t-1}
-    \left[\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]S_{a,t-1}S_{u,t}^{-1}\notag\\
-   &=\frac{1}{T}\sum_{t=1}^TS_{u,t}+\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}S_{a,t-1}
-   [S_{s,t}+(\mu_{s,t}-\mu_{a,t-1})(\mu_{s,t}-\mu_{a,t-1})^T]S_{a,t-1}S_{u,t}^{-1}.\label{Sigma_Tr:2}
+  \overline{S}_{Tr}^{-1} &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1} +\frac{1}{T}S_{Tr}^{-1}\left(\sum_{t=1}^T\hat{S}_{a,t}
+    \left[\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\hat{S}_{a,t}\right)S_{Tr}^{-1}\notag\\
+   &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}+\frac{1}{T}S_{Tr}^{-1}\left(\sum_{t=1}^T\hat{S}_{a,t}
+   [S_{s,t}^{-1}+(\mu_{s,t}-\mu_{a,t-1})(\mu_{s,t}-\mu_{a,t-1})^T]\hat{S}_{a,t}\right)S_{Tr}^{-1}.\label{Sigma_Tr:2}
   \end{align}
 
 Finally, we can make the following simplification by using \eqref{gamma_su}.
 \begin{align*}
-  \mu_{s,t} - \mu_{a,t-1} &= (S_{s,t}^{-1}S_{Tr}*S_{a,t-1} - I)\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
-  &= (S_{s,t}^{-1}S_{Tr}*S_{a,t-1} - S_{s,t}^{-1}S_{s,t})\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
+  \mu_{s,t} - \mu_{a,t-1} &= (S_{s,t}^{-1}\hat{S}_{a,t} - I)\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
+  &= (S_{s,t}^{-1}\hat{S}_{a,t} - S_{s,t}^{-1}S_{s,t})\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
   &= -S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
   &= S_{s,t}^{-1}\hat{S}_{b,t-1}(\mu_{b,t-1}-\mu_{a,t-1}).
 \end{align*}
-and substituting this into \eqref{Sigma_Tr:2} we have
+\end{document}
+However, before substituting this into \eqref{Sigma_Tr:2}, there are some cancellations we can make.
+\begin{align*}
+  S_{s,t}^{-1}\hat{S}_{b,t} = S_{a,t-1})^{-1}S_{s,t}(S_{tr}^{-1}*S_{a,t-1}*\hat{S}_{b,t}),
 \begin{equation}\label{Sigma_Tr:3}
 \overline{S}_{Tr} = \frac{1}{T}\sum_{t=1}^TS_{u,t}+\frac{1}{T}\sum_{t=1}^TS_{s,t}^{-1}\hat{S}_{b,t-1}
    [S_{s,t}+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\hat{S}_{b,t-1}S_{s,t}^{-1}.
 \end{equation}  
-\end{document}
-
-\section{The M matrix}
-We now consider the important generalization of the basic case in which the observation space and the state space are different.
-In particular, they may have different dimensions.  Let the state space have dimension $n$ and the observation space have
-dimension $m$.  We are given a linear map $M: \R^n\rightarrow R^m$ such that if $s_t\in \R^n$ is the state at time $t$, then
-$$
-X(x_t\mid s_t)= \N(x_t;Ms_t,S_{Ob}).
-$$
-Our first task is to generalize \eqref{comp_sq:1}.
-
-\begin{Lem}\label{comp_sq:3}
-With the notation of \eqref{comp_sq:1}:
-\begin{align}
-  Q(x;\mu_1,S_1) + Q(x;M\mu_2,S_2) &= \label{comp_sq:3a}\\
-  Q(x;\mu_1,S_1) + Q(Mx;\mu_2,S_2) = \label{comp_sq:3b}
-\end{align}
-\end{Lem}
-\begin{proof}
-\eqref{comp_sq:3a} is immediate from \eqref{comp_sq:1} by making the formal substitution $M\mu_2$ for $\mu_2$.  But \eqref{comp_sq:3b} is a bit more involved.  
-
-\end{proof}
 \end{document}
 
 
