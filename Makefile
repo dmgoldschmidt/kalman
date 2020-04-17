@@ -104,4 +104,6 @@ test_chol: test_chol.cc matrix.o util.o
 	g++ $(CFLAGS) -o test_chol test_chol.cc matrix.o util.o
 test_comp_sq: test_comp_sq.cc matrix.o util.o
 	g++ $(CFLAGS) -o test_comp_sq test_comp_sq.cc matrix.o util.o
+test_MatrixWelford: test_MatrixWelford.cc matrix.o util.o
+	g++ $(CFLAGS) -o test_MatrixWelford test_MatrixWelford.cc matrix.o util.o
 

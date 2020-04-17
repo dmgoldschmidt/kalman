@@ -241,13 +241,13 @@ assume the following values
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_{Ob})\N(u;\mu_{b,t+1},S_{b,t+1})\\
-    &= P_{b,t+1}N_{b,t}\N(u;\mu_{b,t},\hat{S}_{b,t})
+    &= P_{b,t+1}N_{b,t}\N(u;\mu_{b,t},\hat{S}_{b,t+1})
   \end{align*}
 
   Then a second application of \eqref{comp_sq:2} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
-    &= P_{b,t+1}N_{b,t}\int_{\R^n}\N(u;\mu_{b,t},\hat{S}_{b,t})\N(u;s,S_{Tr})du\\
+    &= P_{b,t+1}N_{b,t}\int_{\R^n}\N(u;\mu_{b,t},\hat{S}_{b,t+1})\N(u;s,S_{Tr})du\\
     &=P_{b,t+1}N_{b,t}\N(s;\mu_{b,t},S_{b,t})\\
     &=P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
@@ -259,9 +259,9 @@ at time $t$.
 \begin{Thm}
   Let notation be as in \eqref{alpha:1} and \eqref{beta:1}.  Define
 \begin{align*}
-  S_{c,t} :&= S_{a,t}*S_{b,t}, \\
+  S_{c,t} :&= S_{a,t} + S_{b,t}, \\
   \mu_{c,t} :&= S_{c,t}^{-1}(S_{a,t}\mu_{a,t} + S_{b,t}\mu_{b,t}), \quad\text{and}\\
-  P_{c,t} :&= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}+S_{b,t}), \quad\text{then} \\
+  P_{c,t} :&= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}*S_{b,t}), \quad\text{then} \\
  \gamma_t(s) &= \N(s;\mu_{c,t},S_{c,t}).
   \end{align*}
 \end{Thm}
@@ -280,7 +280,7 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
   \begin{align}
     \hat{\gamma}_t(s,u) &\propto \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \notag\\
     &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})  \N(Ms;x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t})\notag\\
-    &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},\hat{S}_{a,t})\N(s;\mu_{b,t-1},\hat{S}_{b,t-1})\notag\\
+    &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},\hat{S}_{a,t})\N(s;\mu_{b,t-1},\hat{S}_{b,t})\notag\\
     &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{s,t},S_{s,t}),\label{gamma_hat}
   \end{align}
   where we have discarded factors which do not depend on either $u$ or $s$, and 
@@ -288,8 +288,8 @@ which we denote by $\hat{\gamma}_t(s,u)$. The joint probability density of all t
     \begin{split}
       S_{u,t} &:= S_{a,t-1}+S_{Tr},\\
       \mu_{u,t} &:= S_{u,t}^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}),\\
-      S_{s,t} &:= \hat{S}_{a,t} + \hat{S}_{b,t-1},\quad\text{and}\\
-      \mu_{s,t} &:= S_{s,t}^{-1}(\hat{S}_{a,t}\mu_{a,t-1} + \hat{S}_{b,t-1}\mu_{b,t-1}). 
+      S_{s,t} &:= \hat{S}_{a,t} + \hat{S}_{b,t},\quad\text{and}\\
+      \mu_{s,t} &:= S_{s,t}^{-1}(\hat{S}_{a,t}\mu_{a,t-1} + \hat{S}_{b,t}\mu_{b,t-1}). 
     \end{split}
   \end{equation}
   
@@ -511,7 +511,7 @@ depends on $s$, namely
     &= (S_{u,t}^{-1}S_{u,t} - S_{u,t}^{-1}S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= S_{u,t}^{-1}(S_{u,t} - S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= S_{u,t}^{-1}S_{a,t-1}(s - \mu_{a,t-1}),\\
-    &= S_{Tr}^{-1}\hat{S}_{a,t}.
+    &= S_{Tr}^{-1}\hat{S}_{a,t}(s-\mu_{a,t-1}).
   \end{split}
 \end{equation}
 
@@ -520,25 +520,31 @@ Fortunately, neither $\mu_{s,t},S_{s,t},$ nor $S_{u,t}$ depends on $s$,
 so using \eqref{gamma_su}, \eqref{Sigma_Tr:1} becomes
 \begin{align}
   \overline{S}_{Tr}^{-1} &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1} +\frac{1}{T}S_{Tr}^{-1}\left(\sum_{t=1}^T\hat{S}_{a,t}
-    \left[\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\hat{S}_{a,t}\right)S_{Tr}^{-1}\notag\\
+  \left[\int_{-\infty}^{\infty}\N(s;\mu_{s,t},S_{s,t})(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\hat{S}_{a,t}\right)S_{Tr}^{-1}
+  \notag\\
    &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}+\frac{1}{T}S_{Tr}^{-1}\left(\sum_{t=1}^T\hat{S}_{a,t}
-   [S_{s,t}^{-1}+(\mu_{s,t}-\mu_{a,t-1})(\mu_{s,t}-\mu_{a,t-1})^T]\hat{S}_{a,t}\right)S_{Tr}^{-1}.\label{Sigma_Tr:2}
+   [S_{s,t}^{-1}+(\mu_{s,t}-\mu_{a,t-1})(\mu_{s,t}-\mu_{a,t-1})^T]\hat{S}_{a,t}\right)S_{Tr}^{-1}.\label{S_Tr:2}
   \end{align}
 
 Finally, we can make the following simplification by using \eqref{gamma_su}.
 \begin{align*}
-  \mu_{s,t} - \mu_{a,t-1} &= (S_{s,t}^{-1}\hat{S}_{a,t} - I)\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
-  &= (S_{s,t}^{-1}\hat{S}_{a,t} - S_{s,t}^{-1}S_{s,t})\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
-  &= -S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t-1}\mu_{b,t-1}\\
-  &= S_{s,t}^{-1}\hat{S}_{b,t-1}(\mu_{b,t-1}-\mu_{a,t-1}).
+  \mu_{s,t} - \mu_{a,t-1} &= (S_{s,t}^{-1}\hat{S}_{a,t} - I)\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t}\mu_{b,t-1}\\
+  &= (S_{s,t}^{-1}\hat{S}_{a,t} - S_{s,t}^{-1}S_{s,t})\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t}\mu_{b,t-1}\\
+  &= -S_{s,t}^{-1}\hat{S}_{b,t}\mu_{a,t-1} + S_{s,t}^{-1}\hat{S}_{b,t}\mu_{b,t-1}\\
+  &= S_{s,t}^{-1}\hat{S}_{b,t}(\mu_{b,t-1}-\mu_{a,t-1}).
 \end{align*}
-\end{document}
-However, before substituting this into \eqref{Sigma_Tr:2}, there are some cancellations we can make.
-\begin{align*}
-  S_{s,t}^{-1}\hat{S}_{b,t} = S_{a,t-1})^{-1}S_{s,t}(S_{tr}^{-1}*S_{a,t-1}*\hat{S}_{b,t}),
-\begin{equation}\label{Sigma_Tr:3}
-\overline{S}_{Tr} = \frac{1}{T}\sum_{t=1}^TS_{u,t}+\frac{1}{T}\sum_{t=1}^TS_{s,t}^{-1}\hat{S}_{b,t-1}
-   [S_{s,t}+(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T]\hat{S}_{b,t-1}S_{s,t}^{-1}.
+
+Define
+$$
+\hat{S}_{a,b,t} := \hat{S}_{a,t}S_{s,t}^{-1}\hat{S}_{b,t} = \hat{S}_{a,t}*\hat{S}_{b,t}.
+$$
+Then we have 
+\begin{equation}\label{S_Tr:3}
+  \begin{split}
+\overline{S}_{Tr}^{-1} = \frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1} + S_{Tr}^{-1}\left(\frac{1}{T}\sum_{t=1}^T\hat{S}_{a,t}
+S_{s,t}^{-1}\hat{S}_{a,t}+ \hat{S}_{a,b,t}(\mu_{b,t-1}-\mu_{a,t-1})(\mu_{b,t-1}-\mu_{a,t-1})^T\hat{S}_{a,b,t}
+\right)S_{Tr}^{-1}.
+\end{split}
 \end{equation}  
 \end{document}
 

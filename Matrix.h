@@ -16,6 +16,7 @@ class SparseMatrix;
 template<typename SCALAR>
 class ColVector;
 
+
 struct Givens{ // reset computes, applies, and stores the 2x2 rotation matrix T s.t. T(a,b) = (sqrt(a^2+b^2),0) 
   // rotate applies the above rotation to an arbitrary vector (x,y).
   double sin_t;
@@ -34,7 +35,7 @@ struct Givens{ // reset computes, applies, and stores the 2x2 rotation matrix T 
     sin_t = b0/h;
     a0 = h;
     b0 = 0;
-    //    cout << "sin_t = "<<sin_t<<", cos_t = "<<cos_t<<endl;
+    //    std::cout << "sin_t = "<<sin_t<<", cos_t = "<<cos_t<<std::endl;
     return true;
   }
    
@@ -59,7 +60,7 @@ public:
   Matrix(int m, int n, const SCALAR* fill = nullptr ): Base(m*n,fill), offset(0), _nrows(m), _ncols(n), col_stride(n),
                                                        printall(false){}
 
-  Matrix(initializer_list<Array<SCALAR>> l) : printall(false){
+  Matrix(std::initializer_list<Array<SCALAR>> l) : printall(false){
     
     _nrows = l.size();
     _ncols = 0;
@@ -159,7 +160,7 @@ public:
     for(int i = 0;i < _nrows;i++){
       for(int j = 0;j < _ncols;j++)B(i,j) = ENTRY(i,j)+A(i,j);
     }
-    //    cout << "operator+ returning:\n"<<B;
+    //    std::cout << "operator+ returning:\n"<<B;
     return B;
   }
   Matrix operator-(const Matrix& A) const {
@@ -179,13 +180,23 @@ public:
         B(i,j) = 0;
         for(int k = 0;k < _ncols;k++){
           B(i,j) += ENTRY(i,k)*A(k,j);
-          //          cout << format("ENTRY(%d,%d) = %d, A(%d,%d) = %d, B(%d,%d) = %d\n",i,k,ENTRY(i,k),k,j,A(k,j),i,j,B(i,j));
+          //          std::cout << format("ENTRY(%d,%d) = %d, A(%d,%d) = %d, B(%d,%d) = %d\n",i,k,ENTRY(i,k),k,j,A(k,j),i,j,B(i,j));
         }
       }
     }
-    //    cout << "operator* returning:\n "<<B;
+    //    std::cout << "operator* returning:\n "<<B;
     return B;
   }
+
+  Matrix operator*(double x){
+    Matrix B(_nrows,_ncols);
+
+    for(int i = 0;i < _nrows;i++){
+      for(int j = 0;j < _ncols;j++) B(i,j) = ENTRY(i,j)*x;
+    }
+    return B;
+  }
+  
   void operator *=(SCALAR x){
     for(int i = 0;i < _nrows;i++){
       for(int j = 0;j < _ncols;j++) ENTRY(i,j) *= x;
@@ -235,12 +246,12 @@ public:
 
   void print(void) {
     for(int i = 0;i < _nrows;i++){
-      for(int j = 0;j < _ncols;j++) cout <<ENTRY(i,j)<<" ";
-      cout <<endl;
+      for(int j = 0;j < _ncols;j++) std::cout <<ENTRY(i,j)<<" ";
+      std::cout << std::endl;
     }
   }
 
-  bool is_symmetric(void){
+  bool symmetric(void){
     for(int i = 0;i < _nrows;i++){
       for(int j = 0;j < i;j++) {
         if(ENTRY(i,j) != ENTRY(j,i)) return false;
@@ -257,9 +268,9 @@ public:
   
 #ifdef DEBUG
   void dump(void) const{
-    std::cout << "nrows = "<<_nrows<<", ncols = "<<_ncols<<", offset = "<<offset<<std::endl<<
+    std::std::cout << "nrows = "<<_nrows<<", ncols = "<<_ncols<<", offset = "<<offset<<std::endl<<
       "refcount = "<< Base::first->refcount <<", col stride = "<<col_stride<<std::endl;
-    std::cout << *this;
+    std::std::cout << *this;
   }
 #endif
 
@@ -272,7 +283,7 @@ public:
   RowVector(void) : Base() {}
   RowVector(int n, const SCALAR* fill = nullptr ): Base(1,n,fill) {}
 
-  RowVector(initializer_list<SCALAR> l) {
+  RowVector(std::initializer_list<SCALAR> l) {
     Base::reset(1,l.size());
     const SCALAR* p = l.begin();
     for(int j = 0;j < l.size();j++)Base::operator()(0,j) = p[j];
@@ -308,7 +319,7 @@ public:
   ColVector(void) : Base() {}
   ColVector(int m, const SCALAR* fill = nullptr ): Base(m,1,fill) {}
 
-  ColVector(initializer_list<SCALAR> l) {
+  ColVector(std::initializer_list<SCALAR> l) {
     Base::reset(l.size(),1);
     const SCALAR* p = l.begin();
     for(int i = 0;i < l.size();i++)Base::operator()(i,0) = p[i];
@@ -378,7 +389,7 @@ Matrix<SCALAR> Matrix<SCALAR>::operator*(const SparseMatrix& A){ // post-multipl
     int k = A.col(m);
     for(int i = 0;i < _nrows;i++){ 
       B(i,k) += ENTRY(i,j)*A.entry(m);
-      //	cout << format("B(%d,%d) = %f\n",i,k,B(i,k));
+      //	std::cout << format("B(%d,%d) = %f\n",i,k,B(i,k));
     }
   }
   return B;
@@ -397,7 +408,7 @@ std::ostream& operator <<(std::ostream& os, const Matrix<SCALAR>& M){
 template<typename SCALAR>
 std::ostream& operator <<(std::ostream& os, Matrix<SCALAR>& M){
   if(M.printall){
-    os << M.nrows()<<" "<<M.ncols()<<endl;
+    os << M.nrows()<<" "<<M.ncols()<<std::endl;
     M.printall = false;
   }
   for(int i = 0;i < M.nrows();i++){
@@ -412,12 +423,12 @@ std::istream& operator>>(std::istream& is, Matrix<SCALAR>& M){
   int nrows,ncols;
   is.clear();
   is >>nrows>>ncols;
-  //  cout << "nrows: "<<nrows<<" ncols: "<<ncols<<endl;
+  //  std::cout << "nrows: "<<nrows<<" ncols: "<<ncols<<std::endl;
   Matrix<SCALAR> M0(nrows,ncols);
   for(int i = 0;i < nrows;i++){
     for(int j = 0; j < ncols;j++) is >> M0(i,j);
   }
-  //  cout << M0;
+  //  std::cout << M0;
   M = M0;
   bool flag = is.fail();
   return is;
@@ -437,7 +448,7 @@ int ut(matrix& A, double eps = 1.0e-10); // upper-triangularize in place by Give
 matrix qr(const matrix& A);
 void reduce(matrix& A, double eps = 1.0e-10); // row-reduce upper-triangular A in place
 void solve(matrix& A, double eps = 1.0e-10); // solve linear equations in-place 
-double det(const matrix& A);
+double det(const matrix& A); // determinant
 Array<matrix> svd(const matrix& A, double eps = 1.0e-10, int maxiters = 10);
 struct Svd{
   int ncols;
@@ -452,5 +463,21 @@ struct Svd{
   void reduce(const matrix& A0);
 };
 Array<matrix> svd1(const matrix& A, double eps = 1.0e-10, int maxiters = 10);
+
+class MatrixWelford { // online computation of mean and variance
+  int dim;
+  ColVector<double> S1;
+  Matrix<double> S2;
+  ColVector<double> delta;
+  double W; 
+  double tau; // exponential decay coefficient
+public:
+  MatrixWelford(int d, double t = 1.0);
+  void reset(int d, double t = 1.0);
+  void update(ColVector<double>& x, double weight = 1.0); // add another data point
+  double tot_weight(void){return W;}
+  ColVector<double> mean(void){return W == 0? S1 : S1*(1.0/W);}
+  Matrix<double> variance(void){return W == 0? S2: S2*(1.0/W);} 
+};
 
 #endif

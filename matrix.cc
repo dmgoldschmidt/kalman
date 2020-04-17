@@ -57,7 +57,7 @@ int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rota
   Givens R;
 
   for(int i = 1;i < A.nrows();i++){
-    for(int j = 0;j < min(i,A.ncols());j++){
+    for(int j = 0;j < std::min(i,A.ncols());j++){
       if(!R.reset(A(j,j),A(i,j))) continue;
       nrot++;
       for(int k = j+1;k < A.ncols();k++){
@@ -155,8 +155,8 @@ matrix inv(const matrix& A, double* det){ // general matrix inverse
     //  cout << "\nR:\n"<<R<<endl;
     for(int i = 0;i < n;i++){
       if(R(i,i) < 0){
-        cout << "error at i = "<<i<<"R:\n"; R.print();
-        fflush(stdout);
+        std::cout << "error at i = "<<i<<"R:\n"; R.print();
+        std::fflush(stdout);
       }
       if(fabs(R(i,i)) < 1.0e-20){
         *det = 0;
@@ -186,8 +186,8 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
     double d = 1.0;
     for(int i = 0;i < n;i++){
       if(C(i,i) < 0){
-        cout << "sym_inv error at i = "<<i<<" C:\n"; C.print();
-        fflush(stdout);
+        std::cout << "sym_inv error at i = "<<i<<" C:\n"; C.print();
+        std::fflush(stdout);
       }
       d *= C(i,i);
       if(fabs(d)< 1.0e-20){
@@ -203,14 +203,14 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
   for(int i = 0;i < n;i++){
     for(int j = 0;j < i;j++){
       if(fabs(T(i,j)) > 1.0e-10){
-        cout << "A:\n"<<A<<"T:\n"<<T;
-        fflush(stdout);
+        std::cout << "A:\n"<<A<<"T:\n"<<T;
+        std::fflush(stdout);
         throw "oops!";
       }
     }
     if(fabs(T(i,i)-1.0) > 1.0e-10){
-      cout << "A:\n"<<A<<"T:\n"<<T;
-      fflush(stdout);
+      std::cout << "A:\n"<<A<<"T:\n"<<T;
+      std::fflush(stdout);
       throw "oops!";
     }
   }
@@ -416,5 +416,23 @@ double gram_schmidt(matrix& A, matrix& S, double eps){ // orthonormalize the col
   return error; // max value of |cos(\theta_i)|
 }
 
-void print_mat(const matrix& A, int i1, int i2){ cout <<"\n"<<A.slice(i1,0,i2-i1+1,A.ncols());}
+void print_mat(const matrix& A, int i1, int i2){ std::cout <<"\n"<<A.slice(i1,0,i2-i1+1,A.ncols());}
   
+MatrixWelford::MatrixWelford(int d, double t) {reset(d,t);}
+void MatrixWelford::reset(int d, double t){
+  dim = d;
+  W = 0;
+  tau = t;
+  S1.reset(dim,0);
+  S2.reset(dim,dim,0);
+  delta.reset(dim);
+}
+void MatrixWelford::update(ColVector<double>& x, double weight){
+  if(weight <= 0) return;
+  ColVector<double> delta = x.copy();
+  if(W == 0) delta *= weight;
+  else delta = delta - S1*(weight/W);
+  W = tau*W + weight;
+  S1 = S1*tau + x*weight;
+  S2 = S2*tau + delta*(x - S1*(1.0/W)).T();
+}

@@ -48,10 +48,15 @@ struct Theta { // Model parameters
   }
 };
 
+ostream& operator<<(ostream& os, const Theta& t){
+  cout << "S_0:\n"<<t.S_0<<"mu_0: "<<t.mu_0.T()<<"S.Ob:\n"<<t.S_Ob<<"S.Tr:\n"<<t.S_Tr<<"M:\n"<<t.M<<endl;
+  return os;
+}
+
 struct RanVec {
   int dim;
   Normaldev normal;
-  Svd S; // diagonalized covariance matrix of eigenvalues is in S.A, matrix of eigenvectors is in S.V
+  Svd S; // diagonalized inverse covariance matrix of eigenvalues is in S.A, matrix of eigenvectors is in S.V
   ColVector<double> mu;
   RanVec(uint64_t seed):normal(0,1,seed) {
     //    cout << "normal test: "<<normal.dev()<<endl;
@@ -70,8 +75,8 @@ struct RanVec {
 
   ColVector<double> dev(void){ 
     ColVector<double> d(dim);
-    for(int i = 0;i < dim;i++) d[i] = mu[i] + sqrt(S.A(i,i))*normal.dev();
-    return S.V*d;
+    for(int i = 0;i < dim;i++) d[i] = sqrt(S.A(i,i))*normal.dev();
+    return S.V*d + mu;
   }
 };
           
@@ -116,6 +121,7 @@ struct Data {
   }
   
   void simulate(const Theta& theta, uint64_t seed){
+    cout << "\nsimulation parameters:\n"<<theta;
     Normaldev normal(0,1,seed*seed);
     RanVec ran_vec_Tr(2*seed+1);
     RanVec ran_vec_Ob(3*seed);
@@ -123,21 +129,21 @@ struct Data {
     ran_vec_Tr.reset_mu(theta.mu_0);
     state[0].copy(ran_vec_Tr.dev()); 
     cout << "simulate: initial state: "<<state[0].T()<<endl;
-    //    ColVector<double> mean_state(nstates);
-    //    mean_state[0] = mean_state[1] = 0;
+    ColVector<double> mean_state(nstates);
+    mean_state.fill(0);   
     ran_vec_Ob.reset(theta.S_Ob);
     ran_vec_Tr.reset(theta.S_Tr);
     for(int t = 1;t <= max_recs;t++){
       ran_vec_Tr.mu = state[t-1]; // soft copy
       state[t].copy(ran_vec_Tr.dev());
-      //      mean_state += state[t]-state[t-1];
-      //      cout << format("state[%d]: ",t)<<state[t].T()<<endl;
+      mean_state += state[t]-state[t-1];
+      cout << format("state[%d]: ",t)<<state[t].T()<<endl;
       ran_vec_Ob.mu = theta.M*state[t];
       x[t].copy(ran_vec_Ob.dev());
-      //      cout << format("x[%d]: ",t)<<x[t].T()<<endl;
+      cout << format("x[%d]: ",t)<<x[t].T()<<endl;
     }
-    //    mean_state *= 1.0/max_recs;
-    //    cout << "mean delta state : "<<mean_state.T()<<endl;
+    mean_state *= 1.0/max_recs;
+    cout << "mean delta state : "<<mean_state.T()<<endl;
   }
 };
 
@@ -161,7 +167,7 @@ int main(int argc, char** argv){
   double min_delta = 1.0e-3; // exit criterion for Baum-Welch iterations
   bool verbose = false;
   bool Tr_reestimate = false;
-  bool Tr1_reestimate = false;
+  //  bool Tr1_reestimate = false;
   bool Ob_reestimate = false;
   bool S0_reestimate = false;
   bool M_reestimate = false;
@@ -173,6 +179,7 @@ int main(int argc, char** argv){
   GetOpt cl(argc,argv,help_msg); // parse command line
   cout << "input parameters:\n";
   cl.get("nstates",nstates); cout << "nstates: "<< nstates<<endl;
+  cl.get("data_dim",data_dim); cout << "data_dim: "<<data_dim<<endl;
   cl.get("data_file",data_file); cout << "data_file: "<<data_file<<endl;
   cl.get("ddir", data_dir); cout << "data_dir: "<<data_dir<<endl;
   cl.get("outfile",outfile); cout << "outfile: "<<outfile<<endl;
@@ -183,7 +190,7 @@ int main(int argc, char** argv){
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
   if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
   if(cl.get("Tr_reestimate")) {Tr_reestimate = true; cout << "Tr_reestimate ";}
-    else if(cl.get("Tr1_reestimate")) {Tr1_reestimate = true; cout << "Tr1_reestimate ";}
+  //    else if(cl.get("Tr1_reestimate")) {Tr1_reestimate = true; cout << "Tr1_reestimate ";}
   if(cl.get("Ob_reestimate")) {Ob_reestimate = true; cout << "Ob_reestimate: ";}
   if(cl.get("S0_reestimate")) {S0_reestimate = true; cout << "S0_reestimate: ";}
   if(cl.get("M_reestimate")) {M_reestimate = true; cout << "M_reestimate: ";}
@@ -202,25 +209,31 @@ int main(int argc, char** argv){
     data.simulate(theta, seed); // simulate data
     T = max_recs;
   }
-  
+  MatrixWelford welford(data_dim);
+  for(int t = 1;t <= T;t++) welford.update(data.x[t]); // compute sample mean and variance
+  theta.S_Ob = sym_inv(welford.variance()).copy(); // set Observation matrix to inverse sample covariance
+  cout << "inverse sample covariance matrix:\n"<<theta.S_Ob;
   if(ntrain == 0) ntrain = T/2;
   if(ntest == 0) ntest = ntrain+1;
   Array<Matrix<double>> S_a(T+1);
   Array<ColVector<double>> mu_a(T+1);
   Array<Matrix<double>> S_b(T+1);
   Array<ColVector<double>> mu_b(T+1);
-  Array<Matrix<double>> S_c(T+1);
-  Array<Matrix<double>> S_c_hat_inv(T+1); // needed for reestimation
+  //  Array<Matrix<double>> S_c(T+1);
+  Array<Matrix<double>> S_c_inv(T+1); // needed for reestimation
   Array<ColVector<double>> mu_c(T+1);
   for(int t = 0;t <= T;t++){
     S_a[t].reset(nstates,nstates);
     mu_a[t].reset(nstates);
     S_b[t].reset(nstates,nstates);
     mu_b[t].reset(nstates);
-    S_c[t].reset(nstates,nstates);
-    S_c_hat_inv[t].reset(nstates,nstates); 
+    //    S_c[t].reset(nstates,nstates);
+    S_c_inv[t].reset(nstates,nstates); 
     mu_c[t].reset(nstates);
   }
+  Matrix<double> Gamma1(data_dim,nstates);
+  Matrix<double> Gamma2(nstates,nstates);
+
   // OK, the data is ready to go
 
   // Begin Baum-Welch iterations
@@ -230,9 +243,9 @@ int main(int argc, char** argv){
       for(int j = 0;j < nstates;j++)theta.S_Tr(i,j) += 1.0;
     }
   }
-  if(Ob_reestimate){ // perturb the observation matrix
+  if(0 && Ob_reestimate){ // perturb the observation matrix
     for(int i = 0;i < data_dim;i++){
-      for(int j = 0;j < data_dim;j++)theta.S_Ob(i,j) += 1.0;
+      for(int j = 0;j < data_dim;j++)theta.S_Ob(i,j) *= 10.0;
     }
   }
   if(S0_reestimate){ // perturb the initial state
@@ -251,11 +264,11 @@ int main(int argc, char** argv){
   Matrix<double> MTS_Ob(nstates,data_dim);
   Matrix<double> MTS_ObM(nstates,nstates);
   Matrix<double> S_hat(nstates,nstates);
-  niters = 1;
+  //  niters = 1;
   for(int iter = 0;iter < niters;iter++){
     cout << "Begin iteration "<<iter<<endl;
-    cout << "S_0:\n"<<theta.S_0<<"mu_0:\n"<<theta.mu_0<<"S_Ob:\n"<<theta.S_Ob<<"S_Tr\n"<<theta.S_Tr
-         << "M:\n"<<theta.M;
+    cout << "\nparameters:\n"<<theta;
+
     // alpha pass
     MTS_Ob = theta.M.T()*theta.S_Ob;
     MTS_ObM = MTS_Ob*theta.M;
@@ -294,65 +307,78 @@ int main(int argc, char** argv){
       mu_b[t] = sym_inv(S_hat,&detS_hat)*(S1_mu1 + S2_mu2);
       R = data.x[t+1].T()*theta.S_Ob*data.x[t+1] + mu_b[t+1].T()*S2_mu2 - mu_b[t].T()*S_hat*mu_b[t];
       beta_score[t] = beta_score[t+1] + .5*(log(det_S_Ob*detS_b[t+1]/detS_hat) - R); 
-      detS_b[t] = det(S_b[t]); 
+      detS_b[t] = det(S_b[t]); // compute this for the next backward step 
     }
 
     // gamma calculation
     double detS_c;
     for(int t = 0;t <= T;t++){
-      S_c[t] = S_a[t] + S_b[t];
-      S_hat = sym_inv(S_c[t],&detS_c);
-      mu_c[t] = S_hat*(S_a[t]*mu_a[t] + S_b[t]*mu_b[t]);
-      R = (mu_a[t]-mu_b[t]).T()*S_a[t]*S_hat*S_b[t]*(mu_a[t]-mu_b[t]);
+      S_c_inv[t] = sym_inv(S_a[t] + S_b[t],&detS_c);
+      mu_c[t] = S_c_inv[t]*(S_a[t]*mu_a[t] + S_b[t]*mu_b[t]);
+      R = (mu_a[t]-mu_b[t]).T()*S_a[t]*S_c_inv[t]*S_b[t]*(mu_a[t]-mu_b[t]);
       gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(detS_a[t]*detS_b[t]/detS_c)-R);
-      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
+      //      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
-    cout << "mu_c[0] = "<<mu_c[0].T()<<"\nS_c[0]:\n"<<S_c[0];
-  }
-}
-#if 0
+
     //    Re-estimation
     if(S0_reestimate){
-      theta.mu_0 = mu_c[0];theta.S_0 = S_c[0];
+      theta.mu_0 = mu_c[0];theta.S_0 = S_a[0]+S_b[0];
     }
+
+    if(M_reestimate){
+      // reestimate theta.M
+      Gamma1.fill(0);
+      Gamma2.fill(0);
+      for(int t = 1;t <= T;t++){
+        Gamma1 += data.x[t]*mu_c[t].T();
+        Gamma2 += S_c_inv[t] + mu_c[t]*mu_c[t].T();
+      }
+      theta.M = Gamma1*sym_inv(Gamma2);
+    }
+
     if(Ob_reestimate){
+      // reestimate theta.S_Ob
       theta.S_Ob.fill(0);
+      ColVector<double> M_mu_x(data_dim);
       for(int t = 1;t <= T;t++){
-        theta.S_Ob += S_c[t] + (mu_c[t]-data.x[t])*(mu_c[t]-data.x[t]).T();
+        M_mu_x = theta.M*mu_c[t]-data.x[t];
+        theta.S_Ob += theta.M*S_c_inv[t]*theta.M.T() + M_mu_x*M_mu_x.T();
       }
-      theta.S_Ob *= 1.0/T;
+      theta.S_Ob = sym_inv(theta.S_Ob);
+      theta.S_Ob *= T;
     }
+
     if(Tr_reestimate){
-      matrix S_1(nstates,nstates);
-      matrix S_3(nstates,nstates);
+      ColVector<double> v_ab(nstates);
+      matrix S_Tr0(nstates,nstates,&zero);
+      matrix S_Tr1(nstates,nstates,&zero);
       matrix S_a_hat(nstates,nstates);
-      matrix S_b_tilde(nstates,nstates);
-      ColVector<double> mu_3(nstates);
-      S_1.fill(0);
-      S_3.fill(0);
-      
-      for(int t = 1;t < T;t++){ // t <= T?
-        S_a_hat = S_a[t-1]+theta.S_Tr;
-        S_b_tilde = S_b[t-1] - theta.S_Tr;
-        S_1 += S_a[t-1]*sym_inv(S_a_hat)*theta.S_Tr;
-        mu_3 = S_c_hat_inv[t]*(mu_b[t-1]-mu_a[t-1]);
-        S_3 += S_c_hat_inv[t]*S_a_hat*S_c_hat_inv[t]*S_b_tilde*S_c_hat_inv[t] + mu_3*mu_3.T();
+      matrix S_b_hat(nstates,nstates);
+      matrix S_ab(nstates,nstates);
+      matrix S_ut_inv(nstates,nstates);
+      for(int t = 1;t < T;t++){
+        S_ut_inv = sym_inv(S_a[t-1]+theta.S_Tr);
+        S_a_hat = S_a[t-1]*S_ut_inv*theta.S_Tr;
+        S_b_hat = MTS_ObM + S_b[t+1];
+        S_ab = S_a_hat*(sym_inv(S_a_hat + S_b_hat));
+        v_ab = S_ab*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
+        S_Tr0 += S_ab*S_a_hat + v_ab*v_ab.T();
+        S_Tr1 += S_ut_inv;
       }
-      theta.S_Tr = S_1 + (theta.S_Tr*S_3*theta.S_Tr);
-      theta.S_Tr *= 1.0/T;
-      theta.S_Tr.symmetrize();
+      matrix S_Tr_inv = sym_inv(theta.S_Tr);
+      theta.S_Tr = (S_Tr1 + S_Tr_inv*S_Tr0*S_Tr_inv)*(1.0/T);
     }
-    else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
-      theta.S_Tr.fill(0);
-      for(int t = 1;t <= T;t++){
-        matrix A = S_c[t]+S_c[t-1];
-        A *= .5;
-        theta.S_Tr += A + (mu_c[t]-mu_c[t-1])*(mu_c[t]-mu_c[t-1]).T();
-      }
-      theta.S_Tr *= 1.0/T;
-      theta.S_Tr.symmetrize();
-    }
+    // else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
+    //   theta.S_Tr.fill(0);
+    //   for(int t = 1;t <= T;t++){
+    //     matrix A = S_c[t]+S_c[t-1];
+    //     A *= .5;
+    //     theta.S_Tr += A + (mu_c[t]-mu_c[t-1])*(mu_c[t]-mu_c[t-1]).T();
+    //   }
+    //   theta.S_Tr *= 1.0/T;
+    //   theta.S_Tr.symmetrize();
+    // }
   }
 }
 
@@ -457,4 +483,3 @@ int main(int argc, char** argv){
                  stake,stake_stats.mean(), stake_sigma, sharpe, max_drawdown*100,nobet);
 #endif
 
-#endif
