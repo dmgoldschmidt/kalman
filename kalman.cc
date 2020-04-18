@@ -351,8 +351,10 @@ int main(int argc, char** argv){
 
     if(Tr_reestimate){
       ColVector<double> v_ab(nstates);
-      matrix S_Tr0(nstates,nstates,&zero);
-      matrix S_Tr1(nstates,nstates,&zero);
+      matrix S_Tr0(nstates,nstates);
+      matrix S_Tr1(nstates,nstates);
+      S_Tr0.fill(0);
+      S_Tr1.fill(0);
       matrix S_a_hat(nstates,nstates);
       matrix S_b_hat(nstates,nstates);
       matrix S_ab(nstates,nstates);
@@ -361,7 +363,7 @@ int main(int argc, char** argv){
         S_ut_inv = sym_inv(S_a[t-1]+theta.S_Tr);
         S_a_hat = S_a[t-1]*S_ut_inv*theta.S_Tr;
         S_b_hat = MTS_ObM + S_b[t+1];
-        S_ab = S_a_hat*(sym_inv(S_a_hat + S_b_hat));
+        S_ab = S_a_hat*sym_inv(S_a_hat + S_b_hat);
         v_ab = S_ab*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
         S_Tr0 += S_ab*S_a_hat + v_ab*v_ab.T();
         S_Tr1 += S_ut_inv;
