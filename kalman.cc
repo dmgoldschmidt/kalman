@@ -357,19 +357,20 @@ int main(int argc, char** argv){
       S_Tr1.fill(0);
       matrix S_a_hat(nstates,nstates);
       matrix S_b_hat(nstates,nstates);
-      matrix S_ab(nstates,nstates);
+      matrix S_st_inv(nstates,nstates);
       matrix S_ut_inv(nstates,nstates);
-      for(int t = 1;t < T;t++){
+      for(int t = 1;t <= T;t++){
         S_ut_inv = sym_inv(S_a[t-1]+theta.S_Tr);
         S_a_hat = S_a[t-1]*S_ut_inv*theta.S_Tr;
-        S_b_hat = MTS_ObM + S_b[t+1];
-        S_ab = S_a_hat*sym_inv(S_a_hat + S_b_hat);
-        v_ab = S_ab*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
-        S_Tr0 += S_ab*S_a_hat + v_ab*v_ab.T();
+        S_b_hat = MTS_ObM + S_b[t];
+        S_st_inv = sym_inv(S_a_hat + S_b_hat);
+        v_ab = S_st_inv*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
+        S_Tr0 += S_a_hat*(S_st_inv + v_ab*v_ab.T())*S_a_hat;
         S_Tr1 += S_ut_inv;
       }
       matrix S_Tr_inv = sym_inv(theta.S_Tr);
-      theta.S_Tr = (S_Tr1 + S_Tr_inv*S_Tr0*S_Tr_inv)*(1.0/T);
+      theta.S_Tr = sym_inv((S_Tr1 + S_Tr_inv*S_Tr0*S_Tr_inv));
+      theta.S_Tr *= T;
     }
     // else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
     //   theta.S_Tr.fill(0);
