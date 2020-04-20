@@ -86,7 +86,6 @@ struct Data {
   int max_recs;
   Array<ColVector<double>> state;
   Array<ColVector<double>> x;
-
   Data(int ns, int dd, int mr): nstates(ns),data_dim(dd),max_recs(mr),state(mr),x(mr){
     for(int t = 0;t < max_recs;t++){
       state[t].reset(nstates);
@@ -94,32 +93,44 @@ struct Data {
     }
   }
 
-  int read_file(string dname){ 
-    throw "data format undefined\n";// modify for actual data format
-      //    goals.set_max_length(max_recs);
-    Awk reader;
-    if(!reader.open(dname.c_str())){
+  int read_text(string dname,int nchars = 27){ 
+    std::ifstream fin(dname.c_str());
+    if(!fin.good()){
       cerr << "Can't open "<<dname<<endl;
       exit(1);
+      
     }
-
-    // reader.next(','); // skip header record
-    // int nfields = reader.nf; // header record defines no. of fields
-    // int t = 0;
-    // while(reader.next(',') > 0 && (max_recs > 0? (t < max_recs) : 1)){ 
-    //   if(reader.nf != nfields || strcmp(reader.field(0),"date") == 0)continue; // bad record or embedded header
-    //   raw_data(t%max_hist,0)= atof(reader.field(VOLUME)); // 
-    //   for(int j = 1;j <= 4;j++) raw_data(t%max_hist,j) = atof(reader.field(j));
-    //   if(t > 1)welford.update(raw_data((t-1)%max_hist,CLOSE)); // update running mean
-    //   if(t > max_hist){ // no derived data at startup until we have a full history
-    //     set_contexts(t);
-    //   }
-    //   t++;
-    // }
-    // reader.close();  
-    // cout << format("read %d records\n",t);
+    Array<ColVector<double>> dict(nchars);
+    for(int t = 0; t < nchars;t++) { // build dictionary
+      dict[t].reset(data_dim);
+      int bit = 1;
+      for(int i = 0;i < data_dim;i++){
+        dict[t][i] = t&bit? +1:-1;
+        bit <<= 1;
+      }
+    }
+    //    cout << "dictionary:\n";
+    //    for(int t = 0;t < nchars;t++) cout << t<<": "<<dict[t].T();
+    
+    char ch;
+    int t = 0;
+    int char_no;
+    bool others = false;
+    while(fin >> noskipws>> ch && max_recs? t < max_recs: 1 ){ // read all the data if max_recs = 0
+      if(ch >= 65 && ch <= 90) char_no = ch-64; // upper case letters
+      else if(ch >= 97 && ch <= 122) char_no = ch-96; // lower case letters = upper case letters
+      else if(others) continue; // collapse multiple others to one code
+      else{ //write the "others" code
+        char_no = 0;
+        others = true;
+      }
+      if(char_no > 0) others = false;
+      //      if(t < 20) cout << format("character %c(%d): ",ch,char_no) << dict[char_no].T();
+      x[t++].copy(dict[char_no]);
+    }
+    return t>0? t-1: 0;
   }
-  
+      
   void simulate(const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
     Normaldev normal(0,1,seed*seed);
@@ -196,22 +207,26 @@ int main(int argc, char** argv){
   if(cl.get("M_reestimate")) {M_reestimate = true; cout << "M_reestimate: ";}
 
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-  if(data_file != "" && strcmp(data_file.c_str(),"stdin")) 
+  if(data_file != "" && strcmp(data_file.c_str(),"stdin"))  
     data_file = data_dir+data_file; // don't add prefix if input from stdin
   
   Data data(nstates,data_dim,max_recs);
   Theta theta(nstates,data_dim,seed);
   int T;  // time of last data point
   if(data_file != ""){
-    T = data.read_file(data_file); // read data from file
+    T = data.read_text(data_file); // read data from file
   }
   else {
     data.simulate(theta, seed); // simulate data
     T = max_recs;
   }
   MatrixWelford welford(data_dim);
-  for(int t = 1;t <= T;t++) welford.update(data.x[t]); // compute sample mean and variance
-  theta.S_Ob = sym_inv(welford.variance()).copy(); // set Observation matrix to inverse sample covariance
+  for(int t = 1;t <= T;t++){
+    //    cout << "input to welford: "<<data.x[t].T();
+    welford.update(data.x[t]); // compute sample mean and variance
+    //    cout << "welford variance: "<<welford.variance();
+  }
+    theta.S_Ob = sym_inv(welford.variance()).copy(); // set Observation matrix to inverse sample covariance
   cout << "inverse sample covariance matrix:\n"<<theta.S_Ob;
   if(ntrain == 0) ntrain = T/2;
   if(ntest == 0) ntest = ntrain+1;

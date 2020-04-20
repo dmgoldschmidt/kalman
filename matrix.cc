@@ -423,8 +423,10 @@ void MatrixWelford::reset(int d, double t){
   dim = d;
   W = 0;
   tau = t;
-  S1.reset(dim,0);
-  S2.reset(dim,dim,0);
+  S1.reset(dim);
+  S2.reset(dim,dim);
+  S1.fill(0);
+  S2.fill(0);
   delta.reset(dim);
 }
 void MatrixWelford::update(ColVector<double>& x, double weight){
