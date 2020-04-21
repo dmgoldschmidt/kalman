@@ -84,12 +84,22 @@ struct Data {
   int nstates;
   int data_dim;
   int max_recs;
+  int nchars;
   Array<ColVector<double>> state;
   Array<ColVector<double>> x;
-  Data(int ns, int dd, int mr): nstates(ns),data_dim(dd),max_recs(mr),state(mr),x(mr){
+  Array<ColVector<double>> dict;
+  Data(int ns, int dd, int mr, int nc): nstates(ns),data_dim(dd),nchars(nc),max_recs(mr),state(mr),x(mr),dict(nc){
     for(int t = 0;t < max_recs;t++){
       state[t].reset(nstates);
       x[t].reset(data_dim);
+    }
+    for(int t = 0; t < nchars;t++) { // build dictionary
+      dict[t].reset(data_dim);
+      int bit = 1;
+      for(int i = 0;i < data_dim;i++){
+        dict[t][i] = t&bit? +1:-1;
+        bit <<= 1;
+      }
     }
   }
 
@@ -100,18 +110,6 @@ struct Data {
       exit(1);
       
     }
-    Array<ColVector<double>> dict(nchars);
-    for(int t = 0; t < nchars;t++) { // build dictionary
-      dict[t].reset(data_dim);
-      int bit = 1;
-      for(int i = 0;i < data_dim;i++){
-        dict[t][i] = t&bit? +1:-1;
-        bit <<= 1;
-      }
-    }
-    //    cout << "dictionary:\n";
-    //    for(int t = 0;t < nchars;t++) cout << t<<": "<<dict[t].T();
-    
     char ch;
     int t = 0;
     int char_no;
@@ -129,6 +127,18 @@ struct Data {
       x[t++].copy(dict[char_no]);
     }
     return t>0? t-1: 0;
+  }
+
+  double score(int t, ColVector<double>& mu, Matrix<double>& S){
+    double tot_prob = 0;
+    double prob;
+    double prob_t = 0;
+    for(int i = 0;i < nchars;i++){
+      prob = exp(-.5*((mu - dict[i]).T()*S*(mu - dict[i])));
+      tot_prob += prob;
+      if(x[t] == dict[i]) prob_t = prob;
+    }
+    return log(nchars*prob_t/tot_prob);
   }
       
   void simulate(const Theta& theta, uint64_t seed){
@@ -164,6 +174,7 @@ int main(int argc, char** argv){
 
   int niters = 10;
   int max_recs = 100; // zero means read the entire file
+  int nchars = 27;
   string data_file = ""; //data (either real or from simulation)
   string outfile = ""; // output
   string param_file = ""; // nominal input parameters
@@ -173,9 +184,9 @@ int main(int argc, char** argv){
   int nstates = 5;
   int data_dim = 5;
   int ntrain = 0;
-  int ntest = 0;
+  //  int ntest = 0;
 
-  double min_delta = 1.0e-3; // exit criterion for Baum-Welch iterations
+  double min_delta = 1.0e-5; // exit criterion for Baum-Welch iterations
   bool verbose = false;
   bool Tr_reestimate = false;
   //  bool Tr1_reestimate = false;
@@ -191,13 +202,14 @@ int main(int argc, char** argv){
   cout << "input parameters:\n";
   cl.get("nstates",nstates); cout << "nstates: "<< nstates<<endl;
   cl.get("data_dim",data_dim); cout << "data_dim: "<<data_dim<<endl;
+  cl.get("nchars",nchars); cout << "nchars: "<<nchars<<endl;
   cl.get("data_file",data_file); cout << "data_file: "<<data_file<<endl;
   cl.get("ddir", data_dir); cout << "data_dir: "<<data_dir<<endl;
   cl.get("outfile",outfile); cout << "outfile: "<<outfile<<endl;
   cl.get("niters",niters); cout << "niters: "<<niters<<endl;// max. no. of iterations 
   cl.get("max_recs",max_recs); cout << "max_recs: "<<max_recs<<endl; // max. no. of data records 
   cl.get("ntrain",ntrain); cout << "ntrain: "<<ntrain<<endl;
-  cl.get("ntest",ntest); cout << "ntest: "<<ntest<<endl;
+  //  cl.get("ntest",ntest); cout << "ntest: "<<ntest<<endl;
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
   if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
   if(cl.get("Tr_reestimate")) {Tr_reestimate = true; cout << "Tr_reestimate ";}
@@ -210,16 +222,19 @@ int main(int argc, char** argv){
   if(data_file != "" && strcmp(data_file.c_str(),"stdin"))  
     data_file = data_dir+data_file; // don't add prefix if input from stdin
   
-  Data data(nstates,data_dim,max_recs);
+  Data data(nstates,data_dim,max_recs,nchars);
   Theta theta(nstates,data_dim,seed);
-  int T;  // time of last data point
+  int T;  // time of last training data point
+  bool simulation;
   if(data_file != ""){
-    T = data.read_text(data_file); // read data from file
+    max_recs = data.read_text(data_file); // read data from file
+    simulation = false;
   }
   else {
     data.simulate(theta, seed); // simulate data
-    T = max_recs;
+    simulation = true;
   }
+  T = ntrain? ntrain: max_recs; // testing from t = ntrain+1 to t = max_recs
   MatrixWelford welford(data_dim);
   for(int t = 1;t <= T;t++){
     //    cout << "input to welford: "<<data.x[t].T();
@@ -228,16 +243,14 @@ int main(int argc, char** argv){
   }
     theta.S_Ob = sym_inv(welford.variance()).copy(); // set Observation matrix to inverse sample covariance
   cout << "inverse sample covariance matrix:\n"<<theta.S_Ob;
-  if(ntrain == 0) ntrain = T/2;
-  if(ntest == 0) ntest = ntrain+1;
-  Array<Matrix<double>> S_a(T+1);
-  Array<ColVector<double>> mu_a(T+1);
-  Array<Matrix<double>> S_b(T+1);
-  Array<ColVector<double>> mu_b(T+1);
-  //  Array<Matrix<double>> S_c(T+1);
-  Array<Matrix<double>> S_c_inv(T+1); // needed for reestimation
-  Array<ColVector<double>> mu_c(T+1);
-  for(int t = 0;t <= T;t++){
+  Array<Matrix<double>> S_a(max_recs+1);
+  Array<ColVector<double>> mu_a(max_recs+1);
+  Array<Matrix<double>> S_b(max_recs+1);
+  Array<ColVector<double>> mu_b(max_recs+1);
+  //  Array<Matrix<double>> S_c(max_recs+1);
+  Array<Matrix<double>> S_c_inv(max_recs+1); // needed for reestimation
+  Array<ColVector<double>> mu_c(max_recs+1);
+  for(int t = 0;t <= max_recs;t++){
     S_a[t].reset(nstates,nstates);
     mu_a[t].reset(nstates);
     S_b[t].reset(nstates,nstates);
@@ -248,30 +261,40 @@ int main(int argc, char** argv){
   }
   Matrix<double> Gamma1(data_dim,nstates);
   Matrix<double> Gamma2(nstates,nstates);
+  matrix S_Tr0(nstates,nstates);
+  matrix S_Tr1(nstates,nstates);
+  matrix S_a_hat(nstates,nstates);
+  matrix S_b_hat(nstates,nstates);
+  matrix S_st_inv(nstates,nstates);
+  matrix S_ut_inv(nstates,nstates);
 
   // OK, the data is ready to go
 
   // Begin Baum-Welch iterations
-  Array<double> alpha_score(T+1), beta_score(T), gamma_score(T+1), detS_a(T+1),detS_b(T+1);
-  if(Tr_reestimate){ // perturb the transition matrix
-    for(int i = 0;i < nstates;i++){
-      for(int j = 0;j < nstates;j++)theta.S_Tr(i,j) += 1.0;
+
+  Array<double> alpha_score(max_recs+1), beta_score(T), gamma_score(max_recs+1),
+    detS_a(max_recs+1),detS_b(max_recs+1);
+  if(simulation){ // change from the simulation parameters
+    if(Tr_reestimate){ // perturb the transition matrix
+      for(int i = 0;i < nstates;i++){
+        for(int j = 0;j < nstates;j++)theta.S_Tr(i,j) += 1.0;
+      }
     }
-  }
-  if(0 && Ob_reestimate){ // perturb the observation matrix
-    for(int i = 0;i < data_dim;i++){
-      for(int j = 0;j < data_dim;j++)theta.S_Ob(i,j) *= 10.0;
+    if(Ob_reestimate){ // perturb the observation matrix
+      for(int i = 0;i < data_dim;i++){
+        for(int j = 0;j < data_dim;j++)theta.S_Ob(i,j) *= 10.0;
+      }
     }
-  }
-  if(S0_reestimate){ // perturb the initial state
-    for(int i = 0;i < nstates;i++){
-      theta.mu_0[i] += 1.0;
-      for(int j = 0;j < nstates;j++)theta.S_0(i,j) += 1.0;
+    if(S0_reestimate){ // perturb the initial state
+      for(int i = 0;i < nstates;i++){
+        theta.mu_0[i] += 1.0;
+        for(int j = 0;j < nstates;j++)theta.S_0(i,j) += 1.0;
+      }
     }
-  }
-  if(M_reestimate){ // perturb the M-matrix
-    for(int i = 0;i < data_dim;i++){
-      for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
+    if(M_reestimate){ // perturb the M-matrix
+      for(int i = 0;i < data_dim;i++){
+        for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
+      }
     }
   }
   double det_S_Ob,det_S_Tr,R;
@@ -279,11 +302,12 @@ int main(int argc, char** argv){
   Matrix<double> MTS_Ob(nstates,data_dim);
   Matrix<double> MTS_ObM(nstates,nstates);
   Matrix<double> S_hat(nstates,nstates);
+  Svd svd_M;
   //  niters = 1;
-  for(int iter = 0;iter < niters;iter++){
-    cout << "Begin iteration "<<iter<<endl;
+  double old_score, delta_score(1.0);
+  for(int iter = 0;iter < niters && delta_score > min_delta;iter++){
+    cout << "Begin iteration "<<iter<<" with delta score = "<<delta_score <<endl;
     cout << "\nparameters:\n"<<theta;
-
     // alpha pass
     MTS_Ob = theta.M.T()*theta.S_Ob;
     MTS_ObM = MTS_Ob*theta.M;
@@ -335,6 +359,14 @@ int main(int argc, char** argv){
       //      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",T,gamma_score[T]);
+    delta_score = iter == 0? -gamma_score[T] : (gamma_score[T] - old_score)/fabs(gamma_score[T]);
+    old_score = gamma_score[T];
+    svd_M.reduce(theta.M);  // get singular values of M
+    cout << "singular values of M: ";
+    for(int i = 0;i < min(theta.M.nrows(),theta.M.ncols());i++) cout << svd_M.A(i,i)<<" ";
+    cout <<endl;
+
+      
 
     //    Re-estimation
     if(S0_reestimate){
@@ -366,14 +398,8 @@ int main(int argc, char** argv){
 
     if(Tr_reestimate){
       ColVector<double> v_ab(nstates);
-      matrix S_Tr0(nstates,nstates);
-      matrix S_Tr1(nstates,nstates);
       S_Tr0.fill(0);
       S_Tr1.fill(0);
-      matrix S_a_hat(nstates,nstates);
-      matrix S_b_hat(nstates,nstates);
-      matrix S_st_inv(nstates,nstates);
-      matrix S_ut_inv(nstates,nstates);
       for(int t = 1;t <= T;t++){
         S_ut_inv = sym_inv(S_a[t-1]+theta.S_Tr);
         S_a_hat = S_a[t-1]*S_ut_inv*theta.S_Tr;
@@ -387,23 +413,27 @@ int main(int argc, char** argv){
       theta.S_Tr = sym_inv((S_Tr1 + S_Tr_inv*S_Tr0*S_Tr_inv));
       theta.S_Tr *= T;
     }
-    // else if(Tr1_reestimate){ // You'd think this would work, but it doesn't !!
-    //   theta.S_Tr.fill(0);
-    //   for(int t = 1;t <= T;t++){
-    //     matrix A = S_c[t]+S_c[t-1];
-    //     A *= .5;
-    //     theta.S_Tr += A + (mu_c[t]-mu_c[t-1])*(mu_c[t]-mu_c[t-1]).T();
-    //   }
-    //   theta.S_Tr *= 1.0/T;
-    //   theta.S_Tr.symmetrize();
-    // }
   }
+
+
+  // test data section
+  cout << "end training with delta_score = "<<delta_score<<endl;
+  MTS_Ob = theta.M.T()*theta.S_Ob;
+  MTS_ObM = MTS_Ob*theta.M;
+  double score, tot_score(0);
+  for(int t = T+1;t <= max_recs;t++){
+    S_a_hat = S_a[t-1]*sym_inv(S_a[t-1]+theta.S_Tr)*theta.S_Tr; // time update
+    tot_score += data.score(t,mu_a[t-1],S_a_hat); // score x[t]
+    S_a[t] = S_a_hat + MTS_ObM; // now the measurement update
+    mu_a[t] = sym_inv(S_a[t])*(MTS_Ob*data.x[t] + S_a_hat*mu_a[t-1]);
+  }
+  if(max_recs > T)cout << format("scoring rate: %f cb/char over random\n", 100*tot_score/((max_recs-T)*log(10)));
 }
 
+#if 0
 
 
 
-#if 0        
 
 
   Array<ProbHistogram> hist(2);
