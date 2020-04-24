@@ -129,17 +129,6 @@ struct Data {
     return t>0? t-1: 0;
   }
 
-  double score(int t, ColVector<double>& mu, Matrix<double>& S){
-    double tot_prob = 0;
-    double prob;
-    double prob_t = 0;
-    for(int i = 0;i < nchars;i++){
-      prob = exp(-.5*((mu - dict[i]).T()*S*(mu - dict[i])));
-      tot_prob += prob;
-      if(x[t] == dict[i]) prob_t = prob;
-    }
-    return log(nchars*prob_t/tot_prob);
-  }
       
   void simulate(const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
@@ -416,17 +405,54 @@ int main(int argc, char** argv){
   }
 
 
-  // test data section
+  // test section
   cout << "end training with delta_score = "<<delta_score<<endl;
   MTS_Ob = theta.M.T()*theta.S_Ob;
   MTS_ObM = MTS_Ob*theta.M;
-  double score, tot_score(0);
+  double tot_score(0);
+  double tot_prob;
+  double prob[nchars];
+  double prob_t = 0;
+  double p1,p2,p3;
+  ColVector<double> x(data_dim);
+  Matrix<double> S(nstates,nstates);
   for(int t = T+1;t <= max_recs;t++){
-    S_a_hat = S_a[t-1]*sym_inv(S_a[t-1]+theta.S_Tr)*theta.S_Tr; // time update
-    tot_score += data.score(t,mu_a[t-1],S_a_hat); // score x[t]
-    S_a[t] = S_a_hat + MTS_ObM; // now the measurement update
-    mu_a[t] = sym_inv(S_a[t])*(MTS_Ob*data.x[t] + S_a_hat*mu_a[t-1]);
-  }
+    S_hat = theta.S_Tr*sym_inv(theta.S_Tr+S_a[t-1])*S_a[t-1];
+    S_a[t] = MTS_ObM + S_hat;
+    S2_mu2 = S_hat*mu_a[t-1];
+    tot_prob = 0;
+    for(int i = 0;i < nchars;i++){
+      x = data.dict[i];
+      S1_mu1 = MTS_Ob*x;
+      S_mu =  S1_mu1 + S2_mu2;  
+      //      S_a[t] = MTS_ObM + S_hat;
+      mu_a[t] = sym_inv(S_a[t])*S_mu;
+      p1 = x.T()*theta.S_Ob*x;
+      p2 = mu_a[t-1].T()*S2_mu2;
+      p3 = mu_a[t].T()*S_mu;
+      prob[i] = exp(-.5*(p1+p2-p3));
+      //      prob = exp(-.5*(x.T()*theta.S_Ob*x + mu_a[t-1].T()*S2_mu2 - mu.T()*S_mu));
+      tot_prob += prob[i];
+    }
+    double entropy = 0;
+    double max_prob = 0;
+    int max_i;
+    for(int i = 0;i < nchars;i++){
+      prob[i] /= tot_prob;
+      entropy -= prob[i]*log(prob[i]);
+      if(data.x[t] == data.dict[i]){
+        cout << format("t=%d: %c(%d) prob: %f\n",t,i+64,i+64,prob[i]);
+        cout << format("p1: %f p2:%f p3: %f\n",p1,p2,p3);
+        tot_score += log(nchars*prob[i]/tot_prob);
+      }
+      if(prob[i] > max_prob){
+        max_prob = prob[i];
+        max_i = i;
+      }
+    }
+    cout << format("entropy: %f%%, max prob: %f at %c(%d)\n",entropy/log(27),max_prob,64+max_i,64+max_i);
+  } 
+  cout << "tot_score: "<< tot_score<<" max_recs-T: "<<max_recs-T<<endl;
   if(max_recs > T)cout << format("scoring rate: %f cb/char over random\n", 100*tot_score/((max_recs-T)*log(10)));
 }
 
