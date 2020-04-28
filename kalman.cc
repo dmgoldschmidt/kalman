@@ -88,18 +88,31 @@ struct Data {
   Array<ColVector<double>> state;
   Array<ColVector<double>> x;
   Array<ColVector<double>> dict;
-  Data(int ns, int dd, int mr, int nc): nstates(ns),data_dim(dd),nchars(nc),max_recs(mr),state(mr),x(mr),dict(nc){
+  Normaldev normal;
+  Data(int ns, int dd, int mr, int nc, int seed, bool ran_dict = false):
+    nstates(ns),data_dim(dd),nchars(nc),max_recs(mr),state(mr),x(mr),dict(nc), normal(0,1,seed){
     for(int t = 0;t < max_recs;t++){
       state[t].reset(nstates);
       x[t].reset(data_dim);
     }
     for(int t = 0; t < nchars;t++) { // build dictionary
       dict[t].reset(data_dim);
-      int bit = 1;
-      for(int i = 0;i < data_dim;i++){
-        dict[t][i] = t&bit? +1:-1;
-        bit <<= 1;
+      if(ran_dict){
+        double sum(0);
+        for(int i = 0;i < data_dim;i++){
+          dict[t][i] = normal.dev();
+          sum += dict[t][i]*dict[t][i];
+        }
+        dict[t] *= 1/sqrt(sum);
       }
+      else{
+        int bit = 1;
+        for(int i = 0;i < data_dim;i++){
+          dict[t][i] = t&bit? +1:-1;
+          bit <<= 1;
+        }
+      }
+      cout << format("%c(%d): ",t + 64,t+64)<<dict[t].T();
     }
   }
 
@@ -161,10 +174,10 @@ struct Data {
 
 int main(int argc, char** argv){
 
-  int niters = 10;
-  int max_recs = 100; // zero means read the entire file
+  int niters = 50;
+  int max_recs = 10000; // zero means read the entire file
   int nchars = 27;
-  string data_file = ""; //data (either real or from simulation)
+  string data_file = "text_blog.txt"; //data (either real or from simulation)
   string outfile = ""; // output
   string param_file = ""; // nominal input parameters
   string data_dir = "data/";
@@ -172,11 +185,12 @@ int main(int argc, char** argv){
   int seed = 12345;
   int nstates = 5;
   int data_dim = 5;
-  int ntrain = 0;
+  int ntrain = 8000;
   //  int ntest = 0;
 
   double min_delta = 1.0e-5; // exit criterion for Baum-Welch iterations
   bool verbose = false;
+  bool ran_dict = false;
   bool Tr_reestimate = false;
   //  bool Tr1_reestimate = false;
   bool Ob_reestimate = false;
@@ -201,6 +215,7 @@ int main(int argc, char** argv){
   //  cl.get("ntest",ntest); cout << "ntest: "<<ntest<<endl;
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
   if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
+  if(cl.get("ran_dict")){ ran_dict = true; cout << "random dictionary mode ";}
   if(cl.get("Tr_reestimate")) {Tr_reestimate = true; cout << "Tr_reestimate ";}
   //    else if(cl.get("Tr1_reestimate")) {Tr1_reestimate = true; cout << "Tr1_reestimate ";}
   if(cl.get("Ob_reestimate")) {Ob_reestimate = true; cout << "Ob_reestimate: ";}
@@ -211,7 +226,7 @@ int main(int argc, char** argv){
   if(data_file != "" && strcmp(data_file.c_str(),"stdin"))  
     data_file = data_dir+data_file; // don't add prefix if input from stdin
   
-  Data data(nstates,data_dim,max_recs,nchars);
+  Data data(nstates,data_dim,max_recs,nchars,seed,ran_dict);
   Theta theta(nstates,data_dim,seed);
   int T;  // time of last training data point
   bool simulation;
@@ -230,7 +245,16 @@ int main(int argc, char** argv){
     welford.update(data.x[t]); // compute sample mean and variance
     //    cout << "welford variance: "<<welford.variance();
   }
-    theta.S_Ob = sym_inv(welford.variance()).copy(); // set Observation matrix to inverse sample covariance
+  cout << "Mean data vector: "<<welford.mean().T();
+  Svd W;
+  W.reduce(welford.variance().copy());
+  cout << "singular values of the sample covariance matrix: ";
+  for(int i = 0;i < data_dim;i++) cout << W.A(i,i) << " ";
+  cout << endl;
+  cout << "eigenvectors:\n"<<W.U;
+  theta.S_Ob.fill(0);
+  for(int i = 0;i < data_dim;i++)theta.S_Ob(i,i) = 100;
+  //  theta.S_Ob = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
   cout << "inverse sample covariance matrix:\n"<<theta.S_Ob;
   Array<Matrix<double>> S_a(max_recs+1);
   Array<ColVector<double>> mu_a(max_recs+1);
@@ -239,6 +263,8 @@ int main(int argc, char** argv){
   //  Array<Matrix<double>> S_c(max_recs+1);
   Array<Matrix<double>> S_c_inv(max_recs+1); // needed for reestimation
   Array<ColVector<double>> mu_c(max_recs+1);
+  Array<Matrix<double>> S_ut_inv(max_recs+1);
+  Array<Matrix<double>> S_ut_inv_S_a(max_recs+1);
   for(int t = 0;t <= max_recs;t++){
     S_a[t].reset(nstates,nstates);
     mu_a[t].reset(nstates);
@@ -247,15 +273,15 @@ int main(int argc, char** argv){
     //    S_c[t].reset(nstates,nstates);
     S_c_inv[t].reset(nstates,nstates); 
     mu_c[t].reset(nstates);
+    S_ut_inv[t].reset(nstates,nstates);
+    S_ut_inv_S_a[t].reset(nstates,nstates);
   }
   Matrix<double> Gamma1(data_dim,nstates);
   Matrix<double> Gamma2(nstates,nstates);
-  matrix S_Tr0(nstates,nstates);
-  matrix S_Tr1(nstates,nstates);
-  matrix S_a_hat(nstates,nstates);
-  matrix S_b_hat(nstates,nstates);
-  matrix S_st_inv(nstates,nstates);
-  matrix S_ut_inv(nstates,nstates);
+  matrix S_Tr(nstates,nstates);
+  //  matrix S_Tr1(nstates,nstates);
+  //  matrix S_a_hat(nstates,nstates);
+  //  matrix S_b_hat(nstates,nstates);
 
   // OK, the data is ready to go
 
@@ -309,7 +335,9 @@ int main(int argc, char** argv){
     double detS_hat;
     for(int t = 1;t <= T;t++){ // NOTE: the infix notation is more readable, but inefficient.
     
-      S_hat = theta.S_Tr*sym_inv(theta.S_Tr+S_a[t-1],&detS_hat)*S_a[t-1];
+      S_ut_inv[t] = sym_inv(theta.S_Tr+S_a[t-1],&detS_hat); // save these two for S_Tr re-estimation
+      S_ut_inv_S_a[t] = S_ut_inv[t]*S_a[t-1];
+      S_hat = theta.S_Tr*S_ut_inv_S_a[t]; //sym_inv(theta.S_Tr+S_a[t-1],&detS_hat)*S_a[t-1];
       detS_hat = det_S_Tr*detS_a[t-1]/detS_hat; 
       S1_mu1 = MTS_Ob*data.x[t];
       S2_mu2 = S_hat*mu_a[t-1];
@@ -386,20 +414,19 @@ int main(int argc, char** argv){
     }
 
     if(Tr_reestimate){
-      ColVector<double> v_ab(nstates);
-      S_Tr0.fill(0);
-      S_Tr1.fill(0);
+      //      ColVector<double> v_ab(nstates);
+      S_Tr.fill(0);
+      //      S_Tr1.fill(0);
       for(int t = 1;t <= T;t++){
-        S_ut_inv = sym_inv(S_a[t-1]+theta.S_Tr);
-        S_a_hat = S_a[t-1]*S_ut_inv*theta.S_Tr;
-        S_b_hat = MTS_ObM + S_b[t];
-        S_st_inv = sym_inv(S_a_hat + S_b_hat);
-        v_ab = S_st_inv*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
-        S_Tr0 += S_a_hat*(S_st_inv + v_ab*v_ab.T())*S_a_hat;
-        S_Tr1 += S_ut_inv;
+        //        S_ut_inv = sym_inv(S_a[t-1]+theta.S_Tr);
+        //S_a_hat = S_a[t-1]*S_ut_inv*theta.S_Tr;
+        //S_b_hat = MTS_ObM + S_b[t];
+        //S_st_inv = sym_inv(S_a_hat + S_b_hat);
+        //v_ab = S_st_inv*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
+        S_Tr += S_ut_inv[t] + S_ut_inv_S_a[t]*(S_c_inv[t] +(mu_c[t]-mu_a[t-1])*(mu_c[t]-mu_a[t-1]).T())*S_ut_inv_S_a[t].T();
       }
-      matrix S_Tr_inv = sym_inv(theta.S_Tr);
-      theta.S_Tr = sym_inv((S_Tr1 + S_Tr_inv*S_Tr0*S_Tr_inv));
+      //      matrix S_Tr_inv = sym_inv(theta.S_Tr);
+      theta.S_Tr = sym_inv(S_Tr);//sym_inv(S_Tr0sym_inv((S_Tr1 + S_Tr_inv*S_Tr0*S_Tr_inv));
       theta.S_Tr *= T;
     }
   }
@@ -414,8 +441,8 @@ int main(int argc, char** argv){
   double prob[nchars];
   double prob_t = 0;
   double p1,p2,p3;
-  ColVector<double> x(data_dim);
-  Matrix<double> S(nstates,nstates);
+  ColVector<double> x(data_dim), mu(nstates);
+  int letter;
   for(int t = T+1;t <= max_recs;t++){
     S_hat = theta.S_Tr*sym_inv(theta.S_Tr+S_a[t-1])*S_a[t-1];
     S_a[t] = MTS_ObM + S_hat;
@@ -426,13 +453,19 @@ int main(int argc, char** argv){
       S1_mu1 = MTS_Ob*x;
       S_mu =  S1_mu1 + S2_mu2;  
       //      S_a[t] = MTS_ObM + S_hat;
-      mu_a[t] = sym_inv(S_a[t])*S_mu;
+      mu = sym_inv(S_a[t])*S_mu;
       p1 = x.T()*theta.S_Ob*x;
       p2 = mu_a[t-1].T()*S2_mu2;
-      p3 = mu_a[t].T()*S_mu;
+      p3 = mu.T()*S_mu;
       prob[i] = exp(-.5*(p1+p2-p3));
+      //cout << format("%c: p1=%f p2=%f p3=%f prob=%g\n",i+64,p1,p2,p3,prob[i]);
       //      prob = exp(-.5*(x.T()*theta.S_Ob*x + mu_a[t-1].T()*S2_mu2 - mu.T()*S_mu));
       tot_prob += prob[i];
+      if(data.x[t] == data.dict[i]){
+        mu_a[t] = mu.copy();
+        prob_t = prob[i];
+        letter = i;
+      }
     }
     double entropy = 0;
     double max_prob = 0;
@@ -440,10 +473,9 @@ int main(int argc, char** argv){
     for(int i = 0;i < nchars;i++){
       prob[i] /= tot_prob;
       entropy -= prob[i]*log(prob[i]);
-      if(data.x[t] == data.dict[i]){
+      if(letter == i){
         cout << format("t=%d: %c(%d) prob: %f\n",t,i+64,i+64,prob[i]);
-        cout << format("p1: %f p2:%f p3: %f\n",p1,p2,p3);
-        tot_score += log(nchars*prob[i]/tot_prob);
+        tot_score += log(nchars*prob[i]);
       }
       if(prob[i] > max_prob){
         max_prob = prob[i];
@@ -451,6 +483,7 @@ int main(int argc, char** argv){
       }
     }
     cout << format("entropy: %f%%, max prob: %f at %c(%d)\n",entropy/log(27),max_prob,64+max_i,64+max_i);
+
   } 
   cout << "tot_score: "<< tot_score<<" max_recs-T: "<<max_recs-T<<endl;
   if(max_recs > T)cout << format("scoring rate: %f cb/char over random\n", 100*tot_score/((max_recs-T)*log(10)));

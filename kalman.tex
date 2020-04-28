@@ -279,7 +279,7 @@ which we denote by $\hat{\gamma}_t(u,s)$.
 \begin{Lem}\label{gamma_hat}
 The joint probability density of all the data and states $u,s$  at times $t-1,t$ is
 \begin{align*}
-  \gamma_t(u,s) &= \N(u;\mu_{u,t},S_{u,t})\gamma_t(s), \quad\text{where} \\
+  \hat{\gamma}_t(u,s) &= \N(u;\mu_{u,t},S_{u,t})\gamma_t(s), \quad\text{where} \\
   S_{u,t} &:= S_{a,t-1}+S_{Tr},\quad\text{and}\\
   \mu_{u,t} &:= S_{u,t}^{-1}(S_{Tr}s + S_{a,t-1}\mu_{a,t-1}).
 \end{align*}
@@ -288,17 +288,17 @@ The joint probability density of all the data and states $u,s$  at times $t-1,t$
 \begin{proof}
   By definition, the joint density of all the data and states $u,s$ at times $t-1,t$ respectively is 
   \begin{align*}
-    \gamma_t(u,s) &= \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \\
-    &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})\N(Ms;x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t}).
+    \hat{\gamma}_t(u,s) &= \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \\
+    &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(u;s,S_{Tr})\N(x_t;Ms,S_{Ob})\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
   Combining the first two factors using \eqref{comp_sq:2} yields
-  $$
-    \gamma_t(u,s) = \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},\hat{S}_{a,t-1})\N(Ms,x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t}).
-    $$
-    Then combining the second and third factors of this expression and discarding the term that does not involve either $u$ or $s$,
-    we have
+  \begin{equation}\label{gamma_hat:1}
+    \hat{\gamma}_t(u,s) = \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t-1},\hat{S}_{a,t-1})\N(Ms,x_t,S_{Ob})\N(s;\mu_{b,t},S_{b,t}).
+  \end{equation}
+  Then using \eqref{comp_sq:2} again to combine the second and third factors of \eqref{gamma_hat:1}, and discarding
+  the term that does not involve either $u$ or $s$, we have
     \begin{align*}
-      \gamma_t(u,s) &= \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t},S_{a,t})\N(s;\mu_{b,t},S_{b,t})\\
+      \hat{\gamma}_t(u,s) &= \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t},S_{a,t})\N(s;\mu_{b,t},S_{b,t})\\
       &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{c,t},S_{c,t})
     \end{align*}
     as asserted.
@@ -361,9 +361,9 @@ The situation for \eqref{E2} is slightly different, because after again moving t
 the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
 $$
-E_2 = T\log|\overline{S}_{Tr}| - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)Q(s;u,\overline{S}_{Tr})duds,
+E_2 = T\log|\overline{S}_{Tr}| - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(u,s)Q(u;s,\overline{S}_{Tr})duds,
 $$
-where $\hat{\gamma}_t(s,u)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
+where $\hat{\gamma}_t(u,s)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
 at time $t$ given by \eqref{gamma_hat}.
 
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
@@ -496,8 +496,8 @@ Finally, we optimize $E_2$ by differentiating with respect to $\overline{S}_{Tr}
 \begin{equation}\label{Sigma_Tr:0}
   \begin{split}
   0 &= \frac{\partial{E_2}}{\partial{\overline{S}_{Tr}}} = \frac{\partial{\log|\overline{S}_{Tr}|}}{\partial\overline{S}_{Tr}}
-  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s,u)\frac{\partial{Q(s;u,\overline{S}_{Tr})}}{\partial\overline{S}_{Tr}}duds \\
-      &= (2-\delta_{ij})T\overline{S}_{Tr}^{-1} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{c,t}S_{c,t})(u-s)(u-s)^Tduds.
+  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(u,s)\frac{\partial{Q(u;s,\overline{S}_{Tr})}}{\partial\overline{S}_{Tr}}duds \\
+      &= (2-\delta_{ij})T\overline{S}_{Tr}^{-1} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu_{u,t},S_{u,t})\gamma_t(s)(u-s)(u-s)^Tduds.
   \end{split}
 \end{equation}
 
@@ -508,7 +508,7 @@ $$
 $$
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
-  \overline{S}_{Tr}^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{u,t}^{-1} +\int_{-\infty}^{\infty}\N(s;\mu_{c,t},S_{c,t})
+  \overline{S}_{Tr}^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{u,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s)
   (s-\mu_{u,t})(s-\mu_{u,t})^Tds\right).
 \end{equation}
 
@@ -520,20 +520,21 @@ depends on $s$, namely
     &= (S_{u,t}^{-1}S_{u,t} - S_{u,t}^{-1}S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= S_{u,t}^{-1}(S_{u,t} - S_{Tr})s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= S_{u,t}^{-1}S_{a,t-1}(s - \mu_{a,t-1}),\\
-    &= S_{Tr}^{-1}\hat{S}_{a,t-1}(s-\mu_{a,t-1}).
   \end{split}
 \end{equation}
 
 
-Fortunately, neither $\mu_{c,t},S_{c,t},$ nor $S_{u,t}$ depends on $s$,
+Fortunately, neither $\mu_{a,t-1},S_{a,t-1},$ nor $S_{u,t}$ depends on $s$,
 so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
-\begin{align}
-  \overline{S}_{Tr}^{-1} &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1} +\frac{1}{T}S_{Tr}^{-1}\left(\sum_{t=1}^T\hat{S}_{a,t-1}
-  \left[\int_{-\infty}^{\infty}\N(s;\mu_{c,t},S_{c,t})(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]\hat{S}_{a,t-1}\right)S_{Tr}^{-1}
-  \notag\\
-   &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}+\frac{1}{T}S_{Tr}^{-1}\left(\sum_{t=1}^T\hat{S}_{a,t-1}
-   [S_{c,t}^{-1}+(\mu_{c,t}-\mu_{a,t-1})(\mu_{c,t}-\mu_{a,t-1})^T]\hat{S}_{a,t-1}\right)S_{Tr}^{-1}.\label{S_Tr:2}
-  \end{align}
+\begin{equation}\label{S_Tr:2}
+  \begin{split}
+  \overline{S}_{Tr}^{-1} &=\frac{1}{T}\sum_{t=1}^T\left(S_{u,t}^{-1} +S_{u,t}^{-1}S_{a,t-1}
+  \left[\int_{-\infty}^{\infty}\gamma_t(s)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]S_{a,t-1}S_{u,t}^{-1}\right)\\
+   &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}+S_{u,t}^{-1}S_{a,t-1}
+   [S_{c,t}^{-1}+(\mu_{c,t}-\mu_{a,t-1})(\mu_{c,t}-\mu_{a,t-1})^T]S_{a,t-1}S_{u,t}^{-1}.
+  \end{split}
+\end{equation}
+
 \end{document}
 
 

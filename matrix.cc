@@ -280,6 +280,7 @@ void Svd::reduce(const matrix& A0){
   
   A.copy(A0); // copy in the input
   //cout <<"at line 159:\n"<<AUV;
+  U.fill(0); V.fill(0);
   for(int i = 0;i < nrows;i++)U(i,i) = 1.0; // set rotation matrices = identity
   for(int i = 0;i < ncols;i++)V(i,i) = 1.0;
   ut(AU); // row rotate to upper triangular form
