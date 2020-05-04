@@ -318,41 +318,41 @@ at time $t$.
   \end{align*}
 \end{proof}
 
-We also need the joint posterior probability density of state $u$ at time $t-1$ and state $s$ at time $t$,
-which we denote by $\hat{\gamma}_t(u,s)$.
+We also need the joint posterior probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ at time $t$,
+which we denote by $\hat{\gamma}_t(s_{t-1},s_t)$.
 \begin{Lem}\label{gamma_hat}
-The joint probability density of all the data and states $u,s$  at times $t-1,t$ is
+The joint likelihood of all the data and states $s_{t-1},s_t$ is
 \begin{align*}
-  \hat{\gamma}_t(u,s) &= \N(u;\mu_{u,t},S_{u,t})\gamma_t(s), \quad\text{where} \\
-  S_{u,t} &:= S_{a,t-1}+S_T';,\quad\text{and}\\
-  \mu_{u,t} &:= S_{u,t}^{-1}(T^TS_Ts + S_{a,t-1}\mu_{a,t-1}).
+  \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t), \quad\text{where} \\
+  S_{t-1,t} &:= S_{a,t-1}+S_T';,\quad\text{and}\\
+  \mu_{t-1,t} &:= S_{t-1,t}^{-1}(T^TS_Ts_t + S_{a,t-1}\mu_{a,t-1}).
 \end{align*}
 \end{Lem}
 
 \begin{proof}
-  By definition, the joint density of all the data and states $u,s$ at times $t-1,t$ respectively is 
+  By definition, the joint likelihood of all the data and states $s_{t-1},s_t$ is 
   \begin{align*}
-    \hat{\gamma}_t(u,s) &= \alpha_{t-1}(u)Pd(s\mid u)X(x_t\mid s)\beta_t(s) \\
-    &\propto \N(u;\mu_{a,t-1},S_{a,t-1})\N(Tu;s,S_T)\N(x_t;Ms,S_M)\N(s;\mu_{b,t},S_{b,t}).
+    \hat{\gamma}_t(s_{t-1},s_t) &= \alpha_{t-1}(s_{t-1})Pd(s_t\mid s_{t-1})X(x_t\mid s_t)\beta_t(s_t) \\
+    &\propto \N(s_{t-1};\mu_{a,t-1},S_{a,t-1})\N(s_t;Ts_{t-1},S_T)\N(x_t;Ms_t,S_M)\N(s_t;\mu_{b,t},S_{b,t}).
   \end{align*}
-  Combining the first two factors using \eqref{comp_sq:2} yields
+  Combining the first two factors using \eqref{comp_sq:2} and \eqref{exact_prod} yields
   \begin{equation}\label{gamma_hat:1}
-    \hat{\gamma}_t(u,s) = \N(u;\mu_{u,t},S_{u,t})\N(T^{-1}s;\mu_{a,t-1},\hat{S}_{a,t-1})\N(Ms,x_t,S_M)\N(s;\mu_{b,t},S_{b,t}).
+    \hat{\gamma}_t(s_{t-1},s_t) = \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\N(T^{-1}s_t;\mu_{a,t-1},\hat{S}_{a,t-1})\N(Ms_t,x_t,S_M)\N(s_t;\mu_{b,t},S_{b,t}).
   \end{equation}
   Then using \eqref{comp_sq:2} again to combine the second and third factors of \eqref{gamma_hat:1}, and discarding
   the term that does not involve either $u$ or $s$, we have
     \begin{align*}
-      \hat{\gamma}_t(u,s) &= \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{a,t},S_{a,t})\N(s;\mu_{b,t},S_{b,t})\\
-      &\propto \N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{c,t},S_{c,t})\\ &
-      = \N(u;\mu_{u,t},S_{u,t})\gamma_t(s).
+      \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\N(s_t;\mu_{a,t},S_{a,t})\N(s_t;\mu_{b,t},S_{b,t})\\
+      &\propto \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\N(s_t;\mu_{c,t},S_{c,t})\\ 
+      &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t).
     \end{align*}
 \end{proof}
   Note that
   $$
-  \int_{\R^{2n}}\N(u;\mu_{u,t},S_{u,t})\N(s;\mu_{c,t}S_{c,t})duds = \int_{\R^n}\N(s;\mu_{c,t}S_{c,t})ds = 1 
+  \int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\N(s_t;\mu_{c,t}S_{c,t})ds_{t-1}ds_t = \int_{\R^n}\N(s_t;\mu_{c,t}S_{c,t})ds_t = 1 
   $$
-  because the second factor does not depend on $u$, so \eqref{gamma_hat} is a bona-fide probability density and no
-  normalization factor is required.  We remark that $\mu_{u,t}$ does depend on $s$, showing that $\gamma_{t-1}(u)$
+  because the second factor does not depend on $s_{t-1}$, so \eqref{gamma_hat} is a bona-fide probability density and no
+  normalization factor is required.  We remark that $\mu_{t-1,t}$ does depend on $s_t$, showing that $\gamma_{t-1}(s)$
   and $\gamma_t(s)$ are not independent.  This fact will play a role in the reestimation of $S_T$ below.
   
 \section{Re-estimation}
@@ -398,17 +398,17 @@ $\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation
 outside the integral in \eqref{E1} we have the same collapse to the marginalization at $s_t$ of the posterior, which
 is just $\gamma_t(s_t)$.  It follows that
 \begin{align*}
-E_0 &= \log|\overline{S}_0| - \int_{\R^n}\gamma_0(s)Q(s;\bar{\mu}_0,\overline{S}_0)ds,\quad\text{and}\\
-E_1 &= T\log|\overline{S}_M| - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)Q(x_t;Ms,\overline{S}_M)ds.
+E_0 &= \log|\overline{S}_0| - \int_{\R^n}\gamma_0(s_0)Q(s_0;\bar{\mu}_0,\overline{S}_0)ds_0,\quad\text{and}\\
+E_1 &= T\log|\overline{S}_M| - \sum_{t=1}^T\int_{\R^n}\gamma_t(s_t)Q(x_t;Ms_t,\overline{S}_M)ds_t.
 \end{align*}
 
 The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
 the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
 $$
-E_2 = T\log|\overline{S}_T| - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(u,s)Q(u;s,\overline{S}_T)duds,
+E_2 = T\log|\overline{S}_T| - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)Q(s_t;Ts_{t-1},\overline{S}_T)ds_{t-1}ds_t,
 $$
-where $\hat{\gamma}_t(u,s)$ is the joint posterior probability density of state $u$ at time $t-1$ and state $s$ 
+where $\hat{\gamma}_t(s_{t-1},s_t)$ is the joint posterior probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ 
 at time $t$ given by \eqref{gamma_hat}.
 
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
@@ -477,9 +477,9 @@ as asserted.
 Armed with these formulas, we first optimize $E_0$ with respect to $\bar{\mu}_0$: 
  
 \begin{align}
-0 = \frac{\partial{E_0}}{\partial{\bar{\mu}_0}} &= \int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\bar{\mu}_0,\overline{S}_0)}}{\partial{\bar{\mu}_0}}ds \notag\\
-&= \int_{\R^n}\gamma_0(s)(2\overline{S}_0(\bar{\mu}_0-s))ds\notag\\
-&= 2\overline{S}_0\int_{\R^n}\gamma_0(s)(\bar{\mu}_0-s)ds \notag\\
+0 = \frac{\partial{E_0}}{\partial{\bar{\mu}_0}} &= \int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\bar{\mu}_0,\overline{S}_0)}}{\partial{\bar{\mu}_0}}ds_0 \notag\\
+&= \int_{\R^n}\gamma_0(s_0)(2\overline{S}_0(\bar{\mu}_0-s_0))ds_0\notag\\
+&= 2\overline{S}_0\int_{\R^n}\gamma_0(s_0)(\bar{\mu}_0-s_0)ds_0 \notag\\
 &= 2\overline{S}_0(\bar{\mu}_0-\mu_{c,0}), \quad\text{hence}\notag\\
 \bar{\mu}_0 &= \mu_{c,0}\label{mu_0}
 \end{align}
@@ -487,13 +487,13 @@ Armed with these formulas, we first optimize $E_0$ with respect to $\bar{\mu}_0$
 Next, we optimize $E_0$ with respect to $\overline{S}_0$, and we can set $\bar{\mu}_0 = \mu_{c,0}$ by \eqref{mu_0}:
 \begin{align*}
   0 = \frac{\partial{E_0}}{\partial{\overline{S}_0}} &= \frac{\partial\log|\overline{S}_0|}{\partial\overline{S}_0}
-  -\int_{\R^n}\gamma_0(s)\frac{\partial{Q(s;\mu_{c,0},\overline{S}_0)}}{\partial\overline{S}_0}ds \\
-&= (2-\delta_{ij})\overline{S}_0^{-1} - (2-\delta_{ij})\int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds.
+  -\int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_{c,0},\overline{S}_0)}}{\partial\overline{S}_0}ds_0 \\
+&= (2-\delta_{ij})\overline{S}_0^{-1} - (2-\delta_{ij})\int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^Tds_0.
 \end{align*}
 Not surprisingly, it follows that
 \begin{equation}\label{Sigma_0}
   \begin{split}
-    \overline{S}_0^{-1} &= \int_{\R^n}\gamma_0(s)(s-\mu_{c,0})(s-\mu_{c,0})^Tds = S_{c,0}^{-1}, \quad\text{i.e.}\\
+    \overline{S}_0^{-1} &= \int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^Tds_0 = S_{c,0}^{-1}, \quad\text{i.e.}\\
     \overline{S}_0 &= S_{c,0}.
   \end{split}
 \end{equation}
@@ -502,15 +502,15 @@ To optimize $E_1$, we first differentiate with respect to $\overline{S}_M$:
 \begin{align*}
   0 = \frac{\partial{E_1}}{\partial{\overline{S}_M}} &=
    T\frac{\partial{\log|\overline{S}_M|}}{\partial\overline{S}_M}
-  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s)\frac{\partial{Q(x_t;\overline{M}s,\overline{S}_M)}}{\partial{\overline{S}_M}}ds \\
+  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s_t)\frac{\partial{Q(x_t;\overline{M}s_t,\overline{S}_M)}}{\partial{\overline{S}_M}}ds_t \\
   &= (2-\delta{ij})T\overline{S}_M^{-1} - (2-\delta_{ij})\sum_{t=1}^T
-  \int_{\R^n}\gamma_t(s)(x_t-\overline{M}s)(x_t-\overline{M}s)^Tds.
+  \int_{\R^n}\gamma_t(s_t)(x_t-\overline{M}s_t)(x_t-\overline{M}s_t)^Tds.
 \end{align*}
 Thus,  we see that
-\begin{equation}\label{S_Ob}
+\begin{equation}\label{S_M}
   \begin{split}
-    \overline{S}_M^{-1} &= \frac{1}{T}\sum_{t=1}^T\int_{\R^n}\gamma_t(s)(x_tx_t^T - x_ts^T\overline{M}^T
-    - \overline{M}sx_t^T + \overline{M}ss^T\overline{M}^T)ds \\
+    \overline{S}_M^{-1} &= \frac{1}{T}\sum_{t=1}^T\int_{\R^n}\gamma_t(s_t)(x_tx_t^T - x_ts_t^T\overline{M}^T
+    - \overline{M}s_tx_t^T + \overline{M}s_ts_t^T\overline{M}^T)ds_t \\
     &= \frac{1}{T}\sum_{t=1}^T(x_tx_t^T - x_t\mu_{c,t}^T\overline{M}^T - \overline{M}\mu_{c,t}x_t^T +
     \overline{M}(S_{c,t}^{-1}+\mu_{c,t}\mu_{c,t}^T)\overline{M}^T)\\
     &= \frac{1}{T}\sum_{t=1}^T(x_t-\overline{M}\mu_{c,t})(x_t-\overline{M}\mu_{c,t})^T +
@@ -520,19 +520,20 @@ Thus,  we see that
 
 Next, we optimize $E_1$ with respect to $\overline{M}$, optionally subject to the constraints that the diagonal elements
 of $S' := \overline{M}^TS_M\overline{M}$ are all equal to $1$.  To do this, we make a unitary change of
-state variable $s := Us'$, where $U$ will be determined below. Thus
+state variable $s_t := U_ts'_t$, where $U_t$ will be determined below. Thus
 $$
-\gamma_t(s') = \N(s';U^T\mu_{c,t},U^TS_{c,t}U).
+\gamma_t(s_t') = \N(s_t';U_t^T\mu_{c,t},U_t^TS_{c,t}U_t).
 $$
 Then we differentiate
 $$
 E_1 + \sum_{j=1}^n\lambda_j\left(1 - \sum_{i=1}^m\bar{m}_{ij}S'_{ik}\bar{m}_{kj}\right)
 $$
-with respect to $\overline{M}$, where the $\lambda_j$ are Lagrange multipliers.
-Put $\Lambda = diag\{\lambda_1,\dots,\lambda_n\}$.  Then setting the derivative to zero, we must solve
+with respect to $\overline{M}$ using \eqref{dM}, where the $\lambda_j$ are Lagrange multipliers.
+Put $\Lambda = diag\{\lambda_1,\dots,\lambda_n\}$.  Note that the constraint equations do not depend on $t$.
+Then setting the derivative to zero, we must solve
 \begin{align*}
 %  - \sum_{t=1}^T\int_{\R^n}\gamma_t(s')\frac{\partial{Q(x_t;\overline{M}Us',\overline{S}_M)}}{\partial{\overline{M}}}ds
-  0  &= 2\sum_{t=1}^T\int_{\R^n}\gamma_t(s')(\overline{S}_Mx_ts'^TU^T - \overline{S}_M\overline{M}Us's'^TU^T)ds' +
+  0  &= 2\sum_{t=1}^T\int_{\R^n}\gamma_t(s_t')(\overline{S}_Mx_ts_t'^TU_t^T - \overline{S}_M\overline{M}U_ts_t's_t'^TU_t^T)ds' +
   2S_M\overline{M}\Lambda\\
 &= 2\sum_{t=1}^T(\overline{S}_Mx_t\mu_{c,t}^TU - \overline{S}_M\overline{M}U^T(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)U +
 2S_M\overline{M}\Lambda,
@@ -549,7 +550,7 @@ while with constraints we must solve
 $$
   \Gamma_1U = \overline{M}(U^T\Gamma_2U + \Lambda),
 $$
-and then set the $\lambda_i$ appropriately to satisfy the constraints. We see that if we choose $U$ to diagonalize
+and then set the $\lambda_j$ appropriately to satisfy the constraints. We see that if we choose $U$ to diagonalize
 $\Gamma_2$ and set $\Lambda^* := (U^T\Gamma_2U + \Lambda)^{-1}$, then
 \begin{equation}\label{M_bar:1}
   \overline{M} = \Gamma_1U\Lambda^*,
@@ -560,52 +561,58 @@ $$
 $$
 
 Note that in the unconstrained case \eqref{M_bar} is independent of $S_M$, so to optimize $E_1$, we can first
-solve for $\overline{M}$ and then use the result to solve for $\overline{S}_M$.  In the constrained case, this
+solve for $\overline{M}$ and then use the result to solve for $\overline{S}_M$.  In the constrained case this
 is unfortunately not true, so instead we could solve for both using previous values, or perhaps just solve alternately
-for $\overline{M}$ and $\overline{S}_M$ on successive Baum-Welch iterations.
+for one and then the other on the next Baum-Welch iteration.
 
-Finally, we optimize $E_2$ by differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat}:
+Next, we optimize $E_2$ by first differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat}:
 \begin{equation}\label{Sigma_Tr:0}
   \begin{split}
   0 &= \frac{\partial{E_2}}{\partial{\overline{S}_T}} = \frac{\partial{\log|\overline{S}_T|}}{\partial\overline{S}_T}
-  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(u,s)\frac{\partial{Q(u;s,\overline{S}_T)}}{\partial\overline{S}_T}duds \\
-      &= (2-\delta_{ij})T\overline{S}_T^{-1} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(u;\mu_{u,t},S_{u,t})\gamma_t(s)(u-s)(u-s)^Tduds.
+  - \sum_{t=1}^T\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)\frac{\partial{Q(s_t;Ts_{t-1},\overline{S}_T)}}{\partial\overline{S}_T}ds_{t-1}ds_t \\
+  &= (2-\delta_{ij})T\overline{S}_T^{-1} - (2-\delta{ij}) \sum_{t=1}^T\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(s_{t-1}-s_t)
+  (s_{t-1}-s_t)^Tds_{t-1}ds_t.
   \end{split}
 \end{equation}
 
-As noted earlier, $\N(s,\mu_{c,t},S_{c,t})$ does not depend on $u$, so we can integrate first with respect to $u$, with a result
-analagous to \eqref{S_Ob}:
+As noted earlier, $\gamma_t(s_t)$ does not depend on $s_{t-1}$, so we can integrate first with respect to $s_{t-1}$, with
+a result analagous to \eqref{S_M}:
 $$
-  \int_{-\infty}^{\infty}\N(u;\mu_{u,t},S_{u,t})(u-s)(u-s)^Tdu = S_{u,t}^{-1} + (s-\mu_{u,t})(s-\mu_{u,t})^T.
+\int_{-\infty}^{\infty}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(s_{t-1}-s_t)(s_{t-1}-s_t)^Tds_{t-1} = S_{t-1,t}^{-1} +
+(s_t-\mu_{t-1,t})(s_t-\mu_{t-1,t})^T.
 $$
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
-  \overline{S}_T^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{u,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s)
-  (s-\mu_{u,t})(s-\mu_{u,t})^Tds\right).
+  \overline{S}_T^{-1} =  \frac{1}{T}\sum_{t=1}^T\left(S_{t-1,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s_t)
+  (s_t-\mu_{t-1,t})(s_t-\mu_{t_1,t})^Tds_t\right).
 \end{equation}
 
-However, there is a problem evaluating this integral because after checking \eqref{gamma_hat}, we see that $\mu_{u,t}$
+However, there is a problem evaluating this integral because after checking \eqref{gamma_hat}, we see that $\mu_{t-1,t}$
 depends on $s$, namely  
 \begin{equation}\label{s-mu_1}
   \begin{split}
-    s-\mu_{u,t} &= (I - S_{u,t}^{-1}S_T)s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= (S_{u,t}^{-1}S_{u,t} - S_{u,t}^{-1}S_T)s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{u,t}^{-1}(S_{u,t} - S_T)s - S_{u,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{u,t}^{-1}S_{a,t-1}(s - \mu_{a,t-1}),\\
+    s-\mu_{t-1,t} &= (I - S_{t-1,t}^{-1}S_T)s_t - S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= (S_{t-1,t}^{-1}S_{t-1,t} - S_{t-1,t}^{-1}S_T)s_t - S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{t-1,t}^{-1}(S_{t-1,t} - S_T)s_t - S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{t-1,t}^{-1}S_{a,t-1}(s_t - \mu_{a,t-1}),\\
   \end{split}
 \end{equation}
 
 
-Fortunately, neither $\mu_{a,t-1},S_{a,t-1},$ nor $S_{u,t}$ depends on $s$,
+Fortunately, neither $\mu_{a,t-1},S_{a,t-1},$ nor $S_{t-1,t}$ depends on $s_t$,
 so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
 \begin{equation}\label{S_Tr:2}
   \begin{split}
-  \overline{S}_T^{-1} &=\frac{1}{T}\sum_{t=1}^T\left(S_{u,t}^{-1} +S_{u,t}^{-1}S_{a,t-1}
-  \left[\int_{-\infty}^{\infty}\gamma_t(s)(s-\mu_{a,t-1})(s-\mu_{a,t-1})^Tds\right]S_{a,t-1}S_{u,t}^{-1}\right)\\
-   &=\frac{1}{T}\sum_{t=1}^TS_{u,t}^{-1}+S_{u,t}^{-1}S_{a,t-1}
-   [S_{c,t}^{-1}+(\mu_{c,t}-\mu_{a,t-1})(\mu_{c,t}-\mu_{a,t-1})^T]S_{a,t-1}S_{u,t}^{-1}.
+  \overline{S}_T^{-1} &=\frac{1}{T}\sum_{t=1}^T\left(S_{t-1,t}^{-1} +S_{t-1,t}^{-1}S_{a,t-1}
+  \left[\int_{-\infty}^{\infty}\gamma_t(s_t)(s_t-\mu_{a,t-1})(s_t-\mu_{a,t-1})^Tds_t\right]S_{a,t-1}S_{t-1,t}^{-1}\right)\\
+   &=\frac{1}{T}\sum_{t=1}^TS_{t-1,t}^{-1}+S_{t-1,t}^{-1}S_{a,t-1}
+   [S_{c,t}^{-1}+(\mu_{c,t}-\mu_{a,t-1})(\mu_{c,t}-\mu_{a,t-1})^T]S_{a,t-1}S_{t-1,t}^{-1}.
   \end{split}
 \end{equation}
+
+Finally, we complete our optimization of $E_2$ by differentiating with respect to $T$ and imposing the constraint
+$\det(T) = 1$.
+
 
 \end{document}
 
