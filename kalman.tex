@@ -325,10 +325,11 @@ The joint likelihood of all the data and states $s_{t-1},s_t$ is
 \begin{align*}
   \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t), \quad\text{where} \\
   S_{t-1,t} &:= S_{a,t-1}+S_T';,\quad\text{and}\\
-  \mu_{t-1,t} &:= S_{t-1,t}^{-1}(T^TS_Ts_t + S_{a,t-1}\mu_{a,t-1}).
+  \mu_{t-1,t} &:= S_{t-1,t}^{-1}(T^TS_Ts_t + S_{a,t-1}\mu_{a,t-1})\\
+  &= S_{t-1,t}^{-1}(S'_Ts'_t + S_{a,t-1}\mu_{a,t-1}).\\
 \end{align*}
 \end{Lem}
-
+Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
 \begin{proof}
   By definition, the joint likelihood of all the data and states $s_{t-1},s_t$ is 
   \begin{align*}
@@ -406,7 +407,7 @@ The situation for \eqref{E2} is slightly different, because after again moving t
 the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
 $$
-E_2 = N\log|\overline{S}_T| - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)Q(s_t;Ts_{t-1},\overline{S}_T)ds_{t-1}ds_t,
+E_2 = N\log|\overline{S}_T| - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)Q(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_{t-1}ds_t,
 $$
 where $\hat{\gamma}_t(s_{t-1},s_t)$ is the joint posterior probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ 
 at time $t$ given by \eqref{gamma_hat}.
@@ -431,45 +432,47 @@ $$
 \frac{\partial{Q(x;\mu,S)}}{\partial{\mu}} = 2S(\mu-x).
 $$
 
-Finally, to reestimate the $M$-matrix, we need
+Finally, to reestimate $M$ and $T$, we need
 
 \begin{Lem}\label{dM}
   $$
-  \frac{\partial{Q(x;M\mu,S)}}{\partial{M}} = -2Sx\mu^T + 2SM\mu\mu^T.
+  \frac{\partial{Q(x;A\mu,S)}}{\partial{A}} = -2Sx\mu^T + 2SA\mu\mu^T.
   $$
 \end{Lem}
 \begin{proof}
 Expanding, we have
 $$
-Q := (x-M\mu)^TS(x-M\mu) = x^TSx - 2x^TSM\mu + \mu^TM^TSM\mu.
+Q := (x-A\mu)^TS(x-A\mu) = x^TSx - 2x^TSA\mu + \mu^TA^TSA\mu.
 $$
 Differentiating the linear term is just a special case of
 $$
-\frac{\partial}{\partial{M}}y^TMx = yx^T.
+\frac{\partial}{\partial{A}}y^TAx = yx^T.
 $$
 For the quadratic term, we have
 $$
-Q_0 := \mu^TM^TSM\mu = \sum_{i,j,k,l}\mu_iM_{ji}S_{jk}M_{kl}\mu_l.
+Q_0 := \mu^TA^TSA\mu = \sum_{i,j,k,l}\mu_iA_{ji}S_{jk}A_{kl}\mu_l.
 $$
-Collecting terms which involve $M_{qr}$, if $j=q$ and $i=r$, we get
-$$
-M_{qr}\mu_r\sum_{k,l}S_{qk}M_{kl}\mu_l.
-$$
-If $k=q$ and $l=r$, we get
-$$
-M_{qr}\mu_r\sum_{i,j}\mu_iM_{ji}S_{jq},
-$$
-which is the same as the previous case after replacing $i$ by $l$ and $j$ by $k$, except
-that the term $\mu_r^2M_{qr}^2S_{qq}$
-(which is the case $j = k = q,i = l = r$) has been counted twice.
+Collecting terms which involve $A_{qr}$, if $j=q$ and $i=r$, we get
+\begin{equation}\label{SA}
+A_{qr}\mu_r\sum_{k,l}S_{qk}A_{kl}\mu_l,
+\end{equation}
+while if $k=q$ and $l=r$, we get
+\begin{equation}\label{A^TS}
+A_{qr}\mu_r\sum_{i,j}\mu_iA_{ji}S_{jq}.
+\end{equation}
+However after replacing $i$ by $l$, $j$ by $k$ and using the fact that $S$ is symmetric,
+\eqref{SA} and \eqref{A^TS} are identical. But they both have the common term
+$\mu_r^2A_{qr}^2S_{qq}$ when $j = k = q$ and $i = l = r$.
 We'll call this term the exceptional term. Then
-\begin{align*}
-  \frac{\partial{Q_0}}{\partial{M_{qr}}} &= 2\mu_r\sum_{(k,l)\neq(q,r)}S_{qk}M_{kl}\mu_l + 2\mu_r^2M_{qr}S_{qq}\\
-    &= 2\mu_r\sum_{k,l}S_{qk}M_{kl}\mu_l,
-\end{align*}
-So the exceptional term isn't really exceptional after all.  We conclude that
+\begin{align}
+  \notag\frac{\partial{Q_0}}{\partial{A_{qr}}} &= 2\mu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\mu_l + 2\mu_r^2A_{qr}S_{qq}\\
+  &= 2\mu_r\sum_{k,l}S_{qk}A_{kl}\mu_l. \label{dQ_0}
+\end{align}
+So the exceptional term isn't really exceptional after all.
+
+We conclude that the matrix whose $(q,r)$ term is given by \eqref{dQ_0} is
 $$
-\frac{\partial{Q_0}}{\partial{M}} = 2SM\mu\mu^T
+\frac{\partial{Q_0}}{\partial{A}} = 2SA\mu\mu^T
 $$
 as asserted.
 \end{proof}
@@ -571,43 +574,46 @@ Next, we optimize $E_2$ by first differentiating with respect to $\overline{S}_T
   0 &= \frac{\partial{E_2}}{\partial{\overline{S}_T}} = \frac{\partial{\log|\overline{S}_T|}}{\partial\overline{S}_T}
   - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)\frac{\partial{Q(s_t;\overline{T}s_{t-1},\overline{S}_T)}}
   {\partial\overline{S}_T}ds_{t-1}ds_t \\
-  &= (2-\delta_{ij})\overline{T}T\overline{S}_T^{-1} - (2-\delta{ij}) \sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(s_{t-1}-s_t)
-  (s_{t-1}-s_t)^Tds_{t-1}ds_t.
+  &= (2-\delta_{ij})N\overline{T}\overline{S}_T^{-1} -\\ &(2-\delta{ij})\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})
+  \gamma_t(s_t)(\overline{T}s_{t-1}-s_t)(\overline{T}s_{t-1}-s_t)^Tds_{t-1}ds_t.
   \end{split}
 \end{equation}
 
 As noted earlier, $\gamma_t(s_t)$ does not depend on $s_{t-1}$, so we can integrate first with respect to $s_{t-1}$, with
 a result analagous to \eqref{S_M}:
-$$
-\int_{-\infty}^{\infty}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(s_{t-1}-s_t)(s_{t-1}-s_t)^Tds_{t-1} = S_{t-1,t}^{-1} +
-(s_t-\mu_{t-1,t})(s_t-\mu_{t-1,t})^T.
-$$
+\begin{align*}
+  \int_{-\infty}^{\infty}&\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(\overline{T}s_{t-1}-s_t)
+  (\overline{T}s_{t-1}-s_t)^Tds_{t-1}\\ &= S_{t-1,t}^{-1} +
+(\overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^T\overline{T}^T,
+\end{align*}
+where $s'_t = \overline{T}^{-1}s_t$.
 Substituting this result into \eqref{Sigma_Tr:0}, we get
 \begin{equation}\label{Sigma_Tr:1}
   \overline{S}_T^{-1} =  \frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s_t)
-  (s_t-\mu_{t-1,t})(s_t-\mu_{t_1,t})^Tds_t\right).
+  \overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t_1,t}-s'_t)^T\overline{T}^Tds_t\right).
 \end{equation}
 
 However, there is a problem evaluating this integral because after checking \eqref{gamma_hat}, we see that $\mu_{t-1,t}$
-depends on $s_t$, namely  
+depends on $s'_t = \overline{T}^{-1}s_t$, namely 
 \begin{equation}\label{s-mu_1}
   \begin{split}
-    s_t-\mu_{t-1,t} &= (I - S_{t-1,t}^{-1}S_T)s_t - S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= (S_{t-1,t}^{-1}S_{t-1,t} - S_{t-1,t}^{-1}S_T)s_t - S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{t-1,t}^{-1}(S_{t-1,t} - S_T)s_t - S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{t-1,t}^{-1}S_{a,t-1}(s_t - \mu_{a,t-1}),\\
+    \left(\mu_{t-1,t}-s'_t\right) &= (S_{t-1,t}^{-1}S'_T - I)s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= (S_{t-1,t}^{-1}S'_T)s'_t - S_{t-1,t}^{-1}S_{t-1,t}) + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{t-1,t}^{-1}(S'_T - S_{t-1,t} )s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{t-1,t}^{-1}S_{a,t-1}(\mu_{a,t-1}-s'_t).\\
   \end{split}
 \end{equation}
+To simplify notation, we put $S_* := S_{t-1,t}^{-1}S_{a,t-1}$ below.
 
-
-Fortunately, neither $\mu_{a,t-1},S_{a,t-1},$ nor $S_{t-1,t}$ depends on $s_t$,
+Fortunately, neither $\mu_{a,t-1}$ nor $S_*$ depends on $s_t$,
 so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
 \begin{equation}\label{S_Tr:2}
   \begin{split}
-  \overline{S}_T^{-1} &=\frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} +S_{t-1,t}^{-1}S_{a,t-1}
-  \left[\int_{-\infty}^{\infty}\gamma_t(s_t)(s_t-\mu_{a,t-1})(s_t-\mu_{a,t-1})^Tds_t\right]S_{a,t-1}S_{t-1,t}^{-1}\right)\\
-   &=\frac{1}{N}\sum_{t=1}^NS_{t-1,t}^{-1}+S_{t-1,t}^{-1}S_{a,t-1}
-   [S_{c,t}^{-1}+(\mu_{c,t}-\mu_{a,t-1})(\mu_{c,t}-\mu_{a,t-1})^T]S_{a,t-1}S_{t-1,t}^{-1}.
+  \overline{S}_T^{-1} &=\frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} + \overline{T}S_*
+  \left[\int_{-\infty}^{\infty}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)(\mu_{a,t-1}-s'_t)^Tds_t\right]S_*^T\overline{T}^T\right)\\
+   &=\frac{1}{N}\sum_{t=1}^NS_{t-1,t}^{-1} + \overline{T}S_*
+           [S_{c,t}^{-1}+(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})^T]
+           S_*^T\overline{T}^T.
   \end{split}
 \end{equation}
 
@@ -618,16 +624,38 @@ $$
 where $\lambda$ is a Lagrange multiplier, and then imposing the constraint $|\overline{T}| = 1$.
 
 Thus, we have
-\begin{align*}
-\lambda|\overline{T}|\overline{T}^{-T} &= \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)
+\begin{equation}\label{T:1}
+  \begin{split}
+\lambda\overline{T}^{-1} &= \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)
 \frac{\partial{Q(s_t;\overline{T}s_{t-1},\overline{S}_T)}}{\partial\overline{T}}ds_{t-1}ds_t \\
-&= -2\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(S_Ts_ts_{t-1}^T -
+&= -2\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(\overline{S}_Ts_ts_{t-1}^T -
 \overline{S}_T\overline{T}s_{t-1}s_{t-1}^T) ds_{t-1}ds_t \\
-&= -2\overline{S}_T\left(\sum_{t=1}^N\int_{\R^{n}}\gamma_t(s_t) (s_t\mu_{t-1,t}^T -
-\overline{T}(S_{t-1,t}^{-1} + \mu_{t-1,t}\mu_{t-1,t}^T))ds_t\right) \\
+&= -2\overline{S}_T\sum_{t=1}^N\int_{\R^{n}}\gamma_t(s_t) (s_t\mu_{t-1,t}^T -
+\overline{T}(S_{t-1,t}^{-1} + \mu_{t-1,t}\mu_{t-1,t}^T))ds_t \\
+&= 2S_T\sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^Tds_t +
+\overline{T}\int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^Tds_t\right).\\
+  \end{split}
+\end{equation}
+So we have two integrals to evaluate:
+\begin{align*}
+  I_1 :&= \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^Tds_t \\
+  &= \int_{\R^n}\gamma_t(s_t)s_t(s_t^TS_TT + \mu_{a,t-1}^TS_{a,t-1})S_{t-1,t}^{-1})ds_t \\
+  &= (S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)S_TTS_{t-1,t}^{-1} + \mu_{c,t}\mu_{a,t-1}^TS_*,
 \end{align*}
+and
+\begin{align*}
+  I_2 :&= \int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^Tds_t \\
+  &= \int_{\R^n}\gamma_t(s_t)S_{t-1,t}^{-1}(T^TS_Ts_ts_t^TS_tT + T^TS_Ts_t\mu_{a,t-1}^TS_{a,t-1} +\\
+  &S_{a,t-1}\mu_{a,t-1}s_t^TS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^TS_{a,t-1}) S_{t,t-1}^{-1}ds_t \\
+  &= S_{t-1,t}^{-1}[T^TS_T(S_{c,t}^{-1`}+\mu_{c,t}\mu_{c,t}^T)S_TT + T^TS_T\mu_{c,t}\mu_{a,t-1}^TS_{a,t-1} \\
+  &+ S_{a,t-1}\mu_{a,t-1}\mu_{c,t}^TS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^TS_{a,t-1}]S_{t-1,t}^{-1}. \\
+  \end{align*}
+
 
 
 \end{document}
 
+%&= 2S_t\overline{T}\sum_{i=1}^NS_{t-1,t}^{-1} +S_*\int_{\R^n}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)\mu_{t-1,t}^Tds_t\\
+%&= 2S_t\overline{T}\sum_{i=1}^NS_{t-1,t}^{-1} +S_*\int_{\R^n}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)(\mu_{t-1,t}-s'_t)^Tds_t \\
+%&+S_*\int_{\R^n}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)s'_tds_t
 
