@@ -439,7 +439,7 @@ Finally, to reestimate $M$ and $T$, we need
   and let $\mu,\nu\in \R^n$.  Define
   \begin{align*}
   Q :&= \mu^TA^TSA\nu,\quad\text{then}\\
-  \frac{\partial{Q}}{\partial{A}} &= 2SA\mu\nu^T.
+  \frac{\partial{Q}}{\partial{A}} &= SA(\mu\nu^T+\nu\mu^T).
   \end{align*}
 \end{Lem}
 \begin{proof}
@@ -459,14 +459,13 @@ However after replacing $i$ by $l$, $j$ by $k$ and using the fact that $S$ is sy
 \eqref{SA} and \eqref{A^TS} are identical except that $\mu$ and $\nu$ are interchanged.
 But both equations have the common term
 $\mu_r\nu_rA_{qr}^2S_{qq}$ when $j = k = q$ and $i = l = r$.
-We'll call this term the exceptional term. Then
+Then
 \begin{align}
   \notag\frac{\partial{Q}}{\partial{A_{qr}}} &= \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\nu_l
   +\nu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\mu_l+ 2\mu_r\nu_rA_{qr}S_{qq}\\
   &= \mu_r\sum_{k,l}S_{qk}A_{kl}\nu_l + \nu_r\sum_{k,l}S_{qk}A_{kl}\mu_l\notag\\
   &= \sum_{k,l}S_{qk}A_{kl}(\mu_l\nu_r + \nu_l\mu_r).\label{dQ_0}
 \end{align}
-So the exceptional term isn't really exceptional after all.
 
 We conclude that the matrix whose $(q,r)$ term is given by \eqref{dQ_0} is
 $$
@@ -537,25 +536,25 @@ Thus,  we see that
 \end{equation}
 
 Next, we optimize $E_1$ with respect to $\overline{M}$, optionally subject to the constraints that the diagonal elements
-of $\overline{M}^TS_M\overline{M}$ are all equal to $1$.  To do this, we make an orthonormal change of
+of $\overline{M}^T\overline{S}_M\overline{M}$ are all equal to $1$.  To do this, we make an orthonormal change of
 state variable $s_t := U_t\sigma_t$, where $U_t$ will be determined below. Thus
 $$
 \gamma_t(\sigma_t) = \N(\sigma_t;U_t^T\mu_{c,t},U_t^TS_{c,t}U_t).
 $$
 Then we differentiate
 $$
-E_1 + \sum_{j=1}^n\lambda_j\left(1 - \sum_{i=1}^m\bar{m}_{ij}S_{ik}\bar{m}_{kj}\right)
+E_1 + \sum_{j=1}^n\lambda_j\left(1 - \sum_{i,k=1}^m\bar{m}_{ij}\overline{S}_{ik}\bar{m}_{kj}\right)
 $$
 with respect to $\overline{M}$ using \eqref{dM}, where the $\lambda_j$ are Lagrange multipliers.
 Put $\Lambda = diag\{\lambda_1,\dots,\lambda_n\}$.  Note that the constraint equations do not depend on $t$.
 Then setting the derivative to zero, we must solve
 \begin{align*}
   0  &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(\sigma_t)(\overline{S}_Mx_t\sigma_t^TU_t^T - \overline{S}_M\overline{M}U_t\sigma_t\sigma_t^TU_t^T)d\sigma_t +
-  2S_M\overline{M}\Lambda\\
+  2\overline{S}_M\overline{M}\Lambda\\
 &= 2\sum_{t=1}^N(\overline{S}_Mx_t\mu_{c,t}^TU - \overline{S}_M\overline{M}U^T(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)U +
 2S_M\overline{M}\Lambda,
 \end{align*}
-Multiplying through by $\frac{1}{2}S_M^{-1}$, we find that in the unconstrained case, putting $U = I$, we get
+Multiplying through by $\frac{1}{2}\overline{S}_M^{-1}$, we find that in the unconstrained case, with $U = I$, we get
 \begin{equation}\label{M_bar}
   \begin{split}
     \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
@@ -574,13 +573,13 @@ $\Gamma_2$ and set $\Lambda^* := (U^T\Gamma_2U + \Lambda)^{-1}$, then
 \end{equation}
 where 
 $$
-\lambda_j^* = \sqrt{(U^T\Gamma_1^TS_M\Gamma_1U)_{jj}}\quad(1\le j\le n).
+\lambda_j^* = (U^T\Gamma_1^T\overline{S}_M\Gamma_1U)_{jj}^{-\frac{1}{2}}\quad(1\le j\le n).
 $$
 
-Note that in the unconstrained case \eqref{M_bar} is independent of $S_M$, so to optimize $E_1$, we can first
+Note that in the unconstrained case \eqref{M_bar} is independent of $\overline{S}_M$, so to optimize $E_1$, we can first
 solve for $\overline{M}$ and then use the result to solve for $\overline{S}_M$.  In the constrained case this
-is unfortunately not true, so instead we could solve for both using previous values, or perhaps just solve alternately
-for one and then the other on the next Baum-Welch iteration.
+is unfortunately not true, so instead we could first solve for $\overline{M}$ using the old value $S_M$, or vice-versa,
+or perhaps just solve alternately for either one or the other on successive Baum-Welch iterations.
 
 Next, we optimize $E_2$ by first differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat}:
 \begin{equation}\label{Sigma_Tr:0}
@@ -647,7 +646,7 @@ Thus, we have
 \overline{S}_T\overline{T}s_{t-1}s_{t-1}^T) ds_{t-1}ds_t \\
 &= -2\overline{S}_T\sum_{t=1}^N\int_{\R^{n}}\gamma_t(s_t) (s_t\mu_{t-1,t}^T -
 \overline{T}(S_{t-1,t}^{-1} + \mu_{t-1,t}\mu_{t-1,t}^T))ds_t \\
-&= 2S_T\sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^Tds_t +
+&= 2\overline{S}_T\sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^Tds_t +
 \overline{T}\int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^Tds_t\right).\\
   \end{split}
 \end{equation}
@@ -675,7 +674,7 @@ Now put $S_+ := S_{t-1,t}^{-1}T^TS_T$, $\nu_1 := S_+\mu_{c,t}$, and $\nu_2 := S_
 
 Then after replacing $\lambda$ by $2\lambda$,   \eqref{T:1} becomes
 \begin{align*}
-  \lambda S_T^{-1}\overline{T}^{-1} &= \sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - I_{1,t} + \overline{T}I_{2,t}\right)\\
+  \lambda \overline{S}_T^{-1}\overline{T}^{-1} &= \sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - I_{1,t} + \overline{T}I_{2,t}\right)\\
   &= \overline{T}\Gamma_2 - \Gamma_1, \quad\text{where} \\
   \Gamma_2 :&= \sum_{i=1}^N(S_{t-1,t}^{-1} + I_{2,t}),\quad\text{and}\\
   \Gamma_1 :&= \sum_{i=1}^NI_{1,t}.
