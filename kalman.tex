@@ -400,7 +400,7 @@ outside the integral in \eqref{E1} we have the same collapse to the marginalizat
 is just $\gamma_t(s_t)$.  It follows that
 \begin{align*}
 E_0 &= \log|\overline{S}_0| - \int_{\R^n}\gamma_0(s_0)Q(s_0;\bar{\mu}_0,\overline{S}_0)ds_0,\quad\text{and}\\
-E_1 &= N\log|\overline{S}_M| - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)Q(x_t;Ms_t,\overline{S}_M)ds_t.
+E_1 &= N\log|\overline{S}_M| - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)Q(x_t;\overline{M}s_t,\overline{S}_M)ds_t.
 \end{align*}
 
 The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
@@ -491,6 +491,25 @@ $$
 The quadratic term follows from \eqref{dQdA} with $\nu = \mu$.
 \end{proof}
 
+\begin{Lem}\label{tr(A^TQA)}
+  With the same notation as \eqref{dQdA}, we have
+  $$
+  \frac{\partial}{\partial{A}}\tr(A^TSA) = 2SA.
+  $$
+\end{Lem}
+\begin{proof}
+  Expanding,
+  $$
+  \tr(A^TSA) = \sum_{i,j,k}A_{ik}S_{ij}A{jk}.
+  $$
+  As above, the terms involving $A_{qr}$ are
+  $$
+  A_{qr}\left(\sum_jS_{qj}A_{jr} + \sum_iA_{ir}S_{iq})\right),
+  $$
+  and since $S$ is symmetric, the result follows.
+\end{proof}
+
+
 Armed with these formulas, we first optimize $E_0$ with respect to $\bar{\mu}_0$: 
  
 \begin{align}
@@ -535,24 +554,23 @@ Thus,  we see that
   \end{split}
 \end{equation}
 
-Next, we optimize $E_1$ with respect to $\overline{M}$, optionally subject to the constraints that the diagonal elements
-of $\overline{M}^T\overline{S}_M\overline{M}$ are all equal to $1$.  To do this, we make an orthonormal change of
-state variable $s_t := U_t\sigma_t$, where $U_t$ will be determined below. Thus
+Next, we optimize $E_1$ with respect to $\overline{M}$, optionally subject to the constraint
 $$
-\gamma_t(\sigma_t) = \N(\sigma_t;U_t^T\mu_{c,t},U_t^TS_{c,t}U_t).
+\tr(\overline{M}^T\overline{S}_M\overline{M}) = 1.
 $$
-Then we differentiate
+Thus, we differentiate
 $$
-E_1 + \sum_{j=1}^n\lambda_j\left(1 - \sum_{i,k=1}^m\bar{m}_{ij}\overline{S}_{ik}\bar{m}_{kj}\right)
+E_1 + \lambda(\tr(\overline{M}^T\overline{S}_M\overline{M}) -1)
 $$
-with respect to $\overline{M}$ using \eqref{dM}, where the $\lambda_j$ are Lagrange multipliers.
-Put $\Lambda = diag\{\lambda_1,\dots,\lambda_n\}$.  Note that the constraint equations do not depend on $t$.
-Then setting the derivative to zero, we must solve
+with respect to $\overline{M}$ using \eqref{dM} and \eqref{tr(A^TQA)}, where $\lambda$ is a  Lagrange multiplier.
+Note that the constraint equation does not depend on $t$. Setting the derivative to zero we must solve for $\overline{M}$:
 \begin{align*}
-  0  &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(\sigma_t)(\overline{S}_Mx_t\sigma_t^TU_t^T - \overline{S}_M\overline{M}U_t\sigma_t\sigma_t^TU_t^T)d\sigma_t +
-  2\overline{S}_M\overline{M}\Lambda\\
-&= 2\sum_{t=1}^N(\overline{S}_Mx_t\mu_{c,t}^TU - \overline{S}_M\overline{M}U^T(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)U +
-2S_M\overline{M}\Lambda,
+  0 &= \frac{\partial{E_1}}{\partial\overline{M}} + 2\overline{S}_M\overline{M}\Lambda\\
+  &= -\sum_{t=1}^N\int_{\R^n}\gamma_t(\sigma_t)\frac{\partial}{\partial\overline{M}}Q(x_t,\overline{M}U_t\sigma_t,\overline{S}_M)d\sigma_t +   2\lambda\overline{S}_M\overline{M}\\
+  &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(\sigma_t)(\overline{S}_Mx_t\sigma_t^TU_t^T - \overline{S}_M\overline{M}U_t\sigma_t\sigma_t^TU_t^T)d\sigma_t +
+  2\lambda\overline{S}_M\overline{M}\\
+&= 2\sum_{t=1}^N(\overline{S}_Mx_t\mu_{c,t}^TU_t - \overline{S}_M\overline{M}U_t^T(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)U_t +
+2\lambda\overline{S}_M\overline{M}.
 \end{align*}
 Multiplying through by $\frac{1}{2}\overline{S}_M^{-1}$, we find that in the unconstrained case, with $U = I$, we get
 \begin{equation}\label{M_bar}
@@ -563,18 +581,36 @@ Multiplying through by $\frac{1}{2}\overline{S}_M^{-1}$, we find that in the unc
   \end{split}
 \end{equation}
 while with constraints we must solve
-$$
-  \Gamma_1U = \overline{M}(U^T\Gamma_2U + \Lambda),
-$$
-and then set the $\lambda_j$ appropriately to satisfy the constraints. We see that if we choose $U$ to diagonalize
-$\Gamma_2$ and set $\Lambda^* := (U^T\Gamma_2U + \Lambda)^{-1}$, then
 \begin{equation}\label{M_bar:1}
-  \overline{M} = \Gamma_1U\Lambda^*,
+  \Gamma_1 = \overline{M}(\Gamma_2 + \lambda{I}),
 \end{equation}
-where 
+and then set  $\lambda$ appropriately to satisfy the constraint.
+Since $\Gamma_2$ is symmetric positive semi-definite, there is an orthonormal matrix $U$
+such that
+\begin{align*}
+  D :&= U^T\Gamma_2U = \diag\{d_1,\dots,d_n\}.\quad\text{Define} \\
+  \widehat{M} :&= U^T\overline{M}U,\\
+  \widehat{\Gamma}_1 :&= U^T\Gamma_1U,\quad\text{and}\\
+  \widehat{S}_M :&= U^T\overline{S}_MU.
+\end{align*}
+Then \eqref{M_bar:1} becomes
+\begin{equation}\label{M_bar:2}
+     \widehat{M} = \widehat{\Gamma}_1(D + \lambda{I})^{-1},
+\end{equation}
+and the constraint equation is 
+\begin{align*}
+1 &= \tr(\overline{M}^T\overline{S}_M\overline{M}) = \tr(U^T\overline{M}^T\overline{S}_M\overline{M}U)\\
+&= \tr(\widehat{M}^T\widehat{S}_M\widehat{M})\\
+&= \tr((D+\lambda{I})^{-1}\widehat {\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1(D+\lambda{I})^{-1})\\
+&= \tr((D+\lambda{I})^{-2}\widehat{\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1).
+\end{align*}
+Define
 $$
-\lambda_j^* = (U^T\Gamma_1^T\overline{S}_M\Gamma_1U)_{jj}^{-\frac{1}{2}}\quad(1\le j\le n).
+f(\lambda) = 1 - \sum_{i=1}^n\frac{\sigma_{ii}}{(d_i+\lambda)^2},
 $$
+where $\sigma_{ii}$ is the $i^{th}$ diagonal element of $\widehat{\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1$.
+Then we solve $f(\lambda) = 0$ for $\lambda$ by e.g. Newton's method and plug the result into \eqref{M_bar:2}. 
+
 
 Note that in the unconstrained case \eqref{M_bar} is independent of $\overline{S}_M$, so to optimize $E_1$, we can first
 solve for $\overline{M}$ and then use the result to solve for $\overline{S}_M$.  In the constrained case this
