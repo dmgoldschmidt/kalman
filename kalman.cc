@@ -22,6 +22,30 @@ struct ArrayInitializer : public Initializer<Array<double>> {
   void operator()(Array<double>& A){A.reset(length);}
 };
 
+Matrix<double> solve(Matrix<double>& Gamma_1,Matrix<double>& Gamma_2, Matrix<double>& S_M, double eps = 1.0e-8, int niters = 10){
+
+  Svd svd;
+  double lambda(1.0),err(1.0);
+  svd.reduce(Gamma_2); // copy to Svd space and diagonalize
+  Matrix<double> hat_S_M(S_M.nrows(),S_M.ncols());
+  Matrix<double> M(Gamma_1.nrows(),Gamma_1.ncols());
+  M = Gamma_1*svd.V;
+  hat_S_M = M.T()*S_M*M;
+  while(err > eps && niters-- > 0){
+    double sum2(0),sum3(0),s2;
+    for(int i = 0;i < hat_S_M.nrows();i++){
+      sum2 += (s2 = hat_S_M(i,i)/((svd.A(i,i) + lambda)*(svd.A(i,i)+lambda)));
+      sum3 += s2/(svd.A(i,i) + lambda);
+    }
+    lambda -= (err = (1-sum2)/(2*sum3)); // lambda_{i+1} = lambda_i - f(lambda)/f'(lambda)
+  }
+  for(int j = 0;j < M.ncols();j++){
+    for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
+  }
+  M *= svd.V.T();
+  return M;
+}
+
 struct Theta { // Model parameters
   Matrix<double> S_0;
   ColVector<double> mu_0;
@@ -177,7 +201,7 @@ int main(int argc, char** argv){
   int niters = 50;
   int max_recs = 10000; // zero means read the entire file
   int nchars = 27;
-  string data_file = "text_blog.txt"; //data (either real or from simulation)
+  string data_file = ""; //data (either real or from simulation)
   string outfile = ""; // output
   string param_file = ""; // nominal input parameters
   string data_dir = "data/";
@@ -390,7 +414,7 @@ int main(int argc, char** argv){
       theta.mu_0 = mu_c[0];theta.S_0 = S_a[0]+S_b[0];
     }
 
-    if(M_reestimate){
+    if(M_reestimate || M_constraint){
       // reestimate theta.M
       Gamma1.fill(0);
       Gamma2.fill(0);
@@ -400,18 +424,9 @@ int main(int argc, char** argv){
       }
       if(!M_constraint)theta.M = Gamma1*sym_inv(Gamma2);
       else{
-        svd_M.reduce(Gamma2);
-        cout << "diagonalized Gamma2:\n"<<svd_M.A;
-        Gamma1 = Gamma1*svd_M.V;
-        Lambda = Gamma1.T()*theta.S_M*Gamma1;
-        for(int j = 0;j < Lambda.ncols();j++){
-          for(int i = 0;i < Lambda.nrows();i++){
-            theta.M(i,j) = Gamma1(i,j)/sqrt(Lambda(j,j));
-          }
-        }
-        cout << "M.T()*S_M*M:\n"<<theta.M.T()*theta.S_M*theta.M;
+        theta.M = solve(Gamma1,Gamma2,theta.S_M);
+        cout << "tr(M.T()*S_M*M):\n"<<tr(theta.M.T()*theta.S_M*theta.M);
       }
-            
     }
 
     if(S_M_reestimate){

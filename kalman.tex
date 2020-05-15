@@ -563,16 +563,16 @@ $$
 E_1 + \lambda(\tr(\overline{M}^T\overline{S}_M\overline{M}) -1)
 $$
 with respect to $\overline{M}$ using \eqref{dM} and \eqref{tr(A^TQA)}, where $\lambda$ is a  Lagrange multiplier.
-Note that the constraint equation does not depend on $t$. Setting the derivative to zero we must solve for $\overline{M}$:
+Note that the constraint equation does not depend on $t$. Setting the derivative to zero we need to solve for $\overline{M}$:
 \begin{align*}
   0 &= \frac{\partial{E_1}}{\partial\overline{M}} + 2\overline{S}_M\overline{M}\Lambda\\
-  &= -\sum_{t=1}^N\int_{\R^n}\gamma_t(\sigma_t)\frac{\partial}{\partial\overline{M}}Q(x_t,\overline{M}U_t\sigma_t,\overline{S}_M)d\sigma_t +   2\lambda\overline{S}_M\overline{M}\\
-  &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(\sigma_t)(\overline{S}_Mx_t\sigma_t^TU_t^T - \overline{S}_M\overline{M}U_t\sigma_t\sigma_t^TU_t^T)d\sigma_t +
+  &= -\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial}{\partial\overline{M}}Q(x_t,\overline{M}s_t,\overline{S}_M)ds_t +   2\lambda\overline{S}_M\overline{M}\\
+  &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(\overline{S}_Mx_ts_t^T - \overline{S}_M\overline{M}s_ts_t^T)ds_t +
   2\lambda\overline{S}_M\overline{M}\\
-&= 2\sum_{t=1}^N(\overline{S}_Mx_t\mu_{c,t}^TU_t - \overline{S}_M\overline{M}U_t^T(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)U_t +
+&= 2\sum_{t=1}^N(\overline{S}_Mx_t\mu_{c,t}^T - \overline{S}_M\overline{M}(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T) +
 2\lambda\overline{S}_M\overline{M}.
 \end{align*}
-Multiplying through by $\frac{1}{2}\overline{S}_M^{-1}$, we find that in the unconstrained case, with $U = I$, we get
+Multiplying through by $\frac{1}{2}\overline{S}_M^{-1}$, we find that in the unconstrained case, we get
 \begin{equation}\label{M_bar}
   \begin{split}
     \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
@@ -585,30 +585,33 @@ while with constraints we must solve
   \Gamma_1 = \overline{M}(\Gamma_2 + \lambda{I}),
 \end{equation}
 and then set  $\lambda$ appropriately to satisfy the constraint.
-Since $\Gamma_2$ is symmetric positive semi-definite, there is an orthonormal matrix $U$
+Since $\Gamma_2$ is symmetric positive semi-definite, there is an orthonormal matrix $V$
 such that
 \begin{align*}
-  D :&= U^T\Gamma_2U = \diag\{d_1,\dots,d_n\}.\quad\text{Define} \\
-  \widehat{M} :&= U^T\overline{M}U,\\
-  \widehat{\Gamma}_1 :&= U^T\Gamma_1U,\quad\text{and}\\
-  \widehat{S}_M :&= U^T\overline{S}_MU.
+  D :&= V^T\Gamma_2V = \diag\{d_1,\dots,d_n\}.\quad\text{Define} \\
+  \widehat{M} :&= V^T\overline{M}V,\\
+  \widehat{\Gamma}_1 :&= V^T\Gamma_1V,\quad\text{and}\\
+  \widehat{S}_M :&= V^T\overline{S}_MV.
 \end{align*}
 Then \eqref{M_bar:1} becomes
 \begin{equation}\label{M_bar:2}
-     \widehat{M} = \widehat{\Gamma}_1(D + \lambda{I})^{-1},
+  \begin{split}
+    \widehat{M} &= \widehat{\Gamma}_1(D + \lambda{I})^{-1},\\
+    M &= \Gamma_1V(D+\lambda{I})^{-1}V^T.
+  \end{split}
 \end{equation}
 and the constraint equation is 
 \begin{align*}
-1 &= \tr(\overline{M}^T\overline{S}_M\overline{M}) = \tr(U^T\overline{M}^T\overline{S}_M\overline{M}U)\\
+1 &= \tr(\overline{M}^T\overline{S}_M\overline{M}) = \tr(V^T\overline{M}^T\overline{S}_M\overline{M}V)\\
 &= \tr(\widehat{M}^T\widehat{S}_M\widehat{M})\\
 &= \tr((D+\lambda{I})^{-1}\widehat {\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1(D+\lambda{I})^{-1})\\
-&= \tr((D+\lambda{I})^{-2}\widehat{\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1).
+&= \tr((D+\lambda{I})^{-2}V^T\Gamma_1S_M\Gamma_1V).
 \end{align*}
 Define
 $$
 f(\lambda) = 1 - \sum_{i=1}^n\frac{\sigma_{ii}}{(d_i+\lambda)^2},
 $$
-where $\sigma_{ii}$ is the $i^{th}$ diagonal element of $\widehat{\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1$.
+where $\sigma_{ii}$ is the $i^{th}$ diagonal element of $V^T\Gamma_1^TS_M\Gamma_1$.
 Then we solve $f(\lambda) = 0$ for $\lambda$ by e.g. Newton's method and plug the result into \eqref{M_bar:2}. 
 
 
