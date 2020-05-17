@@ -25,26 +25,105 @@ struct ArrayInitializer : public Initializer<Array<double>> {
 Matrix<double> solve(Matrix<double>& Gamma_1,Matrix<double>& Gamma_2, Matrix<double>& S_M, double eps = 1.0e-8, int niters = 10){
 
   Svd svd;
-  double lambda(1.0),err(1.0);
+  int n = S_M.nrows();
+  double lambda(1.0);
   svd.reduce(Gamma_2); // copy to Svd space and diagonalize
-  Matrix<double> hat_S_M(S_M.nrows(),S_M.ncols());
+  cout << "D: ";
+  for(int i = 0;i < n;i++)cout << svd.A(i,i)<<" ";
+  cout << endl;
+  Matrix<double> hat_S_M(n,n);
   Matrix<double> M(Gamma_1.nrows(),Gamma_1.ncols());
   M = Gamma_1*svd.V;
   hat_S_M = M.T()*S_M*M;
-  while(err > eps && niters-- > 0){
-    double sum2(0),sum3(0),s2;
-    for(int i = 0;i < hat_S_M.nrows();i++){
+  double err(1.0),sum2,sum3,s2,iter(0);
+  while(fabs(err) > eps && iter++ < niters){
+    cout << format("begin solve iteration %d with error %f\n",niters,err);
+    sum2 = sum3 = 0;
+    for(int i = 0;i < n;i++){
       sum2 += (s2 = hat_S_M(i,i)/((svd.A(i,i) + lambda)*(svd.A(i,i)+lambda)));
       sum3 += s2/(svd.A(i,i) + lambda);
     }
-    lambda -= (err = (1-sum2)/(2*sum3)); // lambda_{i+1} = lambda_i - f(lambda)/f'(lambda)
+    cout << format("f(%f) = %f, f' = %f\n",lambda, 10*n - sum2,sum3);
+    err = 10*n-sum2;
+    if(sum3 < eps)break;
+    lambda -= err/(2*sum3); // lambda_{i+1} = lambda_i - f(lambda)/f'(lambda)
   }
   for(int j = 0;j < M.ncols();j++){
     for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
   }
-  M *= svd.V.T();
+  M = M*svd.V.T();
   return M;
+
 }
+struct Solver {
+  matrix& Gamma1;
+  matrix& Gamma2;
+  matrix& S_M;
+  matrix hat_S_M;
+  matrix M;
+  double eps;
+  double niters;
+  double lambda;
+  int target;
+  int n;
+  Svd svd;
+  Solver(Matrix<double>& G1,Matrix<double>& G2, Matrix<double>& S, int t, double e = 1.0e-5, int max = 100):
+    Gamma1(G1), Gamma2(G2), S_M(S), target(t), eps(e), niters(max){
+    n = S.nrows();
+    int n = S.nrows();
+    hat_S_M.reset(n,n);
+    M.reset(n,n);
+    svd.reduce(Gamma2); // copy to Svd space and diagonalize
+    //    cout << "D: ";
+    //    for(int i = 0;i < n;i++)cout << svd.A(i,i)<<" ";
+    //    cout << endl;
+    //    cout << "Gamma1:\n"<<Gamma1<<"V:\n"<<svd.V<<"S_M:\n"<<S_M;
+    M = Gamma1*svd.V;
+    //    cout << "M:\n"<<M;
+    hat_S_M = M.T()*S_M*M;
+    //    cout << "hat_S_M:\n"<<hat_S_M;
+    //    for(int i = 0;i < n;i++)cout << hat_S_M(i,i)<<" ";
+    //cout << endl;
+  }
+  double f(double x){
+    double sum = 0;
+    for(int i = 0;i < n;i++){
+      sum += hat_S_M(i,i)/((svd.A(i,i) + x)*(svd.A(i,i) + x));
+    }
+    return target - sum;
+  }
+  matrix operator()(void){
+    double lambda1 = -.9*svd.A(n-1,n-1);  // slightly to the right of the smallest eigenvalue (largest singularity)
+    double lambda2 = -lambda1;
+    while(f(lambda2) < 0) lambda2 *= 2;
+    while(f(lambda1) > 0) lambda1 -= .05*svd.A(n-1,n-1);
+    double err(1.0);
+    int iter(0);
+    double f1,f2;
+    while(fabs(err) > eps && iter++ < niters){
+      //      cout << format("begin solve iteration %d with error %f\n",iter,err);
+      //      f1 = f(lambda1);
+      //      f2 = f(lambda2);
+      //      cout << format("f(%f) = %f, f(%f = %f\n",lambda1,f1,lambda2,f2);
+      //      assert(f1 < 0 && f2 > 0);
+      lambda = (lambda1+lambda2)/2;
+      err = f(lambda);
+      if(err < 0){
+        lambda1 = lambda;
+        //        f1 = err;
+      }
+      else{
+        lambda2 = lambda;
+        //        f2 = err;
+      }
+    }
+    for(int j = 0;j < M.ncols();j++){
+      for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
+    }
+    M = M*svd.V.T();
+    return M;
+  }
+};
 
 struct Theta { // Model parameters
   Matrix<double> S_0;
@@ -344,7 +423,7 @@ int main(int argc, char** argv){
   Svd svd_M;
   //  niters = 1;
   double old_score, delta_score(1.0);
-  for(int iter = 0;iter < niters && delta_score > min_delta;iter++){
+  for(int iter = 0;iter < niters && fabs(delta_score) > min_delta;iter++){
     cout << "Begin iteration "<<iter<<" with delta score = "<<delta_score <<endl;
     cout << "\nparameters:\n"<<theta;
     // alpha pass
@@ -424,8 +503,9 @@ int main(int argc, char** argv){
       }
       if(!M_constraint)theta.M = Gamma1*sym_inv(Gamma2);
       else{
-        theta.M = solve(Gamma1,Gamma2,theta.S_M);
-        cout << "tr(M.T()*S_M*M):\n"<<tr(theta.M.T()*theta.S_M*theta.M);
+        Solver constrained_M(Gamma1,Gamma2,theta.S_M,1);//Gamma2.nrows());
+        theta.M = constrained_M();
+        cout << "tr(M.T()*S_M*M) = "<<tr(theta.M.T()*theta.S_M*theta.M)<<endl;
       }
     }
 

@@ -68,6 +68,14 @@ int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rota
   return nrot;
 }
 
+double tr(const matrix& A){
+  double sum = 0;
+  int n = A.nrows();
+  assert(n == A.ncols());
+  for(int i = 0;i < n;i++)sum += A(i,i);
+  return sum;
+}
+
 double det(const matrix& A){
   assert(A.nrows() == A.ncols());
   matrix B = A.copy();
