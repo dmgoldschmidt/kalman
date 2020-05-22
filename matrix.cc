@@ -68,7 +68,7 @@ int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rota
   return nrot;
 }
 
-double tr(const matrix& A){
+double trace(const matrix& A){
   double sum = 0;
   int n = A.nrows();
   assert(n == A.ncols());

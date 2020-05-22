@@ -136,9 +136,9 @@ we conclude that it holds for $\epsilon = 0$ as well.
 
 Finally, suppose that both of the $A_i$ are invertible. Then it's easy to see that
 
-$$
+\begin{equation}\label{comp_sq:4}
 Q(A_ix;\mu_i,S_i) = Q(x;\mu_i',S_i')\quad(i = 1,2),
-$$
+\end{equation}
 and \eqref{mu} becomes
 \begin{equation} \label{mu'}
 \mu = S^{-1}(S_1'\mu_1' + S_2'\mu_2')
@@ -191,11 +191,17 @@ In particular, $\N_0$ does not depend on $x$, and
 
 Furthermore, if $A_1$ and $A_2$ are invertible, then 
 \begin{equation}\label{exact_prod} 
-  \N_0 = \N(\mu_1';\mu_2',S_1'*S_2').
+\N(A_1x;\mu_1,S_1)\N(A_2x;\mu_2,S_2)   = \N(x,\mu,S)\N(\mu_1';\mu_2',S_1'*S_2'),
 \end{equation}
+where the notation is as above.
 \begin{proof}
-  The exponential terms on both sides of the equation are equal by \eqref{comp_sq:1} and the scale factors
-  are equal by inspection.
+
+  Using \eqref{comp_sq:4}, we have
+$$
+  Q(A_1x;\mu_1,S_1) + Q(A_2x;\mu_2,S_2)  = Q(x;\mu_1',S_1') + Q(x;\mu_2',S_2').
+$$
+  Then the exponential terms on both sides of \eqref{exact_prod} are equal by
+  \eqref{comp_sq:1} and \eqref{comp_sq:R}, and the scale factors are equal by inspection.
 \end{proof}
 \end{Cor}
 
@@ -230,7 +236,7 @@ $$
 \begin{proof}
 
 Proceeding by induction on $t$, we note that the case $t = 0$ holds by definition.
-For the time update, we have, using \eqref{comp_sq:2}
+For the time update, we have, using \eqref{exact_prod}
 \begin{align}
   \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
   &= P_{a,t-1}\int_{\R^n}\N(Tu;s,S_T)\N(u;\mu_{a,t-1},S_{a,t-1})du \notag\\
@@ -254,10 +260,10 @@ and then we integrate with respect to $Pd(u\mid s)du$ for the time update.
   For $t < N$, inductively define
 \begin{align*}
   \hat{S}_{b,t} :&= M^TS_MM + S_{b,t+1};\\
-  S_{b,t} :&= (T^{-T]}\hat{S}_{b,t}T)*S_T,\\
+  S_{b,t} :&= T^T(\hat{S}_{b,t}*S_T)T,\\
   \hat{\mu}_{b,t} :&= \hat{S}_{b,t}^{-1}(M^TS_Mx_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
-  \mu_{b,t} :&= T\hat{\mu}_{b,t},\\
-  R_{b,t} :&= x_{t+1}^TS_Mx_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \mu_{b,t}^T\hat{S}_{b,t}\mu_{b,t},\\
+  \mu_{b,t} :&= T^{-1}\hat{\mu}_{b,t},\\
+  R_{b,t} :&= x_{t+1}^TS_Mx_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \hat{\mu}_{b,t}^T\hat{S}_{b,t}\hat{\mu}_{b,t},\\
   N_{b,t} :&= \left(\frac{|S_M|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}},\quad\text{and}\\
   P_{b,t}:&=P_{b,t+1}N_{b,t},
 \end{align*}
@@ -271,28 +277,28 @@ $$
 We proceed by reverse induction on $t$. However, to get started we first must  deal with
 the special case of $\beta_{N}(u)$, the conditional probability of the future observations given
 state $u$ at time $N$, but of course there are no such observations.  In the standard discrete
-state HMM, we set $\beta_N(s) = 1$ for all states $s$, and this will work in our case as well by
-setting $S_{b,T} = 0$ if $M$ is 1-1, but we really need a proper gaussian 
-density in order to get the reverse induction started in all cases.  So we somewhat arbitrarily
+state HMM, we set $\beta_N(s) = 1$ for all states $s$ and this will work in our case as well by
+setting $S_{b,T} = 0$, provided that $M$ is 1-1. But we really need a proper gaussian 
+density in order to get the reverse induction started in all cases, so we somewhat arbitrarily
 assume the following values
 \begin{align*}
   S_{b,N} :&= I,\\
-  \mu_{b,N} :&= 0,\\
-  P_{b,N} :&= 1;
+  \mu_{b,N} :&= 0,\quad\text{and}\\
+  P_{b,N} :&= 1.
 \end{align*}
-  For $t <  N$, we have the measurement update 
+  For $t <  N$, we use \eqref{exact_prod} to get the measurement update 
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_M)\N(u;\mu_{b,t+1},S_{b,t})\\
-    &= P_{b,t+1}N_{b,t}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t})
+    &= P_{b,t+1}N_{b,t}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t}).
   \end{align*}
-
-  Then a second application of \eqref{comp_sq:2} yields the time update
+  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$ and all future observations {\em and}
+  $x_{t+1}$. Then an application of \eqref{comp_sq:2} and \eqref{comp_sq:4} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
-    &= P_{b,t+1}N_{b,t}\int_{\R^n}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t+1})\N(Tu;s,S_T)du\\
-    &=P_{b,t+1}N_{b,t}\N(T^{-1}s;\hat{\mu}_{b,t},\hat{S}_{b,t+1}*S_T')\\
-    &=P_{b,t+1}N_{b,t}\N(s;T\hat{\mu}_{b,t},T^{-T}(\hat{S}_{b,t+1}*S_T')T)\\
+    &= P_{b,t+1}N_{b,t}\int_{\R^n}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t+1})\N(u;Ts,S_T)du\\
+    &=P_{b,t+1}N_{b,t}\N(Ts;\hat{\mu}_{b,t},\hat{S}_{b,t+1}*S_T)\\
+    &=P_{b,t+1}N_{b,t}\N(s;T^{-1}\hat{\mu}_{b,t},T^T(\hat{S}_{b,t+1}*S_T)T)\\
     &=P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
 \end{proof}

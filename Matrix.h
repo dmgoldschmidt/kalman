@@ -234,7 +234,7 @@ public:
     }
     return B;
   }
-  Matrix T(void) const {
+  Matrix Tr(void) const {
     Matrix B(_ncols,_nrows);
     for(int i = 0;i < _ncols;i++){
       for(int j = 0;j < _nrows;j++)B(i,j) = ENTRY(j,i);
@@ -449,7 +449,7 @@ matrix qr(const matrix& A);
 void reduce(matrix& A, double eps = 1.0e-10); // row-reduce upper-triangular A in place
 void solve(matrix& A, double eps = 1.0e-10); // solve linear equations in-place 
 double det(const matrix& A); // determinant
-double tr(const matrix& A); // trace
+double trace(const matrix& A); // trace
 Array<matrix> svd(const matrix& A, double eps = 1.0e-10, int maxiters = 10);
 struct Svd{
   int ncols;
