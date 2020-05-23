@@ -254,23 +254,23 @@ struct Data {
   void simulate(const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
     Normaldev normal(0,1,seed*seed);
-    RanVec ran_vec_Tr(2*seed+1);
-    RanVec ran_vec_Ob(3*seed);
-    ran_vec_Tr.reset(theta.S_0);
-    ran_vec_Tr.reset_mu(theta.mu_0);
-    state[0].copy(ran_vec_Tr.dev()); 
+    RanVec ran_vec_T(2*seed+1);
+    RanVec ran_vec_M(3*seed);
+    ran_vec_T.reset(theta.S_0);
+    ran_vec_T.reset_mu(theta.mu_0);
+    state[0].copy(ran_vec_T.dev()); 
     cout << "simulate: initial state: "<<state[0].Tr()<<endl;
     ColVector<double> mean_state(nstates);
     mean_state.fill(0);   
-    ran_vec_Ob.reset(theta.S_M);
-    ran_vec_Tr.reset(theta.S_T);
+    ran_vec_M.reset(theta.S_M);
+    ran_vec_T.reset(theta.S_T);
     for(int t = 1;t <= max_recs;t++){
-      ran_vec_Tr.mu = state[t-1]; // soft copy
-      state[t].copy(ran_vec_Tr.dev());
+      ran_vec_T.mu = theta.T*state[t-1]; // soft copy
+      state[t].copy(ran_vec_T.dev());
       mean_state += state[t]-state[t-1];
       cout << format("state[%d]: ",t)<<state[t].Tr()<<endl;
-      ran_vec_Ob.mu = theta.M*state[t];
-      x[t].copy(ran_vec_Ob.dev());
+      ran_vec_M.mu = theta.M*state[t];
+      x[t].copy(ran_vec_M.dev());
       cout << format("x[%d]: ",t)<<x[t].Tr()<<endl;
     }
     mean_state *= 1.0/max_recs;

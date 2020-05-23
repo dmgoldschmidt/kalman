@@ -223,7 +223,7 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
     }
   }
 #endif
-  return B*(B.T()); // A_inv = C_inv*C_inv.T()
+  return B*(B.Tr()); // A_inv = C_inv*C_inv.Tr()
 }
 
 void cholesky(const matrix& M, matrix& C){ // user-supplied answer
@@ -250,12 +250,12 @@ Array<matrix> svd(const matrix& A, double eps, int maxiters){
 
   QR[0] = qr(A);
   R[0] = QR[0].slice(0,0,A.nrows(),A.ncols());
-  QR[1] = qr(R[0].T());
+  QR[1] = qr(R[0].Tr());
   R[1] = QR[1].slice(0,0,A.ncols(),A.nrows());
   j = 0;
   niters = 0;
   do{
-    R[j].copy(R[1-j].T());
+    R[j].copy(R[1-j].Tr());
     ut(QR[j]);
     delta = 0;
     for(int i = 0;i < n;i++){
@@ -345,12 +345,12 @@ Array<matrix> svd1(const matrix& A, double eps, int maxiters){
 
   QR[0] = qr(A);
   R[0] = QR[0].slice(0,0,A.nrows(),A.ncols());
-  QR[1] = qr(R[0].T());
+  QR[1] = qr(R[0].Tr());
   R[1] = QR[1].slice(0,0,A.ncols(),A.nrows());
   j = 0;
   niters = 0;
   do{
-    R[j].copy(R[1-j].T());
+    R[j].copy(R[1-j].Tr());
     ut(QR[j]);
     delta = 0;
     for(int i = 0;i < n;i++){
@@ -445,5 +445,5 @@ void MatrixWelford::update(ColVector<double>& x, double weight){
   else delta = delta - S1*(weight/W);
   W = tau*W + weight;
   S1 = S1*tau + x*weight;
-  S2 = S2*tau + delta*(x - S1*(1.0/W)).T();
+  S2 = S2*tau + delta*(x - S1*(1.0/W)).Tr();
 }
