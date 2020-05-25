@@ -603,7 +603,7 @@ Then \eqref{M_bar:1} becomes
 \begin{equation}\label{M_bar:2}
   \begin{split}
     \widehat{M} &= \widehat{\Gamma}_1(D + \lambda{I})^{-1},\\
-    M &= \Gamma_1V(D+\lambda{I})^{-1}V^T.
+    \overline{M} &= \Gamma_1V(D+\lambda{I})^{-1}V^T.
   \end{split}
 \end{equation}
 and the constraint equation is 
@@ -611,14 +611,14 @@ and the constraint equation is
 1 &= \tr(\overline{M}^T\overline{S}_M\overline{M}) = \tr(V^T\overline{M}^T\overline{S}_M\overline{M}V)\\
 &= \tr(\widehat{M}^T\widehat{S}_M\widehat{M})\\
 &= \tr((D+\lambda{I})^{-1}\widehat {\Gamma}_1^T\widehat{S}_M\widehat{\Gamma}_1(D+\lambda{I})^{-1})\\
-&= \tr((D+\lambda{I})^{-2}V^T\Gamma_1S_M\Gamma_1V).
+&= \tr((D+\lambda{I})^{-2}V^T\Gamma_1^TS_M\Gamma_1V).
 \end{align*}
 Define
 $$
 f(\lambda) = 1 - \sum_{i=1}^n\frac{\sigma_{ii}}{(d_i+\lambda)^2},
 $$
-where $\sigma_{ii}$ is the $i^{th}$ diagonal element of $V^T\Gamma_1^TS_M\Gamma_1$.
-Then we solve $f(\lambda) = 0$ for $\lambda$ by e.g. Newton's method and plug the result into \eqref{M_bar:2}. 
+where $\sigma_{ii}$ is the $i^{th}$ diagonal element of $V^T\Gamma_1^TS_M\Gamma_1V$.
+Then we solve $f(\lambda) = 0$ for $\lambda$ and plug the result into \eqref{M_bar:2}. 
 
 
 Note that in the unconstrained case \eqref{M_bar} is independent of $\overline{S}_M$, so to optimize $E_1$, we can first

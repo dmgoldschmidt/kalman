@@ -74,6 +74,7 @@ struct Solver {
     hat_S_M.reset(n,n);
     M.reset(n,n);
     svd.reduce(Gamma2); // copy to Svd space and diagonalize
+    //    cout << "Gamma2:\n"<<Gamma2<<"svd:\n"<<svd.A;
     //    cout << "D: ";
     //    for(int i = 0;i < n;i++)cout << svd.A(i,i)<<" ";
     //    cout << endl;
@@ -93,10 +94,14 @@ struct Solver {
     return target - sum;
   }
   matrix operator()(void){
-    double lambda1 = -.9*svd.A(n-1,n-1);  // slightly to the right of the smallest eigenvalue (largest singularity)
+    double delta = .5*svd.A(n-1,n-1);  // slightly to the right of the smallest eigenvalue (largest singularity)
+    double lambda1 = -delta; 
     double lambda2 = -lambda1;
     while(f(lambda2) < 0) lambda2 *= 2;
-    while(f(lambda1) > 0) lambda1 -= .05*svd.A(n-1,n-1);
+    while(f(lambda1) > 0){
+      delta /= 2;
+      lambda1 -= delta; // move closer to the singularity
+    }
     double err(1.0);
     int iter(0);
     double f1,f2;
@@ -157,7 +162,8 @@ struct Theta { // Model parameters
 };
 
 ostream& operator<<(ostream& os, const Theta& t){
-  cout << "S_0:\n"<<t.S_0<<"mu_0: "<<t.mu_0.Tr()<<"S.M:\n"<<t.S_M<<"S.Tr:\n"<<t.S_T<<"M:\n"<<t.M<<endl;
+  cout << "S_0:\n"<<t.S_0<<"mu_0: "<<t.mu_0.Tr()<<"S.M:\n"<<t.S_M<<"S.Tr:\n"<<t.S_T<<"M:\n"<<t.M<<
+    "T:\n"<<t.T<<endl;
   return os;
 }
 
@@ -166,24 +172,31 @@ struct RanVec {
   Normaldev normal;
   Svd S; // diagonalized inverse covariance matrix of eigenvalues is in S.A, matrix of eigenvectors is in S.V
   ColVector<double> mu;
-  RanVec(uint64_t seed):normal(0,1,seed) {
-    //    cout << "normal test: "<<normal.dev()<<endl;
-  }
+  RanVec(uint64_t seed):normal(0,1,seed) {}
   void reset(const Matrix<double>& Sig){
     dim = Sig.ncols();
     assert(Sig.nrows() == dim);
+    mu.reset(dim);
     S.reduce(Sig); // copy Sig to Svd-space and compute SVD
     //    cout << "reduced S:\n"<<S.A;
+    for(int i = 0;i < dim;i++){
+      S.A(i,i) = 1/sqrt(S.A(i,i)); // now S.A(i,i) = sigma_i
+      mu[i] = 0;
+    }
   }
   
   void reset_mu(const ColVector<double>& m){ // change mu (soft copy!)
     assert(m.nrows() == dim);
-    mu = m;
-  } 
+    mu.copy(m);
+  }
+
+  void reset_mu(void){
+    for(int i = 0;i < dim;i++)mu[i] = 0;
+  }
 
   ColVector<double> dev(void){ 
     ColVector<double> d(dim);
-    for(int i = 0;i < dim;i++) d[i] = sqrt(S.A(i,i))*normal.dev();
+    for(int i = 0;i < dim;i++) d[i] = normal.dev()*S.A(i,i);
     return S.V*d + mu;
   }
 };
@@ -251,26 +264,25 @@ struct Data {
   }
 
       
-  void simulate(const Theta& theta, uint64_t seed){
+  void simulate(int sim_mode, const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
     Normaldev normal(0,1,seed*seed);
-    RanVec ran_vec_T(2*seed+1);
+    RanVec ran_vec_T(5*seed);
     RanVec ran_vec_M(3*seed);
-    ran_vec_T.reset(theta.S_0);
-    ran_vec_T.reset_mu(theta.mu_0);
-    state[0].copy(ran_vec_T.dev()); 
+    state[0] = theta.mu_0;
     cout << "simulate: initial state: "<<state[0].Tr()<<endl;
     ColVector<double> mean_state(nstates);
-    mean_state.fill(0);   
-    ran_vec_M.reset(theta.S_M);
+    mean_state.fill(0);
+    ran_vec_M.reset(theta.S_M); // set the inverse covariance matrices
     ran_vec_T.reset(theta.S_T);
     for(int t = 1;t <= max_recs;t++){
-      ran_vec_T.mu = theta.T*state[t-1]; // soft copy
-      state[t].copy(ran_vec_T.dev());
+      state[t] = theta.T*state[t-1];
+      //     cout << format("state[%d] before noise: ",t)<<state[t].Tr()<<endl;
+      state[t] = state[t] + ran_vec_T.dev();
+      if(sim_mode == 1)state[t][0] = t;
       mean_state += state[t]-state[t-1];
       cout << format("state[%d]: ",t)<<state[t].Tr()<<endl;
-      ran_vec_M.mu = theta.M*state[t];
-      x[t].copy(ran_vec_M.dev());
+      x[t] = theta.M*state[t] + ran_vec_M.dev(); // add mean zero noise
       cout << format("x[%d]: ",t)<<x[t].Tr()<<endl;
     }
     mean_state *= 1.0/max_recs;
@@ -293,8 +305,8 @@ int main(int argc, char** argv){
   int seed = 12345;
   int nstates = 5;
   int data_dim = 5;
-  int ntrain = 8000;
-  //  int ntest = 0;
+  double ntrain = .8;
+  int sim_mode = 0; // simulation mode: 0 = no simulation
 
   double min_delta = 1.0e-5; // exit criterion for Baum-Welch iterations
   bool verbose = false;
@@ -320,8 +332,9 @@ int main(int argc, char** argv){
   cl.get("niters",niters); cout << "niters: "<<niters<<endl;// max. no. of iterations 
   cl.get("max_recs",max_recs); cout << "max_recs: "<<max_recs<<endl; // max. no. of data records 
   cl.get("ntrain",ntrain); cout << "ntrain: "<<ntrain<<endl;
-  //  cl.get("ntest",ntest); cout << "ntest: "<<ntest<<endl;
+  cl.get("sim_mode",sim_mode); cout << "simulation mode: "<<sim_mode<<endl;
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
+  cl.get("min_delta",min_delta); cout << "min_delta: "<<min_delta<<endl;
   if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
   if(cl.get("ran_dict")){ ran_dict = true; cout << "random dictionary mode ";}
   if(cl.get("S_T_reestimate")) {S_T_reestimate = true; cout << "re-estimate S_T\n";}
@@ -335,17 +348,34 @@ int main(int argc, char** argv){
   
   Data data(nstates,data_dim,max_recs,nchars,seed,ran_dict);
   Theta theta(nstates,data_dim,seed);
+  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
   int N;  // time of last training data point
   bool simulation;
-  if(data_file != ""){
+  if(data_file != "" && sim_mode == 0){
     max_recs = data.read_text(data_file); // read data from file
     simulation = false;
   }
   else {
-    data.simulate(theta, seed); // simulate data
+    if(sim_mode == 1){
+      sim_theta.M.fill(0);
+      sim_theta.T.fill(0);
+      sim_theta.S_M.fill(0);
+      sim_theta.S_T.fill(0);
+      for(int i = 0;i < nstates;i++){
+        sim_theta.T(i,i) = 1.0;
+        sim_theta.S_T(i,i) = 100.0;
+        sim_theta.mu_0[i] = 0;
+      }
+      for(int i = 0;i < data_dim;i++){
+        sim_theta.S_M(i,i) = 100.0;
+        if(i < nstates)sim_theta.M(i,i) = 1.0;
+      }
+    }
+    data.simulate(sim_mode,sim_theta, seed); // simulate data
     simulation = true;
   }
-  N = ntrain? ntrain: max_recs; // testing from t = ntrain+1 to t = max_recs
+  
+  N = ntrain? ntrain*max_recs : max_recs; // testing from t = ntrain+1 to t = max_recs
   MatrixWelford welford(data_dim);
   for(int t = 1;t <= N;t++){
     //    cout << "input to welford: "<<data.x[t].Tr();
@@ -419,6 +449,8 @@ int main(int argc, char** argv){
         for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
       }
     }
+    theta = sim_theta;
+    cout << "perturbed parameters:\n"<<theta;
   }
   double det_S_M,det_S1_T,R,det_T;
   ColVector<double> S_mu(nstates),S1_mu1(nstates),S2_mu2(nstates),mu_hat(nstates);
@@ -492,7 +524,7 @@ int main(int argc, char** argv){
       //      cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
     cout << format("gamma_score[%d] = %f\n",N,gamma_score[N]);
-    delta_score = iter == 0? -gamma_score[N] : (gamma_score[N] - old_score)/fabs(gamma_score[N]);
+    delta_score = (iter == 0? -gamma_score[N] : (gamma_score[N] - old_score)/old_score);
     old_score = gamma_score[N];
     svd_M.reduce(theta.M);  // get singular values of M
     cout << "singular values of M: ";
@@ -515,14 +547,14 @@ int main(int argc, char** argv){
         Gamma2 += S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
       }
       if(!M_constraint)theta.M = Gamma1*sym_inv(Gamma2);
-      else{
+      else if(!S_M_reestimate || iter%2 == 1) {
         Solver constrained_M(Gamma1,Gamma2,theta.S_M,1);//Gamma2.nrows());
         theta.M = constrained_M();
         cout << "trace(M.Tr()*S_M*M) = "<<trace(theta.M.Tr()*theta.S_M*theta.M)<<endl;
       }
     }
 
-    if(S_M_reestimate){
+    if(S_M_reestimate &&(!M_constraint || iter%2 == 0)){
       // reestimate theta.S_M
       theta.S_M.fill(0);
       ColVector<double> M_mu_x(data_dim);
@@ -552,10 +584,10 @@ int main(int argc, char** argv){
       theta.S_T *= N;
     }
   }
-
-
-  // test section
   cout << "end training with delta_score = "<<delta_score<<endl;
+}
+#if 0
+  // test section
   MTS_M = theta.M.Tr()*theta.S_M;
   MTS_MM = MTS_M*theta.M;
   double tot_score(0);
@@ -611,7 +643,7 @@ int main(int argc, char** argv){
   if(max_recs > N)cout << format("scoring rate: %f cb/char over random\n", 100*tot_score/((max_recs-N)*log(10)));
 }
 
-#if 0
+
 
 
 
