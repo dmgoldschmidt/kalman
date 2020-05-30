@@ -54,14 +54,18 @@ where $S_T$ is a time-independent model parameter, $T_t$, the ``transition matri
 defining the deterministic component of the time update, and $c_t$ is a bias.  In this paper, we assume that
 $T_t = T$ is a time-independent model parameter which we may
 also re-estimate from data, and that $c_t = 0$.  Note that $T$ is not a transition matrix in the
-discrete-state HMM sense. To avoid scaling issues, we constrain $T$ to be unimodular.  In addition, since
-we are free to choose any convenient basis for the state space,  we may assume without loss of generality
-that $T$ is a companion matrix, which in this paper will always mean a matrix $(t_{ij})$ such that:
-$t_{ij} = 0$ for all $i < n$ and all $j \neq i+1$, and $t_{i,i+1} = 1$ for all $i < n$.  Since $|T| = (-1)^nt_{n1}$ for
-such a matrix, we are also assuming that $t_{n1} = (-1)^n$.  Thus, $T$ has $n-1$ degrees of freedom given by the
-coefficients $t_{nj}$ for $j > 1$.  If we are re-estimating $T$, we constraint the $M$-step
+discrete-state HMM sense.
+
+To avoid scaling issues, we constrain $T$ to be unimodular.  In addition,  we may assume without serious loss of generality
+that the characteristic polynomial of $T$ has distinct roots, which is generically true.  This implies that $T$
+is similar to a companion matrix, which in this paper will always mean a matrix $(t_{ij})$ such that:
+$t_{ij} = 0$ for all $i < n$ and all $j \neq i+1$, and $t_{i,i+1} = 1$ for all $i < n$.  And since
+we are free to choose any convenient basis for the state space, we will assume that $T$ is a companion matrix.
+Since $|T| = (-1)^nt_{n1}$ for such a matrix, we are also assuming that $t_{n1} = (-1)^n$.  Thus, $T$ has $n-1$
+degrees of freedom given by the coefficients $t_{nj}$ for $j > 1$.  If we are re-estimating $T$, we constrain the $M$-step
 of the $EM$ algorithm in order to maintain these conditions on subsequent Baum-Welch iterations.
-In effect, the state vector is the vector of all $n$ lags of a univariate $AR(n)$ process, except that
+
+In effect then, the state vector is the vector of all $n$ lags of a univariate $AR(n)$ process, except that
 at every time step we add more correlated noise to each lag until it leaves the AR-window. Thus,
 each term becomes less and less determinate as it recedes into the past.
 
@@ -316,7 +320,7 @@ assume the following values
   \end{align*}
 \end{proof}
 
-\section{The Posterior Likelihoods}
+\section{The Posterior Distributions}
 Recall that $\gamma_t(s)$ is the posterior probability density of state $s$
 at time $t$. 
 \begin{Thm}
@@ -343,7 +347,7 @@ which we denote by $\hat{\gamma}_t(s_{t-1},s_t)$.
 The joint likelihood of all the data and states $s_{t-1},s_t$ is
 \begin{align*}
   \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t), \quad\text{where} \\
-  S_{t-1,t} &:= S_{a,t-1}+S_T';,\quad\text{and}\\
+  S_{t-1,t} &:= S_{a,t-1}+S_T',\quad\text{and}\\
   \mu_{t-1,t} &:= S_{t-1,t}^{-1}(T^TS_Ts_t + S_{a,t-1}\mu_{a,t-1})\\
   &= S_{t-1,t}^{-1}(S'_Ts'_t + S_{a,t-1}\mu_{a,t-1}).\\
 \end{align*}
@@ -379,7 +383,7 @@ Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
 Given a particular state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
 the joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_T,T,S_M,M\}$ is
 $$
-P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^T\N(x_t;Ms_t,S_M)\N(s_t;Ts_{t-1},S_T).
+P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_M)\N(s_t;Ts_{t-1},S_T).
 $$
 
 Note that $P(X,S\mid\theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$.
@@ -409,7 +413,7 @@ E_2 :&= \int_{\R^{Nn}}P(X,S\mid\theta)\left\{\sum_{t=1}^N\log|\overline{S}_T| - 
 \end{align}
 Since the expected value of a constant is just that constant, $-n\log(2\pi)/2$ can be moved outside each
 integral sign and ignored in the optimization.  And since none of the parameters of $\theta$ appear in more
-than one of the $E_i$, we can optimize $E$ by optimizing each of $E_1,E_2,E_3$ separately.
+than one of the $E_i$, we can optimize $E$ by optimizing each of $E_0,E_1,E_2$ separately.
 
 We begin with $E_0$. Since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the expected value
 collapses to the marginal 
@@ -433,15 +437,15 @@ at time $t$ given by \eqref{gamma_hat}.
 
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors
-(when $n=1$). We will also denote by $C = A\circ{B}$ the element-wise product of $A$ and $B$, whose $i,j$-entry is
-$c_{ij} = a_{ij}b_{ij}$.
+(when $n=1$). We will also denote by $C = A\circ{B}$ the element-wise product of $A$ and $B$ whose $i,j$-entry is
+$C_{ij} = A_{ij}B_{ij}$.
 
 In particular, if $m=n$, $A$ is symmetric, and $f(A) = |A|$,  then the usual expansion 
 in minors along each row shows that 
 $$
 \frac{\partial{|A|}}{\partial{A}} = B\circ{A}^* = |A|B\circ{A}^{-1},
 $$
-where $A^*$ is the transposed matrix of cofactors and $b_{ij} := 2-\delta_{ij}$ for all $i,j$.
+where $A^*$ is the transposed matrix of cofactors and $B_{ij} := 2-\delta_{ij}$ for all $i,j$.
 The off-diagonal elements are doubled because $A$ is symmetric.
 It follows that
 $$
@@ -587,8 +591,8 @@ $$
 \frac{\partial{E_2}}{\partial{\overline{T}}} = 0
 $$
 for $\overline{T}$ subject to the condition that $\overline{T}$ is a companion matrix.  We do this
-by computing the full E-M update for $T$, but we only use the result to update the variable entries
-$t_{nj}$ for $j > 1$, while leaving all the remaining entries unchanged.
+by computing the full E-M update for $T$, but we only use the result to update the variable entries,
+namely $T_{nj}$ for $j > 1$, while leaving all the constant entries unchanged.
 
 Thus, we have
 \begin{equation}\label{T:1}
@@ -608,7 +612,7 @@ So we have two integrals to evaluate:
   \begin{split}
   I_{1,t} :&= \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^Tds_t \\
   &= \int_{\R^n}\gamma_t(s_t)s_t(s_t^TS_TT + \mu_{a,t-1}^TS_{a,t-1})S_{t-1,t}^{-1})ds_t \\
-  &= (S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)S_TTS_{t-1,t}^{-1} + \mu_{c,t}\mu_{a,t-1}^TS_*,
+  &= (S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^T)S_TTS_{t-1,t}^{-1} + \mu_{c,t}\mu_{a,t-1}^TS_{a,t-1}S_{t-1,t}^{-1},
   \end{split}
   \end{equation}
 and
@@ -650,7 +654,7 @@ Thus,  we have
 \begin{equation}\label{T:2}
   \overline{T} = \Gamma_1\Gamma_2^{-1}.
 \end{equation}
-We then update $t_{nj}$ for $j > 1$ from \eqref{T:2} and leave all other entries unchanged.
+We then update $T_{nj}$ for $j > 1$ from \eqref{T:2} and leave all other entries unchanged.
 
 Finally, we complete our optimization of $E_2$ by differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat}:
 \begin{equation}\label{Sigma_Tr:0}

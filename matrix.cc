@@ -83,7 +83,7 @@ double det(const matrix& A){
   double d = 1.0;
   for(int i = 0;i < B.nrows();i++){
     d *= B(i,i);
-    if(d < 1.0e-20)return 0;
+    if(fabs(d < 1.0e-20))return 0;
   }
   return d;
 }

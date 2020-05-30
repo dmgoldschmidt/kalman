@@ -14,7 +14,14 @@
 using namespace std;
 
 double zero(0);
-void printmat(matrix& A){cout << A;}
+int printmat(Matrix<double> A){
+  for(int i = 0;i < A.nrows();i++){
+    for(int j = 0;j < A.ncols();j++)cout << A(i,j)<<" ";
+    cout << endl;
+  }
+  fflush(stdout);
+  return 1;
+}
 struct ArrayInitializer : public Initializer<Array<double>> { 
   // For use with Array<Array<double>>
   int length;
@@ -142,22 +149,22 @@ struct Theta { // Model parameters
     S_0.reset(nstates,nstates,&zero);
     S_M.reset(data_dim,data_dim,&zero);
     S_T.reset(nstates,nstates,&zero);
-    M.reset(data_dim,nstates);
-    T.reset(nstates,nstates);
-    M.fill(0);
-    T.fill(0);
+    M.reset(data_dim,nstates,&zero);
+    T.reset(nstates,nstates,&zero);
     mu_0.reset(nstates);
     for(int s = 0;s < nstates;s++){
       S_0(s,s) = fabs(normal.dev());
       mu_0[s] = normal.dev();
-      S_T(s,s) = fabs(normal.dev());
+      S_T(s,s) = 100.0; 
     }
     for(int d = 0;d < data_dim;d++){
-      S_M(d,d) = fabs(normal.dev());
-      for(int s = 0;s < nstates;s++){
-        T(s,s) = M(s,s) = 1.0;//normal.dev();
-      }
+      S_M(d,d) = 1.0;//fabs(normal.dev());
+      if(d < nstates)M(d,d) = 1.0;
     }
+    for(int s = 0;s < nstates-1;s++) T(s,s+1) = 1.0; // companion matrix
+    T(nstates-1,0) = 1 - 2*(nstates%2);
+    for(int j = 1;j < nstates;j++)T(nstates-1,j) = normal.dev();
+    cout << "initial T-matrix:\n"<<T;
   }
 };
 
@@ -277,7 +284,7 @@ struct Data {
     ran_vec_T.reset(theta.S_T);
     for(int t = 1;t <= max_recs;t++){
       state[t] = theta.T*state[t-1];
-      //     cout << format("state[%d] before noise: ",t)<<state[t].Tr()<<endl;
+      cout << format("state[%d] before noise: ",t)<<state[t].Tr()<<endl;
       state[t] = state[t] + ran_vec_T.dev();
       if(sim_mode == 1)state[t][0] = t;
       mean_state += state[t]-state[t-1];
@@ -315,7 +322,8 @@ int main(int argc, char** argv){
   bool S_M_reestimate = false;
   bool S_0_reestimate = false;
   bool M_reestimate = false;
-  bool M_constraint = false;
+  //  bool M_constraint = false;
+  bool T_reestimate = false;
   char const* help_msg = "Usage:\n\
 -dfile <filename>: read data from <filename>\n\
 -max_recs <n>: max. no. of records to read from dfile\n\
@@ -341,7 +349,9 @@ int main(int argc, char** argv){
   if(cl.get("S_M_reestimate")) {S_M_reestimate = true; cout << "re-estimate S_M\n";}
   if(cl.get("S_0_reestimate")) {S_0_reestimate = true; cout << "re-estimate S_0\n";}
   if(cl.get("M_reestimate")) {M_reestimate = true; cout << "re-estimate M\n";}
-  if(cl.get("M_constraint")) {M_constraint = true; cout << "constrain M\n";}
+  //  if(cl.get("M_constraint")) {M_constraint = true; cout << "constrain M\n";}
+  if(cl.get("T_reestimate")) {T_reestimate = true; cout << "re-estimate T\n";}
+  
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   if(data_file != "" && strcmp(data_file.c_str(),"stdin"))  
     data_file = data_dir+data_file; // don't add prefix if input from stdin
@@ -362,15 +372,18 @@ int main(int argc, char** argv){
       sim_theta.S_M.fill(0);
       sim_theta.S_T.fill(0);
       for(int i = 0;i < nstates;i++){
-        sim_theta.T(i,i) = 1.0;
         sim_theta.S_T(i,i) = 100.0;
         sim_theta.mu_0[i] = 0;
       }
+      for(int i = 0;i < nstates-1;i++) sim_theta.T(i,i+1) = 1.0;
+      sim_theta.T(nstates-1,0) = 1 - 2*(nstates%2);
+      for(int j = 1;j < nstates;j++)sim_theta.T(nstates-1,j) = 1.0;
       for(int i = 0;i < data_dim;i++){
         sim_theta.S_M(i,i) = 100.0;
         if(i < nstates)sim_theta.M(i,i) = 1.0;
       }
     }
+    else sim_theta = theta;
     data.simulate(sim_mode,sim_theta, seed); // simulate data
     simulation = true;
   }
@@ -415,8 +428,14 @@ int main(int argc, char** argv){
   }
   Matrix<double> Gamma1(data_dim,nstates);
   Matrix<double> Gamma2(nstates,nstates);
-  Matrix<double> Lambda(nstates,nstates);
+  Matrix<double> T_bar(nstates,nstates);
+  //  Matrix<double> Lambda(nstates,nstates);
+  //  Matrix<double> S_star(nstates,nstates);
+  Matrix<double> S_plus(nstates,nstates);
+  Matrix<double> I_1(nstates,nstates);
+  Matrix<double> I_2(nstates,nstates);
   matrix S_T(nstates,nstates);
+  ColVector<double> nu(nstates);
   //  matrix S_T1(nstates,nstates);
   //  matrix S_a_hat(nstates,nstates);
   //  matrix S_b_hat(nstates,nstates);
@@ -449,7 +468,10 @@ int main(int argc, char** argv){
         for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
       }
     }
-    theta = sim_theta;
+    // if(T_reestimate){ // perturb the T-matrix
+    //   for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 1.0;
+    // }
+    theta = sim_theta; // reset to simulated params.  Should not climb
     cout << "perturbed parameters:\n"<<theta;
   }
   double det_S_M,det_S1_T,R,det_T;
@@ -470,7 +492,10 @@ int main(int argc, char** argv){
     // alpha pass
     S_T_T = theta.S_T*theta.T;
     S1_T = theta.T.Tr()*S_T_T;
-    T_inv = sym_inv(theta.T,&det_T);
+    T_inv.fill(0);
+    for(int i = 1;i < nstates;i++)T_inv(i,i-1) = 1.0;
+    for(int j = 0;j < nstates-1;j++)T_inv(0,j) = -theta.T(nstates-1,j+1);
+    T_inv(0,nstates-1) = theta.T(nstates-1,0);
     MTS_M = theta.M.Tr()*theta.S_M;
     MTS_MM = MTS_M*theta.M;
     mu_a[0] = theta.mu_0;
@@ -511,6 +536,11 @@ int main(int argc, char** argv){
       mu_b[t] = T_inv*mu_hat;
       R = data.x[t+1].Tr()*theta.S_M*data.x[t+1] + mu_b[t+1].Tr()*S2_mu2 - mu_hat.Tr()*S_hat*mu_hat;
       beta_score[t] = beta_score[t+1] + .5*(log(det_S_M*detS_b[t+1]/detS_hat) - R); 
+      if(iter == 31 && t == 56){
+        cout << "S_b[56]:\n"<<S_b[t];
+        cout << "we're here\n";
+        fflush(stdout);
+      }
       detS_b[t] = det(S_b[t]); // compute this for the next backward step 
     }
 
@@ -538,7 +568,7 @@ int main(int argc, char** argv){
       theta.mu_0 = mu_c[0];theta.S_0 = S_a[0]+S_b[0];
     }
 
-    if(M_reestimate || M_constraint){
+    if(M_reestimate){
       // reestimate theta.M
       Gamma1.fill(0);
       Gamma2.fill(0);
@@ -546,15 +576,9 @@ int main(int argc, char** argv){
         Gamma1 += data.x[t]*mu_c[t].Tr();
         Gamma2 += S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
       }
-      if(!M_constraint)theta.M = Gamma1*sym_inv(Gamma2);
-      else if(!S_M_reestimate || iter%2 == 1) {
-        Solver constrained_M(Gamma1,Gamma2,theta.S_M,1);//Gamma2.nrows());
-        theta.M = constrained_M();
-        cout << "trace(M.Tr()*S_M*M) = "<<trace(theta.M.Tr()*theta.S_M*theta.M)<<endl;
-      }
     }
 
-    if(S_M_reestimate &&(!M_constraint || iter%2 == 0)){
+    if(S_M_reestimate){
       // reestimate theta.S_M
       theta.S_M.fill(0);
       ColVector<double> M_mu_x(data_dim);
@@ -566,20 +590,28 @@ int main(int argc, char** argv){
       theta.S_M *= N;
     }
 
-    if(S_T_reestimate){
-      //      ColVector<double> v_ab(nstates);
-      S_T.fill(0);
-      //      S_T1.fill(0);
+    if(T_reestimate){
+      Gamma1.fill(0);
+      Gamma2.fill(0);
       for(int t = 1;t <= N;t++){
-        //        S_t1_t_inv = sym_inv(S_a[t-1]+theta.S_T);
-        //S_a_hat = S_a[t-1]*S_t1_t_inv*theta.S_T;
-        //S_b_hat = MTS_MM + S_b[t];
-        //S_st_inv = sym_inv(S_a_hat + S_b_hat);
-        //v_ab = S_st_inv*(S_b_hat*(mu_b[t-1]-mu_a[t-1]));
+        //        S_star = S_t1_t_inv[t]*S_a[t-1];
+        S_plus = S_t1_t_inv[t]*S_T_T.Tr();
+        nu = S_t1_t_inv[t]*(S_T_T.Tr()*mu_c[t] + S_a[t-1]*mu_a[t-1]);
+        I_1 = S_c_inv[t]*S_plus.Tr() + mu_c[t]*nu.Tr();
+        I_2 = S_plus*S_c_inv[t]*S_plus.Tr() + nu*nu.Tr();
+        Gamma1 = Gamma1 + I_1;
+        Gamma2 = Gamma2 + S_t1_t_inv[t] + I_2;
+      }
+      T_bar = Gamma1*sym_inv(Gamma2);
+      for(int j = 1;j < nstates;j++) theta.T(nstates,j) = T_bar(nstates,j); // update the AR coefficients
+    }
+    
+    if(S_T_reestimate){
+      S_T.fill(0);
+      for(int t = 1;t <= N;t++){
         S_T += S_t1_t_inv[t] + S_t1_t_inv_S_a[t]*(S_c_inv[t] +(mu_c[t]-mu_a[t-1])*(mu_c[t]-
                                                                                    mu_a[t-1]).Tr())*S_t1_t_inv_S_a[t].Tr();
       }
-      //      matrix S_T_inv = sym_inv(theta.S_T);
       theta.S_T = sym_inv(S_T);//sym_inv(S_T0sym_inv((S_T1 + S_T_inv*S_T0*S_T_inv));
       theta.S_T *= N;
     }
