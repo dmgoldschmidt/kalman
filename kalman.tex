@@ -16,14 +16,17 @@
 
 
 \section{Introduction}
-In this paper, we define a discrete time Hidden Markov Model (HMM) with a continuous state.  The Markov state transitions
+In this expository paper, we define a discrete-time hidden Markov model (HMM) with a continuous state.
+The Markov state transitions
 are governed by a deterministic linear map with added gaussian noise, and the outputs are similarly obtained from the
-state via another deterministic linear map with added gaussian noise.  We then derive in closed form the Baum-Welch forward
-and backward iterations \cite{Rabiner} to compute the joint posterior likelihood of all the data and the state at each
-time $t$.  So far, this looks very much like Kalman smoothing \cite{}.  However we then apply the E-M algorithm \cite{}
-to obtain re-estimation formulas for all model parameters.   We conclude with some numerical results on simulated data.
-
-Some familiarity with the discrete state HMM methodology is assumed.  A good reference is \cite{bilmes}. 
+state via another deterministic linear map with added gaussian noise.  In other words, we are re-casting a discrete-time
+linear dynamical system as a hidden Markov model.  The result is 1) a derivation of the Kalman filtering and smoothing
+equations \cite{Aravkin} obtained as a consequence of the Baum-Welch algorithm \cite{Bilmes} adapted to the case of a
+gaussian-distributed state, and 2) the derivation of re-estimation equations for all model parameters based on the EM algorithm
+\cite{Dempster}.  All these equations (with different notation) can be found in \cite{Hinton}, albeit with little or no
+exposition/derivation.  \footnote{There is a vast literature on Kalman filtering and smoothing.  \cite{Aravkin} has an extensive bibliography.}
+We conclude the paper with some numerical results on simulated data.
+Some familiarity with the discrete state HMM methodology is assumed.  A good reference is \cite{Bilmes}. 
 
 \section{Preliminary Definitions and Notation}
 Let $\mu$ and $x$ be vectors in $\R^n$ and let $S$ be an $n\times{n}$ positive
@@ -59,19 +62,20 @@ discrete-state HMM sense.
 To avoid scaling issues, we constrain $T$ to be unimodular.  In addition,  we may assume without serious loss of generality
 that the characteristic polynomial of $T$ has distinct roots, which is generically true.  This implies that $T$
 is similar to a companion matrix, which in this paper will always mean a matrix $(t_{ij})$ such that:
-$t_{ij} = 0$ for all $i < n$ and all $j \neq i+1$, and $t_{i,i+1} = 1$ for all $i < n$.  And since
-we are free to choose any convenient basis for the state space, we will assume that $T$ is a companion matrix.
-Since $|T| = (-1)^nt_{n1}$ for such a matrix, we are also assuming that $t_{n1} = (-1)^n$.  Thus, $T$ has $n-1$
+$t_{ij} = 0$ for all $i < n$ and all $j \neq i+1$, and $t_{i,i+1} = 1$ for all $i < n$.  And if there is no
+preferred basis for the state space, which is an application-dependent issue,
+we may optionally assume that $T$ is a companion matrix.  This is a convenient assumption because it's easy to
+constrain $T$ to be unimodular in this case.  Namely,
+since $|T| = (-1)^{n-1}t_{n1}$ for such a matrix, we also assume that $t_{n1} = (-1)^{n-1}$.  Thus, $T$ has $n-1$
 degrees of freedom given by the coefficients $t_{nj}$ for $j > 1$.  If we are re-estimating $T$, we constrain the $M$-step
 of the $EM$ algorithm in order to maintain these conditions on subsequent Baum-Welch iterations.
 
-In effect then, the state vector is the vector of all $n$ lags of a univariate $AR(n)$ process, except that
-at every time step we add more correlated noise to each lag until it leaves the AR-window. Thus,
-each term becomes less and less determinate as it recedes into the past.
-
-It is convenient to note that $T$ is invertible in closed form.  Namely, let $T^{-1} = (u_{ij})$, then
+If we assume $T$ is a companion matrix, then in effect the state vector becomes the vector of all $n$ lags of a
+univariate $AR(n)$ process, except that at every time step we add more correlated noise to each lag until it leaves
+the AR-window. Thus, each term becomes less and less determinate as it recedes into the past.
+And it is convenient to note that companion matrices are invertible in closed form.  Namely, let $T^{-1} = (u_{ij})$, then
 it is easy to check that $u_{ij} = 0$ for all $i > 1$ and all $j\neq i-1$,
-$u_{i,i-1} = 1$ for all $i > 1$, $ u_{1j} = -t_{i,j+1}$ for $j < n$, and $u_{1n} = (-1)^n$.   
+$u_{i,i-1} = 1$ for all $i > 1$, $ u_{1j} = -t_{i,j+1}$ for $j < n$, and $u_{1n} = (-1)^{n-1}$.   
 
 As usual, we are given observations $\{x_t\mid 1\le t\le N\}$ and model parameters $\theta := \{M,S_M,T,S_T,S_0,\mu_0\}$
 where $S_0$ and $\mu_0$ are defined below.  For each observation time $t$ and state $s$, we define
@@ -295,7 +299,7 @@ We proceed by reverse induction on $t$. However, to get started we first must  d
 the special case of $\beta_{N}(u)$, the conditional probability of the future observations given
 state $u$ at time $N$, but of course there are no such observations.  In the standard discrete
 state HMM, we set $\beta_N(s) = 1$ for all states $s$ and this will work in our case as well by
-setting $S_{b,T} = 0$, provided that $M$ is 1-1. But we really need a proper gaussian 
+setting $S_{b,N} = 0$, provided that $M$ is 1-1. But we really need a proper gaussian 
 density in order to get the reverse induction started in all cases, so we somewhat arbitrarily
 assume the following values
 \begin{align*}
@@ -309,7 +313,7 @@ assume the following values
     &= P_{b,t+1}\N(Mu;x_{t+1},S_M)\N(u;\mu_{b,t+1},S_{b,t})\\
     &= P_{b,t+1}N_{b,t}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t}).
   \end{align*}
-  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$ and all future observations {\em and}
+  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$, all future observations, {\em and}
   $x_{t+1}$. Then an application of \eqref{comp_sq:2} and \eqref{comp_sq:4} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
@@ -590,8 +594,8 @@ Next we optimize $E_2$ first by solving
 $$
 \frac{\partial{E_2}}{\partial{\overline{T}}} = 0
 $$
-for $\overline{T}$ subject to the condition that $\overline{T}$ is a companion matrix.  We do this
-by computing the full E-M update for $T$, but we only use the result to update the variable entries,
+for $\overline{T}$ optionally subject to the condition that $\overline{T}$ is a companion matrix.  We do this
+by computing the full E-M update for $T$, but for a companion matrix we only use the result to update the variable entries,
 namely $T_{nj}$ for $j > 1$, while leaving all the constant entries unchanged.
 
 Thus, we have
@@ -654,7 +658,8 @@ Thus,  we have
 \begin{equation}\label{T:2}
   \overline{T} = \Gamma_1\Gamma_2^{-1}.
 \end{equation}
-We then update $T_{nj}$ for $j > 1$ from \eqref{T:2} and leave all other entries unchanged.
+Note that if $T$ is a companion matrix, we only update $T_{nj}$ for $j > 1$ from \eqref{T:2} and
+leave all other entries unchanged.
 
 Finally, we complete our optimization of $E_2$ by differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat}:
 \begin{equation}\label{Sigma_Tr:0}
@@ -704,11 +709,38 @@ so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
            S_*^T\overline{T}^T.
   \end{split}
 \end{equation}
-
+\newpage
+\begin{thebibliography}{9}
+\bibitem{Hinton}
+  Ghahramani, Z. and Hinton, G.,
+  \emph{Parameter Estimation for Linear Dynamical Systems},
+  Department of Computer Science, University of Toronto,
+  Technical Report CRG-TR-96-2,
+  Feb. 22, 1996
+\bibitem{Aravkin}
+  Aravkin, A. Burke, J. Ljung, L. Lozano, A. and Pillonetto, G.,
+  \emph{Generalized Kalman Smoothing: Modeling and Algorithms},
+  arXiv:1609.06369,
+  Sep. 25, 2016
+\bibitem{Bilmes}
+  Bilmes, J.,
+  \emph{A Gentle Tutorial of the EM Algorithm and its Application to Parameter Estimation
+    for Gaussian Maixture and Hidden Markov Models},
+  Department of Electrical Engineering and Computer Science, University of California, Berkeley,
+  Technical Report 97-021
+  April, 1998
+\bibitem{Dempster}
+  Dempster, A Laird, N and Rubin, D,
+  \emph{Maximum-likelihood from incomplete data via the EM algorithm},
+  J.Royal Statist. Soc. Ser. B, 39,
+  1977
+\bibitem{Shumway}
+  Shumway, R and Stoffer, D,
+  \emph{Time Series Analysis and Its Applications, 3rd Ed. (Blue printing)}
+  Springer, New York 2016
+    
+\end{thebibliography}
 
 \end{document}
 
-%&= 2S_t\overline{T}\sum_{i=1}^NS_{t-1,t}^{-1} +S_*\int_{\R^n}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)\mu_{t-1,t}^Tds_t\\
-%&= 2S_t\overline{T}\sum_{i=1}^NS_{t-1,t}^{-1} +S_*\int_{\R^n}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)(\mu_{t-1,t}-s'_t)^Tds_t \\
-%&+S_*\int_{\R^n}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)s'_tds_t
 

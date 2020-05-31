@@ -152,24 +152,24 @@ struct Theta { // Model parameters
     M.reset(data_dim,nstates,&zero);
     T.reset(nstates,nstates,&zero);
     mu_0.reset(nstates);
-    for(int s = 0;s < nstates;s++){
-      S_0(s,s) = fabs(normal.dev());
-      mu_0[s] = normal.dev();
-      S_T(s,s) = 100.0; 
-    }
-    for(int d = 0;d < data_dim;d++){
-      S_M(d,d) = 1.0;//fabs(normal.dev());
-      if(d < nstates)M(d,d) = 1.0;
-    }
-    for(int s = 0;s < nstates-1;s++) T(s,s+1) = 1.0; // companion matrix
-    T(nstates-1,0) = 1 - 2*(nstates%2);
-    for(int j = 1;j < nstates;j++)T(nstates-1,j) = normal.dev();
-    cout << "initial T-matrix:\n"<<T;
+    // for(int s = 0;s < nstates;s++){
+    //   S_0(s,s) = fabs(normal.dev());
+    //   mu_0[s] = normal.dev();
+    //   S_T(s,s) = 100.0; 
+    // }
+    // for(int d = 0;d < data_dim;d++){
+    //   S_M(d,d) = 1.0;//fabs(normal.dev());
+    //   if(d < nstates)M(d,d) = 1.0;
+    // }
+    // for(int s = 0;s < nstates-1;s++) T(s,s+1) = 1.0; // companion matrix
+    // T(nstates-1,0) = 1 - 2*(nstates%2);
+    // for(int j = 1;j < nstates;j++)T(nstates-1,j) = normal.dev();
+    // cout << "initial T-matrix:\n"<<T;
   }
 };
 
 ostream& operator<<(ostream& os, const Theta& t){
-  cout << "S_0:\n"<<t.S_0<<"mu_0: "<<t.mu_0.Tr()<<"S.M:\n"<<t.S_M<<"S.Tr:\n"<<t.S_T<<"M:\n"<<t.M<<
+  cout << "S_0:\n"<<t.S_0<<"mu_0: "<<t.mu_0.Tr()<<"S_M:\n"<<t.S_M<<"S_T:\n"<<t.S_T<<"M:\n"<<t.M<<
     "T:\n"<<t.T<<endl;
   return os;
 }
@@ -358,33 +358,47 @@ int main(int argc, char** argv){
   
   Data data(nstates,data_dim,max_recs,nchars,seed,ran_dict);
   Theta theta(nstates,data_dim,seed);
-  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
+  //  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
   int N;  // time of last training data point
   bool simulation;
   if(data_file != "" && sim_mode == 0){
     max_recs = data.read_text(data_file); // read data from file
     simulation = false;
   }
-  else {
+  else { // use simulated data
     if(sim_mode == 1){
-      sim_theta.M.fill(0);
-      sim_theta.T.fill(0);
-      sim_theta.S_M.fill(0);
-      sim_theta.S_T.fill(0);
+      theta.M.fill(0);
+      theta.T.fill(0);
+      theta.S_M.fill(0);
+      theta.S_T.fill(0);
       for(int i = 0;i < nstates;i++){
-        sim_theta.S_T(i,i) = 100.0;
-        sim_theta.mu_0[i] = 0;
+        theta.S_T(i,i) = 100.0;
+        theta.mu_0[i] = 0;
       }
-      for(int i = 0;i < nstates-1;i++) sim_theta.T(i,i+1) = 1.0;
-      sim_theta.T(nstates-1,0) = 1 - 2*(nstates%2);
-      for(int j = 1;j < nstates;j++)sim_theta.T(nstates-1,j) = 1.0;
+      for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
+      theta.T(nstates-1,0) = 1 - 2*(nstates%2);
+      for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
       for(int i = 0;i < data_dim;i++){
-        sim_theta.S_M(i,i) = 100.0;
-        if(i < nstates)sim_theta.M(i,i) = 1.0;
+        theta.S_M(i,i) = 100.0;
+        if(i < nstates)theta.M(i,i) = 1.0;
       }
     }
-    else sim_theta = theta;
-    data.simulate(sim_mode,sim_theta, seed); // simulate data
+    else {
+      for(int s = 0;s < nstates;s++){ // set up the initial conditions and the transition matrix
+        theta.S_0(s,s) = 1.0;
+        theta.mu_0[s] = s? 0 : 1;
+        theta.S_T(s,s) = 10.0; // variance = .1, covariance = 0 
+      }
+      for(int d = 0;d < data_dim;d++){ // set up the measurment matrix and the covariance
+      theta.S_M(d,d) = 1.0;//fabs(normal.dev());
+      if(d < nstates)theta.M(d,d) = 1.0;
+      }
+      for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
+      theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
+      for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
+      cout << "initial T-matrix:\n"<<theta.T;
+    }
+    data.simulate(sim_mode,theta, seed); // simulate the data
     simulation = true;
   }
   
@@ -402,10 +416,8 @@ int main(int argc, char** argv){
   for(int i = 0;i < data_dim;i++) cout << W.A(i,i) << " ";
   cout << endl;
   cout << "eigenvectors:\n"<<W.U;
-  theta.S_M.fill(0);
-  for(int i = 0;i < data_dim;i++)theta.S_M(i,i) = 100;
   //  theta.S_M = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
-  cout << "inverse sample covariance matrix:\n"<<theta.S_M;
+  //  cout << "inverse sample covariance matrix:\n"<<theta.S_M;
   Array<Matrix<double>> S_a(max_recs+1);
   Array<ColVector<double>> mu_a(max_recs+1);
   Array<Matrix<double>> S_b(max_recs+1);
@@ -454,7 +466,7 @@ int main(int argc, char** argv){
     }
     if(S_M_reestimate){ // perturb the observation matrix
       for(int i = 0;i < data_dim;i++){
-        for(int j = 0;j < data_dim;j++)theta.S_M(i,j) *= 10.0;
+        for(int j = 0;j < data_dim;j++)theta.S_M(i,j) += 1.0;
       }
     }
     if(S_0_reestimate){ // perturb the initial state
@@ -468,10 +480,9 @@ int main(int argc, char** argv){
         for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
       }
     }
-    // if(T_reestimate){ // perturb the T-matrix
-    //   for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 1.0;
-    // }
-    theta = sim_theta; // reset to simulated params.  Should not climb
+    if(T_reestimate){ // perturb the T-matrix
+      for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 1.0;
+    }
     cout << "perturbed parameters:\n"<<theta;
   }
   double det_S_M,det_S1_T,R,det_T;
