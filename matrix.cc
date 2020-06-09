@@ -177,7 +177,7 @@ matrix inv(const matrix& A, double* det){ // general matrix inverse
       }
     }
   }
-  reduce(QR); // now row-reduce
+  reduce(QR); // now row-reduce R and apply the row operations to Q
   return Q;
 }
 
@@ -206,26 +206,33 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
     *det = d*d;
   }
   reduce(CB); // now row-reduce. now B = C_inv
-#if 0
-  matrix T = A*B*(B.T());
-  for(int i = 0;i < n;i++){
-    for(int j = 0;j < i;j++){
-      if(fabs(T(i,j)) > 1.0e-10){
-        std::cout << "A:\n"<<A<<"T:\n"<<T;
-        std::fflush(stdout);
-        throw "oops!";
-      }
-    }
-    if(fabs(T(i,i)-1.0) > 1.0e-10){
-      std::cout << "A:\n"<<A<<"T:\n"<<T;
-      std::fflush(stdout);
-      throw "oops!";
-    }
-  }
-#endif
+  
+
+//   matrix T = A*B*(B.T());
+//   for(int i = 0;i < n;i++){
+//     for(int j = 0;j < i;j++){
+//       if(fabs(T(i,j)) > 1.0e-10){
+//         std::cout << "A:\n"<<A<<"T:\n"<<T;
+//         std::fflush(stdout);
+//         throw "oops!";
+//       }
+//     }
+//     if(fabs(T(i,i)-1.0) > 1.0e-10){
+//       std::cout << "A:\n"<<A<<"T:\n"<<T;
+//       std::fflush(stdout);
+//       throw "oops!";
+//     }
+//   }
   return B*(B.Tr()); // A_inv = C_inv*C_inv.Tr()
 }
 
+void symmetrize(matrix& A){
+  assert(A.nrows() == A.ncols());
+  for(int i = 0;i < A.nrows();i++){
+    for(int j = 0;j < i;j++) A(i,j) = A(j,i) = (A(i,j)+A(j,i))/2;
+  }
+}
+                           
 void cholesky(const matrix& M, matrix& C){ // user-supplied answer
   C.fill(0);
   for(int j = 0;j < M.ncols();j++){

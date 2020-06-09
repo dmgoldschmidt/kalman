@@ -438,6 +438,7 @@ std::istream& operator>>(std::istream& is, Matrix<SCALAR>& M){
 matrix cholesky(const matrix& A);
 void cholesky(const matrix& M, matrix& C);
 matrix sym_inv(const matrix& A, double* det = nullptr);
+void symmetrize(matrix& A);
 matrix inv(const matrix& A, double* det = nullptr);
 bool scale_rows(matrix& A);
 double dot_cols(const matrix& A, int i, int j);
