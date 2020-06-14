@@ -331,8 +331,9 @@ assume the following values
     &=P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
 \end{proof}
-
+\newpage
 \section{The Posterior Distributions}
+
 Recall that $\gamma_t(s)$ is the posterior probability density of state $s$
 at time $t$. 
 \begin{Thm}
@@ -391,8 +392,57 @@ Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
   normalization factor is required.  We remark that $\mu_{t-1,t}$ does depend on $s_t$, showing that $\gamma_{t-1}(s)$
   and $\gamma_t(s)$ are not independent.  This fact will play a role in the reestimation of $S_T$ and $T$ below.
   
-\section{Re-estimation}
-Given a particular state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
+  \section{The Expected Log-Likelihood}
+    
+    As opposed to the discrete HMM case, it turns out that in our case the expected log-likelihood is computable in closed form.
+    Although this isn't strictly necessary in order to derive the re-estimation formulas, it serves as a useful check on the
+    derivation and on the numerical computation.
+    
+  \begin{Lem}\label{exp_log}
+    Recall the notation of \eqref{comp_sq:1}. Let $N := \N(x;\mu_0,S_0)$ be an $n$-dimensional gaussian, and let $A$ be any
+    full rank $n\times{m}$ matrix. Then for any vector $\mu\in\R^n$, 
+    \begin{align}
+      E_N((x-\mu)(x-\mu)^T) &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^T, \label{E_xx^T}\\
+      E_N((x-\mu)^T(x - \mu)) &=  tr(S_0^{-1}) + (\mu-\mu_0)^T(\mu-\mu_0),\quad\text{and}\label{E_x^Tx}\\
+        E_N(Q(Ax;\mu,S)) &=  tr(S_0^{-1}A^TSA) + (\mu-A\mu_0)^TS(\mu-A\mu_0), \label{E_Q}
+    \end{align}
+  \end{Lem}
+  \begin{proof}
+    By definition, the covariance matrix for $N$ is
+    \begin{align*}
+    S_0^{-1} &= E_N(x-\mu_0)(x-\mu_0)^T = E_N(xx^T) - E_N(x\mu_0^T) - E_N(\mu_0{x}^T) + E_N(\mu_0\mu_0^T)\\
+    &= E_N(xx^T) - \mu_0\mu_0^T, \quad{whence}\\
+    E_N(x-\mu)(x-\mu)^T &= E_N(xx^T) - E_N(x\mu^T) - E_N(\mu{x}^T) + E_N(\mu\mu^T) \\
+    &= S_0^{-1} + \mu_0\mu_0^T - \mu_0\mu^T-\mu\mu_0^T + \mu\mu^T\\
+    &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^T,
+    \end{align*}
+    proving \eqref{E_xx^T}; and \eqref{E_x^Tx} follows by taking the trace.
+
+    To prove \eqref{E_Q} we first of all have
+    \begin{equation}\label{E_Q:1}
+      \begin{split}
+      E_N(Q(Ax;\mu,S) &= E_N(x^TA^TSAx) - 2E_N(x^TA^TS\mu) + E_N(\mu^TS\mu) \\
+      &= E_N(x^TA^TSAx) - 2\mu_0^TA^TS\mu + \mu^TS\mu.
+      \end{split}
+    \end{equation}
+    
+    To evaluate $E_N(x^TA^TSAx)$, we let $C$ be the Cholesky matrix of $A^TSA$, so that
+    $A^TSA = C^TC$.  Note that since $A$
+    has full rank, $A^TSA$ is invertible, and so is $C$. Making the change
+    of variable $y = Cx,~ dy = |C|dx$ and using \eqref{E_x^Tx}, we then have
+      \begin{align*}
+        E_N(x^TA^TSAx) &= \int_{R^n}x^TA^TSAx~\N(x;\mu_0,S_0)dx\\
+        &= \sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}x^TA^TSAx~\exp\left\{-\frac{1}{2}Q(x;\mu_0,S_0)\right\}dx \\
+        &= |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty\exp\left\{-\frac{1}{2}Q(C^{-1}y;\mu_0,S_0)\right\}dy \\
+        &= \int_{\R^N}y^Ty~\N(y;C\mu_0,C^{-T}S_0C^{-1})dy\\
+        &= tr(CS_0^{-1}C^T) + \mu_0^TC^TC\mu_0 \\
+        &= tr(S_0^{-1}A^TSA) + \mu_0^TA^TSA\mu_0.
+      \end{align*}
+    Combining this with \eqref{E_Q:1} completes the proof of \eqref{E_Q}.  
+  \end{proof}
+
+Equipped with \eqref{E_Q}, we can now turn to the problem at hand.  Namely, if we are given a particular
+state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
 the joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_T,T,S_M,M\}$ is
 $$
 P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_M)\N(s_t;Ts_{t-1},S_T).
@@ -414,7 +464,7 @@ so choosing $\bar{\theta}$ to maximize $E(\theta,\bar{\theta})$ will increase th
 
 
   
-Recall the notation $Q(x;\mu,S)$ from \eqref{comp_sq:1}.  Then we have
+Expanding $E(\theta,\bar{\theta})$, we have 
 \begin{align}
   E(\theta,\bar{\theta}) &= -(2N+1)\frac{n\log(2\pi)}{2} + \frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
   E_0 :&=\int_{\R^{Nn}}P(X,S\mid\theta)\{\log|\overline{S}_0| - Q(s_0;\bar{\mu}_0,\overline{S}_0)\}dS,\label{E0}\\
@@ -433,20 +483,24 @@ expected value of the integrand with respect to the marginalization of $P(X,S\mi
 $\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation 
 outside the integral in \eqref{E1} we have the same collapse to the marginalization at $s_t$ of the posterior, which
 is just $\gamma_t(s_t)$.  It follows that
-\begin{align*}
+\begin{equation}\label{E0_E1:1}
+  \begin{split}
 E_0 &= \log|\overline{S}_0| - \int_{\R^n}\gamma_0(s_0)Q(s_0;\bar{\mu}_0,\overline{S}_0)ds_0,\quad\text{and}\\
 E_1 &= N\log|\overline{S}_M| - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)Q(x_t;\overline{M}s_t,\overline{S}_M)ds_t.
-\end{align*}
+  \end{split}
+\end{equation}
+
 
 The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
 the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
-$$
+\begin{equation}\label{E2:1}
 E_2 = N\log|\overline{S}_T| - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)Q(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_{t-1}ds_t,
-$$
+\end{equation}
 where $\hat{\gamma}_t(s_{t-1},s_t)$ is the joint posterior probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ 
 at time $t$ given by \eqref{gamma_hat}.
 
+\section{Re-estimation}
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors
 (when $n=1$). We will also denote by $C = A\circ{B}$ the element-wise product of $A$ and $B$ whose $i,j$-entry is
