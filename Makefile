@@ -106,4 +106,8 @@ test_comp_sq: test_comp_sq.cc matrix.o util.o
 	g++ $(CFLAGS) -o test_comp_sq test_comp_sq.cc matrix.o util.o
 test_MatrixWelford: test_MatrixWelford.cc matrix.o util.o
 	g++ $(CFLAGS) -o test_MatrixWelford test_MatrixWelford.cc matrix.o util.o
+qr_comp.o: qr_comp.cc Matrix.h
+	g++ $(CFLAGS) -o qr_comp.o -c qr_comp.cc
+test_qr_comp: test_qr_comp.cc qr_comp.o Matrix.h  GetOpt.o util.o
+	g++ $(CFLAGS) -o test_qr_comp test_qr_comp.cc  qr_comp.o GetOpt.o util.o
 

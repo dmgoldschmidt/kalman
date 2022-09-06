@@ -1,27 +1,110 @@
 #include "GetOpt.h"
+#include "util.h"
 
-GetOpt::GetOpt(int argc, char** argv, char const* help_msg){
+int deref(string& file_ref, Array<string>& files){ // file_ref starts with a special character, e.g. '@'
+  string file_list = files[0].substr(1,string::npos);
+  std::ifstream is(file_list);
+  if(!is.good()){
+    cerr << "Can't open "<<file_list<<". Bailing out.\n";
+    exit(1);
+  }
+  int nfiles = 0;
+  while(!is.eof()) getline(is, files[nfiles++]);
+  return nfiles-1;
+}    
+
+GetOpt::GetOpt(int argc, char** argv, char const* help_msg, char comment){ // parse command line
   bool opt_read = false; // parser state
 
   for(int i = 1;i < argc;i++){
-    if(*argv[i] == '-' && *(argv[i]+1) != '\0'){
+    if(*argv[i] == '-' && !isdigit(*(argv[i]+1)) && *(argv[i]+1) != '.' && *(argv[i]+1) != '\0'){
+      // it's an option
+      if(opt_read)argument.push_back(""); // two options in a row. strore empty argument
       argv[i]++; // skip the option flag
       if(strcmp("help",argv[i]) == 0){ // "-help" prints the help_msg and exits
         cout << help_msg;
         exit(0);
       }
-      if(opt_read)argument.push_back(""); // two options in a row
-      option.push_back(argv[i]);
-      opt_read = true;
+      char* p = nullptr;
+      if(*argv[i] == '-'){ // long-style multi-letter option or "option=argument"
+        argv[i]++; // skip the double minus
+        p = strchr(argv[i],'='); // find the equals sign or nullptr if no equals sign 
+        if(p != nullptr) *p++ = '\0';// replace it with EOS and move to the argument
+        option.push_back(argv[i]); // store the long-style option
+      }
+      else{// it's a single letter option
+        if(strlen(argv[i]) > 1){ // old-style single letter option followed immediately by argment
+          char old_opt[2];
+          old_opt[0] = *argv[i];
+          old_opt[1] = '\0';
+          option.push_back(&old_opt[0]);
+          p = argv[i]+1; 
+        }
+        else option.push_back(argv[i]); // store the single letter option
+      }
+      if(p != nullptr){ // the argument was included in the same command-line field
+        argument.push_back(p);
+        opt_read = false;
+      }
+      else opt_read = true; // it was an option only (including the case --option with no "=argument")
     }
-    else{
-      if(!opt_read)option.push_back(""); // two arguments in a row
+  
+    else{ // it's an argument (possibly a negative number or an isolated -
+      if(!opt_read)option.push_back(""); // two arguments in a row. store empty option
       argument.push_back(argv[i]);
       opt_read = false;
     }
   }
   if(opt_read)argument.push_back(""); // we ended with an option
+  //  for(int i = 0;i < option.size();i++) cout << option[i]<<": "<<argument[i]<<endl;
+
+  if(comment) {
+    cout << comment<< currentDateTime()<<": ";
+    for(int i = 0;i < argc;i++) cout <<argv[i]<<" ";
+    cout <<endl;
+    std::flush(cout);
+  }
+
 }
+
+// Answer queries
+int GetOpt::get(char const* opt){ // look for option
+  uint i,l;
+  int nmatches = 0;
+
+  for(i = 0;i < option.size();i++){
+    l = strlen(option[i].c_str());
+    if(l != 0 && strncmp(opt,option[i].c_str(),l) == 0){
+      nmatches++;
+      j = i; // store position in option list
+    }
+  }
+  return nmatches;
+}
+
+const char* GetOpt::get(int n){ // return nth optionless argument (1-up), or nullptr if it doesn't exist
+  if(n <= 0) return nullptr;
+  for(int i = 0;i < option.size();i++){
+    if(option[i] == "")n--;
+    if(n == 0) return argument[i].c_str();
+  }
+  return nullptr;
+}
+int GetOpt::get(char const* opt, Array<string>& args){ /* copy the supplied argument (if it exists) and all optionless
+                                                        * arguments found before the next option on the command line.  Return no. of
+                                                        * arguments copied (NOT nmatches).  
+                                                        */
+  int nmatches = get(opt);
+  int nargs = 0;
+  
+  if(nmatches == 1 && argument[j] != ""){
+    do{
+      args[nargs++] = argument[j++];
+    }while(j <option.size() && option[j] == ""  );
+  }
+  return nargs;
+}
+
 
 int GetOpt::get(char const* opt, int& arg){ // return integer argument
   int nmatches = get(opt);
@@ -58,19 +141,6 @@ int GetOpt::get(char const* opt, char& arg){ // return char argument
   return nmatches;
 }
 
-int GetOpt::get(char const* opt){ // look for option
-  uint i,l;
-  int nmatches = 0;
-
-  for(i = 0;i < option.size();i++){
-    l = strlen(option[i].c_str());
-    if(l != 0 && strncmp(opt,option[i].c_str(),l) == 0){
-      nmatches++;
-      j = i;
-    }
-  }
-  return nmatches;
-}
 
   
   

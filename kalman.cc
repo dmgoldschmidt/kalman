@@ -276,6 +276,11 @@ struct Data {
       
   void simulate(int sim_mode, const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
+    Svd sing_vals;
+    matrix A(theta.T);
+    sing_vals.reduce(A);
+    cout << sing_vals.A;
+    exit(0);
     Normaldev normal(0,1,seed*seed);
     RanVec ran_vec_T(5*seed);
     RanVec ran_vec_M(3*seed);
@@ -377,17 +382,17 @@ int main(int argc, char** argv){
       theta.S_M.fill(0);
       theta.S_T.fill(0);
       for(int i = 0;i < nstates;i++){
-        theta.S_T(i,i) = 100.0; // std dev .1
+        theta.S_T(i,i) = 1.0; // std dev .1
         theta.mu_0[i] = 0;
       }
       if(AR_mode){
         for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
-        theta.T(nstates-1,0) = 1 - 2*(nstates%2); // det = 1
+        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
         for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 0; 
       }
       else for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
       for(int i = 0;i < data_dim;i++){
-        theta.S_M(i,i) = 100.0;
+        theta.S_M(i,i) = 1.0;
         if(i < nstates)theta.M(i,i) = 1.0;
       }
     }
@@ -395,15 +400,15 @@ int main(int argc, char** argv){
       for(int s = 0;s < nstates;s++){ // set up the initial conditions and the transition matrix
         theta.S_0(s,s) = 100.0;
         theta.mu_0[s] = (s? 0: 10);
-        theta.S_T(s,s) = 100.0; // variance = .1, covariance = 0 
+        theta.S_T(s,s) = 1.0; 
       }
       for(int d = 0;d < data_dim;d++){ // set up the measurment matrix and the covariance
-        theta.S_M(d,d) = 100.0;//fabs(normal.dev());
+        theta.S_M(d,d) = 1.0;//fabs(normal.dev());
         if(d < nstates)theta.M(d,d) = 1.0;
       }
       if(AR_mode){
         for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
-        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
+        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = +- 1
         for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1; 
       }
       else {

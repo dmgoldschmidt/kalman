@@ -188,7 +188,7 @@ public:
     return B;
   }
 
-  Matrix operator*(double x){
+  Matrix operator*(double x) const{
     Matrix B(_nrows,_ncols);
 
     for(int i = 0;i < _nrows;i++){
