@@ -96,8 +96,8 @@ testSvd: testSvd.cc
 	g++ $(CFLAGS) -o testSvd testSvd.cc matrix.o util.o
 testRanVec: testRanVec.cc matrix.o util.o 
 	g++ $(CFLAGS) -o testRanVec testRanVec.cc matrix.o util.o
-kalman: kalman.cc matrix.o util.o GetOpt.o
-	g++ $(CFLAGS) -o kalman kalman.cc matrix.o util.o GetOpt.o
+kalman: kalman.cc matrix.o util.o GetOpt.o qr_comp.o util.o
+	g++ $(CFLAGS) -o kalman kalman.cc matrix.o util.o GetOpt.o qr_comp.o
 test_inv: test_inv.cc matrix.o util.o 
 	g++ $(CFLAGS) -o test_inv test_inv.cc matrix.o util.o
 test_chol: test_chol.cc matrix.o util.o 

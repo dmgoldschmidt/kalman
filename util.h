@@ -10,75 +10,33 @@
 #include <cmath>
 #include <vector>
 #include <stdint.h>
+#include "using.h"
 
-#define Doub double
-#define Int int
-
-struct Erf { // from NR. This enables separate compilation (using util.cc)
-	static const Int ncof=28;
-	static const Doub cof[28];
-
-	inline Doub erf(Doub x) {
-		if (x >=0.) return 1.0 - erfccheb(x);
-		else return erfccheb(-x) - 1.0;
-	}
-
-	inline Doub erfc(Doub x) {
-		if (x >= 0.) return erfccheb(x);
-		else return 2.0 - erfccheb(-x);
-	}
-	
-  Doub erfccheb(Doub z);
-  Doub inverfc(Doub p);
-  inline Doub inverf(Doub p) {return inverfc(1.-p);}
-
-};
-Doub erfcc(const Doub x);
-
-struct Normaldist : Erf {
-	Doub mu, sig;
-	Normaldist(Doub mmu = 0., Doub ssig = 1.) : mu(mmu), sig(ssig) {
-		if (sig <= 0.) throw("bad sig in Normaldist");
-	}
-	Doub p(Doub x) {
-      double v = (x-mu)/sig;
-      return (0.398942280401432678/sig)*exp(-0.5*v*v);
-	}
-	Doub cdf(Doub x) {
-		return 0.5*erfc(-0.707106781186547524*(x-mu)/sig);
-	}
-	Doub invcdf(Doub p) {
-		if (p <= 0. || p >= 1.) throw("bad p in Normaldist");
-		return -1.41421356237309505*sig*inverfc(2.*p)+mu;
-	}
+struct HashValue {
+  uint64_t h0;
+  uint64_t h1;
+  uint64_t& operator[](int i){ return i==0? h0 : h1;}
+  bool operator==(const HashValue& h) const {
+    if(h0 != h.h0 || h1 != h.h1) return false;
+    return true;
+  }
 };
 
-struct Lognormaldist : Erf {
-	Doub mu, sig;
-	Lognormaldist(Doub mmu = 0., Doub ssig = 1.) : mu(mmu), sig(ssig) {
-		if (sig <= 0.) throw("bad sig in Lognormaldist");
-	}
-	Doub p(Doub x) {
-		if (x < 0.) throw("bad x in Lognormaldist");
-		if (x == 0.) return 0.;
-		return (0.398942280401432678/(sig*x))*exp(-0.5*sqrt((log(x)-mu)/sig));
-	}
-	Doub cdf(Doub x) {
-		if (x < 0.) throw("bad x in Lognormaldist");
-		if (x == 0.) return 0.;
-		return 0.5*erfc(-0.707106781186547524*(log(x)-mu)/sig);
-	}
-	Doub invcdf(Doub p) {
-		if (p <= 0. || p >= 1.) throw("bad p in Lognormaldist");
-		return exp(-1.41421356237309505*sig*inverfc(2.*p)+mu);
-	}
-};
+std::ostream& operator <<(std::ostream& os, HashValue& h);
+std::istream& operator >>(std::istream& is, HashValue& h);
+
+bool has_char(string& s, char c);
+//const char* get_bytes(const char* key, int& nbytes);
+//const char* get_bytes(const string& key, int& nbytes);
+
+double log_2(double x, double eps = 1.0e-8);
 
 class LFSR128 { // implements the xorshift128+ algorithm
   uint64_t s[2];
 public:
   LFSR128(void) {}
   LFSR128(uint64_t seed){ 
+    if(seed == 0) throw "LFSR128: Seed must be non-zero.";
     step(seed);
     for(int i = 0;i < 1000;i++) step();
   }
@@ -110,22 +68,35 @@ public:
     s[1] = x.s[1];
     return *this;
   }
+  void reseed(uint64_t* ss){
+    s[0] = ss[0];
+    s[1] = ss[1];
+  }
 };
 
-struct Normaldev : LFSR128 { // from NR
-  Doub mu,sig;
-  Normaldev(void) {}
-  Normaldev(Doub mmu, Doub ssig, uint64_t i)
-	: LFSR128(i), mu(mmu), sig(ssig){}
-  Doub dev(void);
-  void reset(Doub mmu, Doub ssig){ 
-    mu = mmu;
-    sig = ssig;
+template<typename T1, typename T2>
+struct IndexPair {
+  T1 item1;
+  T2 item2;
+  int sort_item; // NOTE: moved from static to private on 4/7/22
+  IndexPair(void) {}
+  IndexPair(const T1& t1, const T2& t2, int si = 1): item1(t1),item2(t2){sort_item = si;}
+  bool operator <(const IndexPair& p)const {
+    return (sort_item == 1? item1 < p.item1 : item2 < p.item2);
   }
-  void reset(uint64_t i){ // re-seed
-    step(i);
+  bool operator ==(const IndexPair& p) const{
+    return (sort_item == 1? item1 == p.item1 : item2 == p.item2);
   }
+  IndexPair& operator=(const IndexPair& ip){
+    item1 = ip.item1;
+    item2 = ip.item2;
+    //    sort_item = ip.sort_item;
+    return *this;
+  }
+  void set_sort_item(int i){sort_item = i;}
 };
+
+
 
 class PopCount {
   char byte_count[256];
@@ -187,8 +158,8 @@ class BloomFilter { // Have we seen a 64-bit key or a string yet? Remember it fo
     uint64_t hval = 0;
     for(int i = 0;i < s.size();i++){
       hval ^= (s[i] << (i%8));
-      return hash(hval,set);
     }
+    return hash(hval,set);
   }
   void clear(void){
     for(int i = 0;i < 4;i++){
@@ -204,7 +175,7 @@ class BloomFilter { // Have we seen a 64-bit key or a string yet? Remember it fo
       
 
 
-#define MAXFIELDS 100  //Not easy to make field an Array because the header references are circular
+#define MAXFIELDS 100000  //Not easy to make field an Array because the header references are circular
 
 class StringSplitter { // Functor to split a C-string into fields using field separator fs.  NOTE: leading
   // blanks in a field are skipped, so the field separator  is really fs followed by any number of blanks.
@@ -290,5 +261,13 @@ public:
   double mean(void){return W == 0? 0:S1/W;}
   double variance(void){return W == 0? 0 : S2/W;} // NOTE: for correctness, should be n-1, but WGAS.
 };
+
+
+template <typename T1, typename T2>
+ostream& operator<<(ostream& os, const IndexPair<T1,T2>& p){
+  os << p.item1 <<": "<< p.item2 << endl;
+  return os;
+}
+
 
 #endif

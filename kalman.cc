@@ -12,7 +12,8 @@
 #include "Awk.h"
 #include "Array.h"
 #include "Matrix.h"
-//#define sym_inv inv
+#include "stats.h"
+#define sym_inv inv
 using namespace std;
 
 double zero(0);
@@ -277,10 +278,6 @@ struct Data {
   void simulate(int sim_mode, const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
     Svd sing_vals;
-    matrix A(theta.T);
-    sing_vals.reduce(A);
-    cout << sing_vals.A;
-    exit(0);
     Normaldev normal(0,1,seed*seed);
     RanVec ran_vec_T(5*seed);
     RanVec ran_vec_M(3*seed);
@@ -365,7 +362,8 @@ int main(int argc, char** argv){
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   if(data_file != "" && strcmp(data_file.c_str(),"stdin"))  
     data_file = data_dir+data_file; // don't add prefix if input from stdin
-  
+
+  void qr_comp(const Matrix<double>& A, Matrix<double>& Q, Matrix<double>& R);
   Data data(nstates,data_dim,max_recs,nchars,seed,ran_dict);
   Theta theta(nstates,data_dim,seed);
   //  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
@@ -390,7 +388,19 @@ int main(int argc, char** argv){
         theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
         for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 0; 
       }
-      else for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
+      else {//for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
+        /* set theta.T = random orthonormal matrix
+         * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
+         *" How to generate random matrices from the classical compact groups"
+         */
+        Matrix<double> A(nstates,nstates),R(nstates,nstates);
+        R.fill(0);
+        Normaldev normal(0,1,seed);
+        for(int i = 0;i < nstates;i++){
+          for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
+        }
+        qr_comp(A,theta.T,R);
+      }
       for(int i = 0;i < data_dim;i++){
         theta.S_M(i,i) = 1.0;
         if(i < nstates)theta.M(i,i) = 1.0;
@@ -413,9 +423,21 @@ int main(int argc, char** argv){
       }
       else {
         //for(int s = 0;s < nstates;s++)theta.T(s,s) = 1.0;  // set to the identity
-        for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
-        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
-        for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
+        //       for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
+        //        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
+        // for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
+
+        /* set theta.T = random orthonormal matrix
+         * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
+         *" How to generate random matrices from the classical compact groups"
+         */
+        Matrix<double> A(nstates,nstates),R(nstates,nstates);
+        R.fill(0);
+        Normaldev normal(0,1,seed);
+        for(int i = 0;i < nstates;i++){
+          for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
+        }
+        qr_comp(A,theta.T,R);
         cout << "initial T-matrix:\n"<<theta.T;
       }
     }
