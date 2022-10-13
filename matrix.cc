@@ -1,9 +1,15 @@
-#include "Matrix.h"
-#include "util.h"
+#include "../include/Matrix.h"
+#include "../include/util.h"
 
 // matrix routines for SCALAR=double
 
 //void printmat(matrix& A){ cout << A;}
+
+template<typename SCALAR>
+void printmat( const Matrix<SCALAR>& M){ cout << M;}
+
+template<typename SCALAR>
+void printmat( Matrix<SCALAR>& M){ cout << M;}
 
 bool scale_rows(matrix& C){
   double d;
@@ -83,7 +89,7 @@ double det(const matrix& A){
   double d = 1.0;
   for(int i = 0;i < B.nrows();i++){
     d *= B(i,i);
-    if(fabs(d < 1.0e-20))return 0;
+    if(d < 1.0e-20)return 0;
   }
   return d;
 }
@@ -117,13 +123,13 @@ matrix qr(const matrix& A){
 }
 
 
-void reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
+bool reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
   int n = A.nrows();
   double a,b;
 
   for(int i = 0;i < n;i++){
     //cout << "reduce:\n"<<A;
-    if( fabs(b = A(i,i)) < eps)throw "solve: Matrix is singular\n";
+    if( fabs(b = A(i,i)) < eps) return false;
     A(i,i) = 1.0;
     for(int j = i+1;j < A.ncols();j++) A(i,j) /= b;
     for(int k = 0;k < i;k++){
@@ -133,6 +139,7 @@ void reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
       //cout << format("\n(k,i) = (%d,%d) A:\n",k,i)<<A;
     }
   }
+  return true;
 }
 
 void solve(matrix& A, double eps){ // solve linear equations in-place 
@@ -177,7 +184,7 @@ matrix inv(const matrix& A, double* det){ // general matrix inverse
       }
     }
   }
-  reduce(QR); // now row-reduce R and apply the row operations to Q
+  reduce(QR); // now row-reduce
   return Q;
 }
 
@@ -187,7 +194,7 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
   matrix CB(n,2*n);
   matrix C(CB.slice(0,0,n,n));
   matrix B(CB.slice(0,n,n,n));
-  cholesky(A,C); // A = C.T()*C
+  cholesky(A,C); // A = C.Tr()*C
   B.fill(0);
   for(int i = 0;i < n;i++) B(i,i) = 1.0; // B = I
   if(det != nullptr){
@@ -206,41 +213,44 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
     *det = d*d;
   }
   reduce(CB); // now row-reduce. now B = C_inv
-  
-
-//   matrix T = A*B*(B.T());
-//   for(int i = 0;i < n;i++){
-//     for(int j = 0;j < i;j++){
-//       if(fabs(T(i,j)) > 1.0e-10){
-//         std::cout << "A:\n"<<A<<"T:\n"<<T;
-//         std::fflush(stdout);
-//         throw "oops!";
-//       }
-//     }
-//     if(fabs(T(i,i)-1.0) > 1.0e-10){
-//       std::cout << "A:\n"<<A<<"T:\n"<<T;
-//       std::fflush(stdout);
-//       throw "oops!";
-//     }
-//   }
+#if 0
+  matrix T = A*B*(B.Tr());
+  for(int i = 0;i < n;i++){
+    for(int j = 0;j < i;j++){
+      if(fabs(T(i,j)) > 1.0e-10){
+        std::cout << "A:\n"<<A<<"T:\n"<<T;
+        std::fflush(stdout);
+        throw "oops!";
+      }
+    }
+    if(fabs(T(i,i)-1.0) > 1.0e-10){
+      std::cout << "A:\n"<<A<<"T:\n"<<T;
+      std::fflush(stdout);
+      throw "oops!";
+    }
+  }
+#endif
   return B*(B.Tr()); // A_inv = C_inv*C_inv.Tr()
 }
 
-void symmetrize(matrix& A){
-  assert(A.nrows() == A.ncols());
-  for(int i = 0;i < A.nrows();i++){
-    for(int j = 0;j < i;j++) A(i,j) = A(j,i) = (A(i,j)+A(j,i))/2;
-  }
-}
-                           
-void cholesky(const matrix& M, matrix& C){ // user-supplied answer
+bool cholesky(const matrix& M, matrix& C, double eps){ // user-supplied answer
+  /* M is symmetric positive definite. C is upper triangular with C^tC = M.*/
+  
   C.fill(0);
   for(int j = 0;j < M.ncols();j++){
     for(int i = 0;i <= j;i++){
       for(int k = 0;k < i;k++) C(i,j) += C(k,i)*C(k,j);
-      C(i,j) = i < j? ((M(i,j)+M(j,i))/2 - C(i,j))/C(i,i) : sqrt(M(j,j) - C(j,j));
+      if(i < j){
+        C(i,j) = ((M(i,j)+M(j,i))/2 - C(i,j))/C(i,i);
+      }
+      else{
+        if(M(j,j) - C(j,j) < 0) return false;
+        C(i,i) = sqrt(M(j,j)-C(j,j));
+        if(C(i,i) < eps) return false; 
+      }
     }
   }
+  return true;
 }
 
 matrix cholesky(const matrix& M){ // we return the answer
@@ -280,24 +290,9 @@ Array<matrix> svd(const matrix& A, double eps, int maxiters){
 
 void Svd::reduce(const matrix& A0){
   Givens R;
-
-  nrows = A0.nrows();
-  ncols = A0.ncols();
-  AUV.reset(nrows+ncols,nrows+ncols,0);
-  // define the submatrices
-  AU = AUV.slice(0,0,nrows,ncols+nrows);
-  AV = AUV.slice(0,0,nrows+ncols,ncols);
-  U = AUV.slice(0,ncols,nrows,nrows);
-  V = AUV.slice(nrows,0,ncols,ncols);
-  A = AUV.slice(0,0,nrows,ncols);
-
-  //  cout << "A0:\n"<<A0;
-  
+  reset(A0.nrows(),A0.ncols()); // call this for backward compatibility
   A.copy(A0); // copy in the input
   //cout <<"at line 159:\n"<<AUV;
-  U.fill(0); V.fill(0);
-  for(int i = 0;i < nrows;i++)U(i,i) = 1.0; // set rotation matrices = identity
-  for(int i = 0;i < ncols;i++)V(i,i) = 1.0;
   ut(AU); // row rotate to upper triangular form
   //cout << "at line 161:\n" << AUV;
   for(int i = 0;i < nrows-1;i++){ // zero the ith row above the super-diagonal with column rotations
@@ -340,6 +335,23 @@ void Svd::reduce(const matrix& A0){
     if(!not_done)break;
     //      cout <<"iteration "<<niters<<"\n"<<A;
   }
+}
+void Svd::reset(int nr, int nc){
+  if(!AUV.initialized() || nrows != nr || ncols != nc){// re-allocate if necessary
+    double zero(0);
+    nrows = nr;
+    ncols = nc;
+    AUV.reset(nrows+ncols,nrows+ncols,&zero);
+    // define the submatrices
+    AU = AUV.slice(0,0,nrows,ncols+nrows);
+    AV = AUV.slice(0,0,nrows+ncols,ncols);
+    U = AUV.slice(0,ncols,nrows,nrows);
+    V = AUV.slice(nrows,0,ncols,ncols);
+    A = AUV.slice(0,0,nrows,ncols);
+  }
+  U.fill(0); V.fill(0);
+  for(int i = 0;i < nrows;i++)U(i,i) = 1.0; // set rotation matrices = identity
+  for(int i = 0;i < ncols;i++)V(i,i) = 1.0;
 }
 
     
@@ -445,12 +457,18 @@ void MatrixWelford::reset(int d, double t){
   S2.fill(0);
   delta.reset(dim);
 }
-void MatrixWelford::update(ColVector<double>& x, double weight){
-  if(weight <= 0) return;
-  ColVector<double> delta = x.copy();
-  if(W == 0) delta *= weight;
-  else delta = delta - S1*(weight/W);
+void MatrixWelford::reset(void){
+  W = 0;
+  S1.fill(0);
+  S2.fill(0);
+}
+                                                                    
+void MatrixWelford::update(const ColVector<double>& x, double weight){
+  if(weight < 1.0e-10) return; // effectively zero
+  delta = x.copy()*weight;
+  if(W > 0) delta = delta - S1*(weight/W);
   W = tau*W + weight;
   S1 = S1*tau + x*weight;
   S2 = S2*tau + delta*(x - S1*(1.0/W)).Tr();
+  cout <<"welford update:\n"<<"x:\n"<<x<<"W:\n"<<W<<"delta:\n"<<delta<<"x-S1/W\n"<<x - S1*(1.0/W)<<"S2:\n"<<S2;
 }

@@ -29,6 +29,16 @@ bool has_char(string& s, char c);
 //const char* get_bytes(const char* key, int& nbytes);
 //const char* get_bytes(const string& key, int& nbytes);
 
+struct my_cout {
+  bool doit;
+  my_cout(bool d = false) : doit(d){}; 
+  void set(void){doit = true;}
+  void unset(void) {doit = false;}
+  void operator()(int n){
+    if(doit) cout << n<<": ";
+  }
+};
+
 double log_2(double x, double eps = 1.0e-8);
 
 class LFSR128 { // implements the xorshift128+ algorithm

@@ -45,7 +45,8 @@
 #define ARRAY_H
 #include <iostream>
 #include <cassert>
-//#include <vector>
+#include <vector>
+#include "using.h"
 #include "util.h"
 //#define DEBUG
 #undef DEBUG
@@ -66,15 +67,34 @@ template <typename ITEM>
 class Array; 
 
 template <typename ITEM>
-struct Initializer { // subclass this for a callback initialization functor
+struct ArrayInitializer { // subclass this for a callback initialization functor
   virtual void operator()(ITEM& item) = 0; // if specified, it is called once for each allocated ITEM
 };
 
 template <typename ITEM>
-struct SimpleInit : public Initializer<ITEM> { //simple example: we just set up a pointer to some constant
-  const ITEM* fill;
-  SimpleInit(const ITEM* p) : fill(p) {} // save the pointer to the fill
-  void operator()(ITEM& item){item = *fill;}
+struct RowInit : public ArrayInitializer<Array<ITEM>> {
+  /*  this is used for matrices with a variable no. of rows, like Array<Array<ITEM>> example
+   * so example calls operator() for each new Array<ITEM>& row and the row gets reset to the desired length with *fill
+   * if this isn't specified when example is constructed or reset and you reference a row beyond the initial
+   * allocation without resetting it yourself, you will get an ArrayBoundsError.
+
+   * example of usage:
+   * int zero(0);
+   * RowInit<int> my_row_init(10,&zero);
+   * Array<Array<int>> example(100,&my_row_init);
+   * example now has 100 zero rows each of length 10
+   * example[101][0] = 1;
+   * example now has 200 rows which are all zero except for example[101][0] = 1;
+   */
+  int ncols;
+  ITEM* fill;
+  RowInit(void){}
+  RowInit(int n, ITEM *f = nullptr) : ncols(n), fill(f) {} // length of the row and initial contents
+  void operator()(Array<ITEM>& row){row.reset(ncols,fill);}
+  void reset(int n, ITEM *f = nullptr){
+    ncols = n;
+    fill = f;
+  }
 };
 
 template <typename ITEM>
@@ -86,7 +106,7 @@ class ArrayBlock{ // this is a private helper class for Array
   uint refcount; // only used in the first block
   int max_index; // ditto. If non-zero, bounds the total length
   int highest_index; // ditto. Tracks the highest array loc. referenced so far
-  Initializer<ITEM>* init; // user defined initialization functor
+  ArrayInitializer<ITEM>* init; // user defined initialization functor
   const ITEM* fill; // alternative initialization to constant
 
   // ArrayBlock(size_t nn, const ITEM* f) : n(nn), next(nullptr), refcount(0), fill(f) {
@@ -96,14 +116,17 @@ class ArrayBlock{ // this is a private helper class for Array
   //   if(fill != nullptr)
   //     for(uint i = 0;i < n;i++)data[i] = *fill;
   // }
- ArrayBlock(size_t nn, Initializer<ITEM>* in) : n(nn), next(nullptr), refcount(0), 
-    max_index(-1), highest_index(-1), init(in), fill(nullptr) {
+ ArrayBlock(size_t nn, ArrayInitializer<ITEM>* in)
+   : n(nn), next(nullptr), refcount(0), max_index(-1), highest_index(-1), init(in), fill(nullptr) {
     // this constructor uses a user-defined initializer
-    data = new ITEM[n];
-    DBG(std::cout << format("new ArrayBlock at %x, data at %x\n",this,data);)
-    if(init != nullptr)
-      for(uint i = 0;i < n;i++)(*init)(data[i]); // call user-defined functor to initialize each ITEM 
-  }
+   data = new ITEM[n];
+   DBG(std::cout << format("new ArrayBlock at %x, data at %x\n",this,data);)
+   if(init != nullptr){
+     for(uint i = 0;i < n;i++){
+       (*init)(data[i]); // call user-defined functor to initialize each ITEM
+     }
+   }
+ }
 
  ArrayBlock(size_t nn, const ITEM* item) : n(nn), next(nullptr), refcount(0),
     max_index(-1), highest_index(-1),  init(nullptr), fill(item) {
@@ -151,7 +174,7 @@ class ArrayBlock{ // this is a private helper class for Array
 
 template<typename ITEM> 
 class Array {
-  //  typedef void(*Initializer)(ITEM&);
+  //  typedef void(*ArrayInitializer)(ITEM&);
   //  friend ostream& operator <<(ostream& os, const Array& A);
 protected:
   ArrayBlock<ITEM>* first; // first (and possibly only) block of data and control info
@@ -163,7 +186,7 @@ public:
   //   first->refcount = 1;
   //   DBG(std::cout << format("Array %x: first block at %x\n",this,first);)
   // }
- Array(size_t n, Initializer<ITEM>* init) : first(new ArrayBlock<ITEM>(n,init)){ // user supplies callback routine
+ Array(size_t n, ArrayInitializer<ITEM>* init) : first(new ArrayBlock<ITEM>(n,init)){ // user supplies callback routine
                                                                                  // to initialize each ITEM (see above)      
     if(n == 0) throw "Array: Can't initialize to length zero.\n";
     first->refcount = 1;
@@ -191,7 +214,7 @@ public:
     DBG(if(first != nullptr) std::cout<< format("~Array %x (Block %x): refcount = %d\n",this,first,first->refcount);) 
     if( first != nullptr && first->refcount-- <= 1)delete first;
   }
-  void reset(size_t n, Initializer<ITEM>* init){
+  void reset(size_t n, ArrayInitializer<ITEM>* init){
     DBG(if(first != nullptr) std::cout << format("Array %x(Block %x) reset: refcount = %d\n",this,first,first->refcount);) 
     if(first != nullptr && first->refcount-- <= 1)delete first;
     first = new ArrayBlock<ITEM>(n,init);
@@ -235,8 +258,8 @@ public:
   }
 
   bool set_max_length(int m){ // max length = 0 means we're not bounding the length
-    if(first == nullptr || m <= first->highest_index ) return false; // no can do
-    first->max_index = m-1;
+    if(first == nullptr ) return false; // no can do
+    first->max_index = first->highest_index = m-1;
     return true;
   }
   int max_length(void) const {
@@ -273,6 +296,12 @@ public:
     std::ostringstream oss;
     for(int i = 0;i < len();i++)oss << operator[](i)<<" ";
     return oss.str();
+  }
+
+  vector<ITEM> vec(void) {
+    vector<ITEM> v(len());
+    for(int i = 0;i < len();i++)v[i] = first->operator[](i);
+    return v;
   }
 };
 
