@@ -27,7 +27,7 @@ struct Givens{ // reset computes, applies, and stores the 2x2 rotation matrix T 
   double h;
   double eps;
 
-  Givens(double e = 1.0e-5) : eps(e){}
+  Givens(double e = 1.0e-10) : eps(e){}
   
   bool reset(double& a0, double& b0){
     if(fabs(b0) < eps) return false;
@@ -562,7 +562,7 @@ matrix cholesky(const matrix& A);
 bool cholesky(const matrix& M, matrix& C, double eps = 1.0e-20);
 matrix sym_inv(const matrix& A, double* det = nullptr);
 void symmetrize(matrix& A);
-matrix inv(const matrix& A, double* det = nullptr);
+matrix inv(const matrix& A, double* det = nullptr, double eps = 1.0e-20);
 bool scale_rows(matrix& A);
 double dot_cols(const matrix& A, int i, int j);
 double dotAB(const matrix& A, const matrix& B, int i, int j);
@@ -572,7 +572,7 @@ int ut(matrix& A, double eps = 1.0e-20); // upper-triangularize in place by Give
 matrix qr(const matrix& A);
 bool reduce(matrix& A, double eps = 1.0e-20); // row-reduce upper-triangular A in place
 void solve(matrix& A, double eps = 1.0e-20); // solve linear equations in-place 
-double det(const matrix& A); // determinant
+double det(const matrix& A, double eps = 1.0e-20); // determinant
 double trace(const matrix& A); // trace
 Array<matrix> svd(const matrix& A, double eps = 1.0e-20, int maxiters = 10);
 struct Svd{

@@ -82,10 +82,10 @@ double trace(const matrix& A){
   return sum;
 }
 
-double det(const matrix& A){
+double det(const matrix& A, double eps){
   assert(A.nrows() == A.ncols());
   matrix B = A.copy();
-  ut(B);
+  ut(B,eps);
   double d = 1.0;
   for(int i = 0;i < B.nrows();i++){
     d *= B(i,i);
@@ -130,7 +130,7 @@ bool reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
   for(int i = 0;i < n;i++){
     //cout << "reduce:\n"<<A;
     if( fabs(b = A(i,i)) < eps) return false;
-    A(i,i) = 1.0;
+    A(i,i)  = 1.0;
     for(int j = i+1;j < A.ncols();j++) A(i,j) /= b;
     for(int k = 0;k < i;k++){
       a = A(k,i);
@@ -157,7 +157,7 @@ void solve(matrix& A, double eps){ // solve linear equations in-place
 //   return QR.slice(0,n,n,n); // return the left-most n columns
 // }
 
-matrix inv(const matrix& A, double* det){ // general matrix inverse
+matrix inv(const matrix& A, double* det, double eps){ // general matrix inverse
   assert(A.nrows() == A.ncols());
   matrix QR = qr(A); // rotate to upper-triangular form
   // and append the rotation matrix (as extra columns)
@@ -178,7 +178,7 @@ matrix inv(const matrix& A, double* det){ // general matrix inverse
         break;
       }
       *det *= R(i,i);
-      if(fabs(*det)< 1.0e-20){
+      if(fabs(*det)< eps){
         *det = 0;
         break;
       }
@@ -205,7 +205,7 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
         std::fflush(stdout);
       }
       d *= C(i,i);
-      if(fabs(d)< 1.0e-20){
+      if(fabs(d)< 1.0e-50){
         d = 0;
         break;
       }
@@ -470,5 +470,5 @@ void MatrixWelford::update(const ColVector<double>& x, double weight){
   W = tau*W + weight;
   S1 = S1*tau + x*weight;
   S2 = S2*tau + delta*(x - S1*(1.0/W)).Tr();
-  cout <<"welford update:\n"<<"x:\n"<<x<<"W:\n"<<W<<"delta:\n"<<delta<<"x-S1/W\n"<<x - S1*(1.0/W)<<"S2:\n"<<S2;
+  //  cout <<"welford update:\n"<<"x:\n"<<x<<"W:\n"<<W<<"delta:\n"<<delta<<"x-S1/W\n"<<x - S1*(1.0/W)<<"S2:\n"<<S2;
 }

@@ -135,23 +135,20 @@ struct Theta { // Model parameters
   Theta(int nstates, int data_dim, uint64_t seed){
     Normaldev normal(0,1,seed);
     S_0.reset(nstates,nstates,&zero);
+    mu_0.reset(nstates);
     S_M.reset(data_dim,data_dim,&zero);
     S_T.reset(nstates,nstates,&zero);
     M.reset(data_dim,nstates,&zero);
     T.reset(nstates,nstates,&zero);
-    mu_0.reset(nstates);
-    // for(int s = 0;s < nstates;s++){
-    //   S_0(s,s) = fabs(normal.dev());
-    //   mu_0[s] = normal.dev();
-    //   S_T(s,s) = 100.0; 
-    // }
-    // for(int d = 0;d < data_dim;d++){
-    //   S_M(d,d) = 1.0;//fabs(normal.dev());
-    //   if(d < nstates)M(d,d) = 1.0;
-    // }
-    // for(int s = 0;s < nstates-1;s++) T(s,s+1) = 1.0; // companion matrix
-    // T(nstates-1,0) = 1 - 2*(nstates%2);
-    // for(int j = 1;j < nstates;j++)T(nstates-1,j) = normal.dev();
+    
+    for(int s = 0;s < nstates;s++){
+      S_0(s,s) = T(s,s) = S_T(s,s) = 1.0;
+      mu_0[s] = normal.dev();
+    }
+    for(int i = 0; i < data_dim;i++){
+      for(int j = 0; j < nstates;j++) M(i,j) = normal.dev();
+      S_M(i,i) = 1.0;
+    }
   }
 };
 
@@ -266,12 +263,15 @@ struct Data {
     ran_vec_M.reset(theta.S_M); // set the inverse covariance matrices
     ran_vec_T.reset(theta.S_T);
     for(int t = 1;t <= max_recs;t++){
-      state[t] = theta.T*state[t-1];
-      state[t] = state[t] + ran_vec_T.dev();
+      ran_vec_T.reset_mu(theta.T*state[t-1]); 
+      state[t] = ran_vec_T.dev(); // state[t] = T(state[t-1] + noise
+      //      state[t] = theta.T*state[t-1];
+      //      state[t] = state[t] + ran_vec_T.dev();
       //      if(sim_mode == 1)state[t][0] = t;
       ColVector<double> temp = state[t] - state[t-1];
       mean_state = mean_state + temp;
-      x[t] = theta.M*state[t] + ran_vec_M.dev(); // add mean zero noise
+      ran_vec_M.reset_mu(theta.M*state[t]);
+      x[t] = ran_vec_M.dev(); // x[t] = M*state[t] + noise
     }
     mean_state *= 1.0/max_recs;
   }
@@ -293,7 +293,7 @@ int main(int argc, char** argv){
   int nstates = 5;
   int data_dim = 5;
   double ntrain = .8;
-  int sim_mode = 0; // simulation mode: 0 = no simulation
+  //  int sim_mode = 0; // simulation mode: 0 = no simulation
 
   double min_delta = 1.0e-5; // exit criterion for Baum-Welch iterations
   bool verbose = false;
@@ -321,7 +321,7 @@ int main(int argc, char** argv){
   cl.get("niters",niters); cout << "niters: "<<niters<<endl;// max. no. of iterations 
   cl.get("max_recs",max_recs); cout << "max_recs: "<<max_recs<<endl; // max. no. of data records 
   cl.get("ntrain",ntrain); cout << "ntrain: "<<ntrain<<endl;
-  cl.get("sim_mode",sim_mode); cout << "simulation mode: "<<sim_mode<<endl;
+  //  cl.get("sim_mode",sim_mode); cout << "simulation mode: "<<sim_mode<<endl;
   cl.get("seed",seed); cout << "seed: "<<seed<<endl;
   cl.get("min_delta",min_delta); cout << "min_delta: "<<min_delta<<endl;
   if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
@@ -344,80 +344,67 @@ int main(int argc, char** argv){
   //  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
   int N;  // time of last training data point
   bool simulation;
-  if(data_file != "" && sim_mode == 0){
-    max_recs = data.read_text(data_file); // read data from file
-    simulation = false;
-  }
-  else { // use simulated data
-    if(sim_mode == 1){
-      theta.M.fill(0);
-      theta.T.fill(0);
-      theta.S_M.fill(0);
-      theta.S_T.fill(0);
-      for(int i = 0;i < nstates;i++){
-        theta.S_T(i,i) = 1.0; // std dev .1
-        theta.mu_0[i] = 0;
-      }
-      if(AR_mode){
-        for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
-        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
-        for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 0; 
-      }
-      else {//for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
-        /* set theta.T = random orthonormal matrix
-         * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
-         *" How to generate random matrices from the classical compact groups"
-         */
-        Matrix<double> A(nstates,nstates),R(nstates,nstates);
-        R.fill(0);
-        Normaldev normal(0,1,seed);
-        for(int i = 0;i < nstates;i++){
-          for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
-        }
-        qr_comp(A,theta.T,R);
-      }
-      for(int i = 0;i < data_dim;i++){
-        theta.S_M(i,i) = 1.0;
-        if(i < nstates)theta.M(i,i) = 1.0;
-      }
-    }
-    else {
-      for(int s = 0;s < nstates;s++){ // set up the initial conditions and the transition matrix
-        theta.S_0(s,s) = 1.0;
-        //        theta.mu_0[s] = (s? 0: 10);
-        theta.S_T(s,s) = 1.0; 
-      }
-      for(int d = 0;d < data_dim;d++){ // set up the measurment matrix and the covariance
-        theta.S_M(d,d) = 1.0;//fabs(normal.dev());
-        if(d < nstates)theta.M(d,d) = 1.0;
-      }
-      if(AR_mode){
-        for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
-        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = +- 1
-        for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1; 
-      }
-      else {
-        //for(int s = 0;s < nstates;s++)theta.T(s,s) = 1.0;  // set to the identity
-        //       for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
-        //        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
-        // for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
+  // // set up initial parameters
+  // theta.M.fill(0);
+  // theta.T.fill(0);
+  // theta.S_M.fill(0);
+  // theta.S_T.fill(0);
+  // theta.S_0.fill(0);
+  // theta.mu_0.fill(0);
+  // for(int i = 0;i < nstates;i++){
+  //   theta.M(i,i) = 1.0;
+  //   theta.T(i,i)= 1.0;
+  //   theta.S_M(i,i) = 1.0;
+  //   theta.S_T(i,i) = 1.0; // std dev .1
+  //   theta.S_0(i,i) = 1.0;
+   
+  // }
+  // if(AR_mode){
+  //   for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
+  //   theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
+  //   for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 0; 
+  // }
+  // else {//for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
+  //   /* set theta.T = random orthonormal matrix
+  //    * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
+  //    *" How to generate random matrices from the classical compact groups"
+  //    */
+  //   Matrix<double> A(nstates,nstates),R(nstates,nstates);
+  //   R.fill(0);
+  //   Normaldev normal(0,1,seed);
+  //   for(int i = 0;i < nstates;i++){
+  //     for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
+  //   }
+  //   qr_comp(A,theta.T,R);
+  // }
+  // for(int i = 0;i < data_dim;i++){
+  //   theta.S_M(i,i) = 1.0;
+  //   if(i < nstates)theta.M(i,i) = 1.0;
+  // }
 
-        /* set theta.T = random orthonormal matrix
-         * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
-         *" How to generate random matrices from the classical compact groups"
-         */
-        Matrix<double> A(nstates,nstates),R(nstates,nstates);
-        R.fill(0);
-        Normaldev normal(0,1,seed);
-        for(int i = 0;i < nstates;i++){
-          for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
-        }
-        qr_comp(A,theta.T,R);
-      }
-    }
-    data.simulate(sim_mode,theta, seed); // simulate the data
-    simulation = true;
-  }
+  // if(AR_mode){
+  //   for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
+  //   theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = +- 1
+  //   for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1; 
+  // }
+  // else {
+  //   //for(int s = 0;s < nstates;s++)theta.T(s,s) = 1.0;  // set to the identity
+  //   //       for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
+  //   //        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
+  //   // for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
+
+  //   /* set theta.T = random orthonormal matrix
+  //    * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
+  //    *" How to generate random matrices from the classical compact groups"
+  //    */
+  //   Matrix<double> A(nstates,nstates),R(nstates,nstates);
+  //   R.fill(0);
+  //   Normaldev normal(0,1,seed);
+  //   for(int i = 0;i < nstates;i++){
+  //     for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
+  //   }
+  //   qr_comp(A,theta.T,R);
+  // }
   
   N = ntrain? ntrain*max_recs : max_recs; // testing from t = ntrain+1 to t = max_recs
   MatrixWelford welford(data_dim);
@@ -516,6 +503,7 @@ int main(int argc, char** argv){
   double old_score, delta_score(1.0);
   for(int iter = 0;iter < niters && fabs(delta_score) > min_delta;iter++){
     cout << "Begin iteration "<<iter<<" with delta score = "<<delta_score <<endl;
+    cout << "T:\n"<<theta.T;
     cout << "\nparameters:\n"<<theta;    // alpha pass
     S_T_T = theta.S_T*theta.T;
     S1_T = theta.T.Tr()*S_T_T;
@@ -534,9 +522,9 @@ int main(int argc, char** argv){
     MTS_MM = MTS_M*theta.M;
     mu_a[0] = theta.mu_0;
     S_a[0] = theta.S_0;
-    detS_a[0] = det(S_a[0]); // initialization
-    det_S_M = det(theta.S_M); 
-    det_S1_T = det(S1_T);
+    detS_a[0] = det(S_a[0], eps); // initialization
+    det_S_M = det(theta.S_M, eps); 
+    det_S1_T = det(S1_T, eps);
     alpha_score[0] = 0;
     double detS_hat;
     for(int t = 1;t <= N;t++){ // NOTE: the infix notation is more readable, but inefficient.
@@ -544,6 +532,16 @@ int main(int argc, char** argv){
       S_t1_t_inv[t] = sym_inv(S1_T+S_a[t-1],&detS_hat); // save these two for S_T re-estimation
       S_t1_t_inv_S_a[t] = S_t1_t_inv[t]*S_a[t-1]; //S_{t-1,t}^{-1}S_{a,t-1}
       S_hat = S1_T*S_t1_t_inv_S_a[t]; //\hat{S}_{a,t-1}
+      if(iter == 3){
+        Svd svd1;
+        cout << format("det(T) = %g\n",det(theta.T));
+        svd1.reduce(S1_T.copy());
+        cout << svd1.A<<endl;
+        double test_det(1.0);
+        for(int i = 0;i < nstates;i++)test_det *= svd1.A(i,i);
+        cout << "test_det:  "<<test_det<<endl;
+        cout << svd1.U;
+      }
       detS_hat = det_S1_T*detS_a[t-1]/detS_hat; 
       S1_mu1 = MTS_M*data.x[t];
       S2_mu2 = T_inv.Tr()*(S_hat*mu_a[t-1]);
@@ -594,7 +592,7 @@ int main(int argc, char** argv){
     // cout << "singular values of M: ";
     // for(int i = 0;i < min(theta.M.nrows(),theta.M.ncols());i++){ cout << svd_M.A(i,i)<<" ";}
     // cout <<endl;
-    cout << format("delta_score at iteration %d: %f\n",iter,delta_score);
+    cout << format("delta_score at iteration %d: %f, gamma_score[%d]: %f\n",iter,delta_score,N,gamma_score[N]);
 
     //    Re-estimation
     if(S_0_reestimate){

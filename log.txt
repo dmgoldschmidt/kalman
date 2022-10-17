@@ -1,0 +1,123 @@
+Sat 27 Aug 2022 10:08:25 AM PDT
+OK, I'm back at work on kalman.tex,cc.  It took me a few days to realize that the current git version was
+something in development that I had no remaining idea about, so I went to v3.2 which appears to be the
+latest.  The write-up appears to be complete through the derivation of the re-estimation equations (but I have
+to do a lot of checking at some point), but there are many mysteries  in the code.  It appears to be set up for
+a test case involving a language model, because  the data directory has lots of sample text.  The code currently
+defaults to 5-dimensional data and 5 states.  But I found the latest "print.out" from 6/8/2020 which was run with
+2-dimensional data and 2 states.  I also found an Array<ColVector<double>> Data.dict whose keys (I think)
+are (capital) letters and whose values are 2-dimensional.
+FIRST MYSTERY:  what is this used for? It looks like the values are set to +- 1, depending on the 0th or 1st bit
+of the ASCII character code.  As far as I can see, Data.dict is not currently used in v3.2.  I did find it in the "test
+section" which is currently behind a #if 0 statement.  There's a somewhat involved calculation there which I
+will have to try to unravel.
+
+There is a code option AR_mode which defaults to false.    1) it initializes the T-matrix
+to a companion matrix, with zero recursion coefficients if sim_mode ==1, or recursion coefficients all = 1
+otherwise.  2) In simulation, there's a code section in which the parameters are perturbed, except that
+in AR_mode, nothing is changed.  3) At  the start of the alpha pass, the T-matrix is inverted in closed form
+in AR_mode.  4) Finally, if T is reestimated, only the recursion coefficients (last row) are updated in AR_mode.
+
+I'm wondering if the re-estimation equations for T can be simplified in AR_mode?  One idea is that we can
+just solve for them using least-squares, with coefficients being all pairs (\gamma_t,\gamma_{t+1}).
+
+The output I found is a run in which only the M-matrix is solved for.  It looks from the code like the data was
+simulated by applying T to the previous state, and then adding gaussian noise to get a state vector.
+
+
+Mon 29 Aug 2022 10:49:24 AM PDT
+kalman now compiles, and I ran it with the command line:  -nstates 2 -data_dim 2 -seed 9876 -M_re.  The results
+agree with the previous output up to 50 iterations (I forgot to set niters = 100).  I also ran the above with -T_re
+and got convergence after 82 iterations.
+
+Tue 30 Aug 2022 08:33:23 AM PDT
+I ran with /kalman -nstates 2 -data_dim 2 -seed 9876 -T_re -M_re -niters 100 -max 100000  > printAR.out
+and again with AR_mode off.  AR_mode clearly does not increase the score at every iteration -- it started out
+bouncing all over the place, finally settling down.  In addition, the final score was much lower.
+I think it's time to try the least-squares approach.
+
+Tue 30 Aug 2022 09:56:47 AM PDT
+I thought I found and fixed bug in the sign of det T, but apparently not.  I also reduced the noise in T by setting
+S_T to I (instead of 100*I).  This caused AR mode to go crazy and regular mode to quit immediately.  Go figure.
+
+Wed 31 Aug 2022 09:04:26 AM PDT
+I'm trying the ARmode run again.  det T is correct, but we're still getting pretty grubby results.
+
+Wed 31 Aug 2022 03:36:27 PM PDT
+Well, I tried 100000 data and 1000 iterations.  From about iteration 200 on, things looked very nice, and
+the score climbed smoothly.  But it didn't look like it was ever going to get there!  The score is very sensitive
+to small parameter changes.  Next run:  reduce S_M to I.
+
+Sun 04 Sep 2022 08:36:22 AM PDT
+After fixing the determinant bug, I just tried re-running the dimension 5 case that had previously crashed, 
+and guess what?  It still crashed.  The reason is that constraining det = 1 does not fix the problem -- the state
+magnitudes still grow and finally overflow.  In order for this to work, we need an orthogonal T-matrix.  So
+that's the next thing to install.
+
+Tue 06 Sep 2022 08:00:44 AM PDT
+I coded up "qr_comp.cc".  It compiles and runs correctly.  I first thought there was a bug because the test
+was to compute QR and it didn't equal the original A-matrix at all.  However, what we are actually computing
+is QA = R, so the test needs to be A =? Q^tR, and indeed it is. Now the big problem is how to update the
+T-matrix.  If we begin with T orthonormal, I don't see any reason why T' (the updated T) should continue
+to be, and it has to be.  So I think we have to do the QR computation on T' and hope for the best.
+
+Tue 13 Sep 2022 11:26:38 AM PDT
+The qr_comp code is now incorporated into kalman.  Running this version, I see the printed gamma_score
+monotonically decreasing with each iteration, which is of course exactly the opposite of what's supposed to happen.  
+The most obvious solution is that I've got the sign wrong, because the gamma_scores are positive.  Looking
+into this, I see that the gamma calculation is rather involved -- it's not just alpha*beta, apparently.  So the first
+move here is to go back to the write-up and try to understand this.
+
+Sat 17 Sep 2022 05:11:28 PM PDT
+I'm trying to run "kalman --M_re --niters 10" and getting two bizarre outputs:
+1) somehow the variance computed by MatrixWelford is getting tiny values which eventually produce a fault.
+2) I'm getting a mysterious reprint of the covariance matrix from somewhere.
+Solution to 2):  I had a superflouous debugging print in MatrixWelford::variance.
+
+Fri 23 Sep 2022 09:15:00 AM PDT
+Oh Boy, this TAKES THE CAKE:  I just found a horrible bug in matrix multiply that's been there forever, apparently.
+Namely, it doesn't work unless both matrices have the same number of columns.  In particular, Matrix * ColVector
+doesn't work.  No idea how many mistakes that's responsible for over the years!  What it's really telling me is that
+I should spend the next several months writing a *complete* test suite for Matrix.h and matrix.cc.
+
+Mon 26 Sep 2022 10:51:49 AM PDT
+OK, after fixing the matrix multiply bug, the code "runs" on simulated data, BUT I'm very suspicious of the output
+because the gamma score is far from constant:  it increases with time.  Looking into this, my attention is
+initially focused on the alpha pass.
+
+Thu 13 Oct 2022 08:36:47 AM PDT
+I'm back from the east coast!  In the interim, I noticed that the simulator doesn't really work properly.  Namely,
+when we transition from time t-1 to time t, I don't supply any noise.  But the alpha/beta pass assumes that noise
+has been supplied, because I use completing the square to make the transition.  Furthermore, I was using RanVec
+incorrectly to apply noise to the simulated output vector. So the next move is to fix these bugs.
+
+A second issue is that I should always reestimate  S_0 and mu_0, otherwise every iteration starts with an initial
+state that doesn't reflect what the data is saying and could be wildly off,  in which case  the alpha pass has to
+"catch up with the data".
+
+Thu 13 Oct 2022 03:44:07 PM PDT
+I just noticed that the initialization code in the existing version is a mess, so I've decided to clean it up.
+For now, I'm deleting the ARmode option.  That can be tried later after everything else is working.  And
+because state transitions now have noise, I'm initializing mu_0 to a random normal vector, and setting
+the intial value of T to the identity (as well as all the covariance matrices).  The M-matrix maps states to
+data, so I'm initializing it to normal random.
+
+Fri 14 Oct 2022 11:02:02 AM PDT
+OK, solving for S_0 and M looks good.  But when solving for S_0 and T, I find that S1_T has a negative eigenvalue
+at iteration 3.  No idea what to do here right now.  I need to review the math and figure out what S1_T is supposed
+to be.
+
+Sun 16 Oct 2022 09:04:39 AM PDT
+Hmm, looks very much like inv is not correctly computing the determinant.
+
+Mon 17 Oct 2022 10:05:40 AM PDT
+Ok, the issue is that det_S1_T is zero at iteration 3, whereas my debugging code computes the svd and shows
+that it's actually 3.39276e-21.  Looks like it's computed at line 527.  Next step:  gdb with b 527.
+
+Mon 17 Oct 2022 10:31:37 AM PDT
+A possible problem is that there are inconsistent error tolerances for various Matrix<double> functions (in matrix.cc).
+I think a good solution would be to include a default error tolerance as a class variable in Matrix.h.  Then each function
+declaration has an error tolerance which defaults to the class default value, so it looks like this:
+<return value> function(matrix &A, ...., double eps = A.eps).  If this works, it should also allow any particular matrix
+A to be declared with an optional eps value, which will get set to the default value if it's not specified. 
+ I'm going to commit the current versions of everything before trying out these changes.
