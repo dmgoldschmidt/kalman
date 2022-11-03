@@ -331,8 +331,9 @@ assume the following values
     &=P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
 \end{proof}
-
+\newpage
 \section{The Posterior Distributions}
+
 Recall that $\gamma_t(s)$ is the posterior probability density of state $s$
 at time $t$. 
 \begin{Thm}
@@ -391,8 +392,57 @@ Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
   normalization factor is required.  We remark that $\mu_{t-1,t}$ does depend on $s_t$, showing that $\gamma_{t-1}(s)$
   and $\gamma_t(s)$ are not independent.  This fact will play a role in the reestimation of $S_T$ and $T$ below.
   
-\section{Re-estimation}
-Given a particular state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
+  \section{The Expected Log-Likelihood}
+    
+    It turns out that the expected log-likelihood is computable in closed form.
+    Although this isn't strictly necessary in order to derive the re-estimation formulas, it serves as a useful check on the
+    derivation and on the numerical computation.  We begin with the key lemma.
+    
+  \begin{Lem}\label{exp_log}
+    Recall the notation of \eqref{comp_sq:1}. Let $\gamma := \N(x;\mu_0,S_0)$ be an $n$-dimensional gaussian, and let $A$ be any
+    full rank $n\times{m}$ matrix. Then for any vector $\mu\in\R^n$, 
+    \begin{align}
+      E_{\gamma}(x-\mu)(x-\mu)^T &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^T, \label{E_xx^T}\\
+      E_{\gamma}(x-\mu)^T(x - \mu) &=  tr(S_0^{-1}) + (\mu-\mu_0)^T(\mu-\mu_0),\quad\text{and}\label{E_x^Tx}\\
+        E_{\gamma}{Q}(Ax;\mu,S) &=  tr(S_0^{-1}A^TSA) + (\mu-A\mu_0)^TS(\mu-A\mu_0), \label{E_Q}
+    \end{align}
+  \end{Lem}
+  \begin{proof}
+    By definition, the covariance matrix for $\gamma$ is
+    \begin{align*}
+    S_0^{-1} &= E_{\gamma}(x-\mu_0)(x-\mu_0)^T = E_{\gamma}(xx^T) - E_{\gamma}(x\mu_0^T) - E_{\gamma}(\mu_0{x}^T) + E_{\gamma}(\mu_0\mu_0^T)\\
+    &= E_{\gamma}(xx^T) - \mu_0\mu_0^T, \quad{whence}\\
+    E_{\gamma}(x-\mu)(x-\mu)^T &= E_{\gamma}(xx^T) - E_{\gamma}(x\mu^T) - E_{\gamma}(\mu{x}^T) + E_{\gamma}(\mu\mu^T) \\
+    &= S_0^{-1} + \mu_0\mu_0^T - \mu_0\mu^T-\mu\mu_0^T + \mu\mu^T\\
+    &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^T,
+    \end{align*}
+    proving \eqref{E_xx^T}; and \eqref{E_x^Tx} follows by taking the trace.
+
+    To prove \eqref{E_Q} we first of all have
+    \begin{equation}\label{E_Q:1}
+      \begin{split}
+      E_{\gamma}Q(Ax;\mu,S) &= E_{\gamma}(x^TA^TSAx) - 2E_{\gamma}(x^TA^TS\mu) + E_{\gamma}(\mu^TS\mu) \\
+      &= E_{\gamma}(x^TA^TSAx) - 2\mu_0^TA^TS\mu + \mu^TS\mu.
+      \end{split}
+    \end{equation}
+    
+    To evaluate $E_{\gamma}(x^TA^TSAx)$, we let $C$ be the Cholesky matrix of $A^TSA$, so that
+    $A^TSA = C^TC$.  Note that since $A$
+    has full rank, $A^TSA$ is invertible, and so is $C$. Making the change
+    of variable $y = Cx,~ dy = |C|dx$ and using \eqref{E_x^Tx}, we then have
+      \begin{align*}
+        E_{\gamma}(x^TA^TSAx) &= \int_{R^n}x^TA^TSAx~\N(x;\mu_0,S_0)dx\\
+        &= \sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}x^TA^TSAx~\exp\left\{-\frac{1}{2}Q(x;\mu_0,S_0)\right\}dx \\
+        &= |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^Ty~\exp\left\{-\frac{1}{2}Q(C^{-1}y;\mu_0,S_0)\right\}dy \\
+        &= \int_{\R^n}y^Ty~\N(y;C\mu_0,C^{-T}S_0C^{-1})dy\\
+        &= tr(CS_0^{-1}C^T) + \mu_0^TC^TC\mu_0 \\
+        &= tr(S_0^{-1}A^TSA) + \mu_0^TA^TSA\mu_0.
+      \end{align*}
+    Combining this with \eqref{E_Q:1} completes the proof of \eqref{E_Q}.  
+  \end{proof}
+
+Equipped with \eqref{E_Q}, we can now turn to the problem at hand.  Namely, if we are given a particular
+state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
 the joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_T,T,S_M,M\}$ is
 $$
 P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_M)\N(s_t;Ts_{t-1},S_T).
@@ -401,52 +451,94 @@ $$
 Note that $P(X,S\mid\theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$.
 To re-estimate $\theta$, we try to maximize $L(\theta)$ using the EM algorithm. Namely, we define 
 $$
-E(\theta,\bar{\theta}) := \int_{\R^{Nn}}P(X,S\mid\theta)\log{L(\bar{\theta}\mid X,S)}dS,
+E(\theta,\bar{\theta}) := \int_{\R^{Nn}}P(X,S\mid\bar{\theta})\log{L(\theta)\mid X,S)}dS,
 $$
-where $\theta$ is the current set of parameters, and $\bar{\theta}$ is the unknown set of new parameters
+where $\bar{\theta}$ is the current set of parameters, and $\theta$ is the unknown set of new parameters
 we wish to determine. So instead of maximizing the log-likelihood directly, we can maximize its expected
 value with respect to the current posterior distribution, because it is a standard result \cite{Dempster}
 (and easy to prove) that
 $$
-L(\bar{\theta}) - L(\theta) \ge E(\theta,\bar{\theta}) - E(\theta,\theta),
+L(\theta) - L(\bar{\theta}) \ge E(\theta,\bar{\theta}) - E(\theta,\theta),
 $$
-so choosing $\bar{\theta}$ to maximize $E(\theta,\bar{\theta})$ will increase the value of $L(\theta)$.
+so choosing $\theta$ to maximize $E(\theta,\bar{\theta})$ will increase the value of $L(\theta)$.
 
 
   
-Recall the notation $Q(x;\mu,S)$ from \eqref{comp_sq:1}.  Then we have
+Expanding $E(\theta,\bar{\theta})$, we have 
 \begin{align}
   E(\theta,\bar{\theta}) &= -(2N+1)\frac{n\log(2\pi)}{2} + \frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
-  E_0 :&=\int_{\R^{Nn}}P(X,S\mid\theta)\{\log|\overline{S}_0| - Q(s_0;\bar{\mu}_0,\overline{S}_0)\}dS,\label{E0}\\
-  E_1 :&= \int_{\R^{Nn}}P(X,S\mid\theta)\left\{\sum_{t=1}^N\log|\overline{S}_M| - Q(x_t;\overline{M}s_t,\overline{S}_M)\right\}dS,
+  E_0 :&=\int_{\R^{Nn}}P(X,S\mid\bar{\theta})\{\log|S_0| - Q(s_0;\mu_0,S_0)\}dS,\label{E0}\\
+  E_1 :&= \int_{\R^{Nn}}P(X,S\mid\bar{\theta})\left\{\sum_{t=1}^N\log|S_M| - Q(x_t;Ms_t,S_M)\right\}dS,
 \label{E1}\\
-E_2 :&= \int_{\R^{Nn}}P(X,S\mid\theta)\left\{\sum_{t=1}^N\log|\overline{S}_T| - Q(s_t;\overline{T}s_{t-1},\overline{S}_T)\right\}dS,
+E_2 :&= \int_{\R^{Nn}}P(X,S\mid\bar{\theta})\left\{\sum_{t=1}^N\log|S_T| - Q(s_t;Ts_{t-1},S_T)\right\}dS,
 \label{E2}
 \end{align}
 Since the expected value of a constant is just that constant, $-n\log(2\pi)/2$ can be moved outside each
 integral sign and ignored in the optimization.  And since none of the parameters of $\theta$ appear in more
 than one of the $E_i$, we can optimize $E$ by optimizing each of $E_0,E_1,E_2$ separately.
 
-We begin with $E_0$. Since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the expected value
+We begin with $E_0$. Since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the integrand is a constant
+with respect to all $s_t$ for $t > 0$, and the expected value
 collapses to the marginal 
-expected value of the integrand with respect to the marginalization of $P(X,S\mid\theta)$ at $s_0$, which is just 
+expected value of the integrand with respect to the marginalization of $P(X,S\mid\bar{\theta})$ at $s_0$, which is just 
 $\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation 
-outside the integral in \eqref{E1} we have the same collapse to the marginalization at $s_t$ of the posterior, which
+outside the integral in \eqref{E1} we have the same collapse of the posterior to the marginalization at $s_t$, which
 is just $\gamma_t(s_t)$.  It follows that
+\begin{align}
+  E_0 &= \log|S_0| - E_{\gamma_0(s_0)}Q(s_0;\mu_0,S_0)ds_0 \\
+  &= \log|S_0| - tr(\overline{S}_{c,0}^{-1}S_0) - (\mu_0-\bar{\mu}_{c,0})^TS_0(\mu_0 - \bar{\mu}_{c,0}),
+  \label{E0:1}\quad\text{and}\\
+  E_1 &= N\log|S_M| - \sum_{t=1}^NE_{\gamma_t(s_t)}Q(Ms_t;x_t,S_M)ds_t \\
+  &= N\log|S_M| - \sum_{t=1}^Ntr(\overline{S}_{c,t}^{-1}M^TS_MM) + (x_t-M\bar{\mu}_{c,t})^TS_M(x_t-M\bar{\mu}_{c,t})\label{E1:1}.
+\end{align}
+
+
+The situation for \eqref{E2} is more complicated, because after again moving the constant and the summation outside
+the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
+joint marginal expectation over $s_t$ and $s_{t-1}$ at time $t$ given by \eqref{gamma_hat}, and we get
+\begin{equation}\label{E2:1}
+  \begin{split}
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}\N(s_{t-1};\bar{\mu}_{t-1,t}\overline{S}_{t-1,t})Q(Ts_{t-1};s_t,S_T)ds_{t-1}\right)\gamma(s_t)ds_t\\
+    &= N\log|S_T|-\sum_{t=1}^N\int_{R^n}\left(tr(\overline{S}_{t-1,t}^{-1}T^TS_TT) +
+    (s_t - T\bar{\mu}_{t-1,t})^TS_T(s_t-T\bar{\mu}_{t-1,t})\right)\gamma(s_t)ds_t\\
+    &= N\log|S_T|-\sum_{t=1}^N\left(tr(\overline{S}_{t-1,t}^{-1}T^TS_TT) + E_{\gamma_t(s_t)}Q(s_t;T\bar{\mu}_{t-1,t},S_T)\right).\\
+    \end{split}
+\end{equation}
+At this point we would like to apply \eqref{E_Q} to this last expectation, but unfortunately after checking \eqref{gamma_hat},
+we find that $\bar{\mu}_{t-1,t}$ depends on $s_t$.  Namely, with $s_t' := \overline{T}^{-1}s_t$ and
+$\overline{S}_T' := \overline{T}^T\overline{S}_T\overline{T}$ we have
 \begin{align*}
-E_0 &= \log|\overline{S}_0| - \int_{\R^n}\gamma_0(s_0)Q(s_0;\bar{\mu}_0,\overline{S}_0)ds_0,\quad\text{and}\\
-E_1 &= N\log|\overline{S}_M| - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)Q(x_t;\overline{M}s_t,\overline{S}_M)ds_t.
+\bar{\mu}_{t-1,t}-s'_t &= (\overline{S}_{t-1,t}^{-1}\overline{S}'_T - I)s'_t +
+  \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\bar{\mu}_{a,t-1}, \\
+  &= (\overline{S}_{t-1,t}^{-1}\overline{S}'_T) - \overline{S}_{t-1,t}^{-1}\overline{S}_{t-1,t})s'_t +
+  \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\bar{\mu}_{a,t-1}, \\
+    &= \overline{S}_{t-1,t}^{-1}(\overline{S}'_T - \overline{S}_{t-1,t} )s'_t + \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\bar{\mu}_{a,t-1}, \\
+    &= \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}(\bar{\mu}_{a,t-1}-s'_t), \quad\text{hence}\\
+    \bar{\mu}_{t-1,t} &= \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\bar{\mu}_{a,t-1} - (\overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}-I)\overline{T}^{-1}s_t,\quad\text{and therefore}\\
+    T\bar{\mu}_{t-1,t} - s_t &= T\bar{v}_t - (T\overline{S}_* + I)s_t, 
+  \end{align*}
+where
+\begin{align*}
+  \overline{S}_* :&= (\overline{W}_t - I)\overline{T}^{-1} ,\\
+  \overline{W}_t :&= \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1},\quad\text{and}\\
+  \bar{v}_t :&= W_t\bar{\mu}_{a,t-1}.
 \end{align*}
 
-The situation for \eqref{E2} is slightly different, because after again moving the constant and the summation outside
-the integral, the integrand depends on both $s_t$ and $s_{t-1}$.  So in this case, the integral collapses to the 
-joint marginal expectation over $s_t$ and $s_{t-1}$, and we get
-$$
-E_2 = N\log|\overline{S}_T| - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)Q(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_{t-1}ds_t,
-$$
-where $\hat{\gamma}_t(s_{t-1},s_t)$ is the joint posterior probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ 
-at time $t$ given by \eqref{gamma_hat}.
+Note that both $\overline{S}_*$ and $\bar{v}_t$  depend only on the known posterior parameters as indicated
+by the bar notation, and neither one depends on $s_t$.
 
+We can now re-write \eqref{E2:1} in a form amenable to \eqref{E_Q}:
+
+\begin{equation}\label{mu_t-1,t}
+  \begin{split}
+    Q(s_t,T\bar{\mu}_{t-1,t},S_T) &= ((T\overline{S}_*+I)s_t - T\bar{v}_t)^TS_T((T\overline{S}_* + I)s_t - T\bar{v}_t),\quad\text{and}\\
+    E_{\gamma_t(s_t)}Q(s_t,T\bar{\mu}_{t-1,t},S_T) &= E_{\gamma_t(s_t)}Q((T\overline{S}_*+ I)s_t;T\bar{v}_t,S_T)\\
+    &= tr(\overline{S}_{c,t}^{-1}(T\overline{S}_*+I)^TS_T(T\overline{S}_* + I)) + (T\bar{v}_t - \bar{\mu}_{c,t})^TS_T(T\bar{v}_t-\bar{\mu}_{c,t}).
+  \end{split}
+\end{equation}
+
+
+\section{Re-estimation}
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors
 (when $n=1$). We will also denote by $C = A\circ{B}$ the element-wise product of $A$ and $B$ whose $i,j$-entry is
