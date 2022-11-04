@@ -8,122 +8,37 @@
 #include <fenv.h>
 #include "util.h"
 #include "GetOpt.h"
-#include "gzstream.h"
+//#include "gzstream.h"
 #include "Awk.h"
 #include "Array.h"
 #include "Matrix.h"
 #include "stats.h"
+#include "QRreg.h"
+
 #define sym_inv inv
 using namespace std;
 
 double zero(0);
-string printmat(Matrix<double> A){ // for debugging
-  ostringstream oss;
-  for(int i = 0;i < A.nrows();i++){
-    for(int j = 0;j < A.ncols();j++)oss << A(i,j)<<" ";
-    oss<<"\n";
-  }
-  return oss.str();
+double length(ColVector<double>& v){
+  double len = 0;
+  for(int i = 0;i < v.nrows();i++) len += v[i]*v[i];
+  return sqrt(len);
 }
 
-// struct ArrayInitializer : public Initializer<Array<double>> { 
-//   // For use with Array<Array<double>>
-//   int length;
-//   ArrayInitializer(int l = 100) : length(l) {}
-//   void operator()(Array<double>& A){A.reset(length);}
-// };
-
-Matrix<double> solve(Matrix<double>& Gamma_1,Matrix<double>& Gamma_2, Matrix<double>& S_M, double eps = 1.0e-8, int niters = 10){
-
-  Svd svd;
-  int n = S_M.nrows();
-  double lambda(1.0);
-  svd.reduce(Gamma_2); // copy to Svd space and diagonalize
-  Matrix<double> hat_S_M(n,n);
-  Matrix<double> M(Gamma_1.nrows(),Gamma_1.ncols());
-  M = Gamma_1*svd.V;
-  hat_S_M = M.Tr()*S_M*M;
-  double err(1.0),sum2,sum3,s2,iter(0);
-  while(fabs(err) > eps && iter++ < niters){
-    sum2 = sum3 = 0;
-    for(int i = 0;i < n;i++){
-      sum2 += (s2 = hat_S_M(i,i)/((svd.A(i,i) + lambda)*(svd.A(i,i)+lambda)));
-      sum3 += s2/(svd.A(i,i) + lambda);
-    }
-    err = 10*n-sum2;
-    if(sum3 < eps)break;
-    lambda -= err/(2*sum3); // lambda_{i+1} = lambda_i - f(lambda)/f'(lambda)
+string print_svd(Matrix<double>& M){
+  //  ostringstream oss;
+  Svd test_svd;
+  test_svd.reduce(M.copy(),1.0e-20);
+  return printmat(test_svd.A);
+  // for(int i = 0;i < M.nrows();i++){
+  //   for(int j = 0;j < M.ncols();j++)oss << test_svd.A(i,j)<<" ";
+  //   oss<<"\n";
   }
-  for(int j = 0;j < M.ncols();j++){
-    for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
-  }
-  M = M*svd.V.Tr();
-  return M;
-
-}
-struct Solver {
-  matrix& Gamma1;
-  matrix& Gamma2;
-  matrix& S_M;
-  matrix hat_S_M;
-  matrix M;
-  double eps;
-  double niters;
-  double lambda;
-  int target;
-  int n;
-  Svd svd;
-  Solver(Matrix<double>& G1,Matrix<double>& G2, Matrix<double>& S, int t, double e = 1.0e-5, int max = 100):
-    Gamma1(G1), Gamma2(G2), S_M(S), target(t), eps(e), niters(max){
-    n = S.nrows();
-    int n = S.nrows();
-    hat_S_M.reset(n,n);
-    M.reset(n,n);
-    svd.reduce(Gamma2); // copy to Svd space and diagonalize
-    M = Gamma1*svd.V;
-    hat_S_M = M.Tr()*S_M*M;
-  }
-  double f(double x){
-    double sum = 0;
-    for(int i = 0;i < n;i++){
-      sum += hat_S_M(i,i)/((svd.A(i,i) + x)*(svd.A(i,i) + x));
-    }
-    return target - sum;
-  }
-  matrix operator()(void){
-    double delta = .5*svd.A(n-1,n-1);  // slightly to the right of the smallest eigenvalue (largest singularity)
-    double lambda1 = -delta; 
-    double lambda2 = -lambda1;
-    while(f(lambda2) < 0) lambda2 *= 2;
-    while(f(lambda1) > 0){
-      delta /= 2;
-      lambda1 -= delta; // move closer to the singularity
-    }
-    double err(1.0);
-    int iter(0);
-    double f1,f2;
-    while(fabs(err) > eps && iter++ < niters){
-      //      f1 = f(lambda1);
-      //      f2 = f(lambda2);
-      //      assert(f1 < 0 && f2 > 0);
-      lambda = (lambda1+lambda2)/2;
-      err = f(lambda);
-      if(err < 0){
-        lambda1 = lambda;
-        //        f1 = err;
-      }
-      else{
-        lambda2 = lambda;
-        //        f2 = err;
-      }
-    }
-    for(int j = 0;j < M.ncols();j++){
-      for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
-    }
-    M = M*svd.V.Tr();
-    return M;
-  }
-};
+//   double test_det(1.0);
+//   for(int i = 0;i < M.nrows();i++)test_det *= test_svd.A(i,i);
+//   oss << "det:  "<<test_det<<endl;
+//   return oss.str();
+// }
 
 struct Theta { // Model parameters
   Matrix<double> S_0;
@@ -142,12 +57,16 @@ struct Theta { // Model parameters
     T.reset(nstates,nstates,&zero);
     
     for(int s = 0;s < nstates;s++){
-      S_0(s,s) = T(s,s) = S_T(s,s) = 1.0;
+      S_0(s,s) = T(s,s) = S_T(s,s) = S_M(s,s) = 1.0;
       mu_0[s] = normal.dev();
     }
-    for(int i = 0; i < data_dim;i++){
-      for(int j = 0; j < nstates;j++) M(i,j) = normal.dev();
-      S_M(i,i) = 1.0;
+    if(nstates == data_dim){ // set M = identity
+      for(int s = 0;s < nstates;s++) M(s,s) = 1.0;
+    }
+    else { // set M = random
+      for(int i = 0; i < data_dim;i++){
+        for(int j = 0; j < nstates;j++) M(i,j) = normal.dev();
+      }
     }
   }
 };
@@ -169,7 +88,7 @@ struct RanVec {
     mu.reset(dim);
     S.reduce(Sig); // copy Sig to Svd-space and compute SVD
     for(int i = 0;i < dim;i++){
-       S.A(i,i) = 1/sqrt(S.A(i,i)); // now S.A(i,i) = sigma_i
+      S.A(i,i) = 1/sqrt(S.A(i,i)); // now S.A(i,i) = sigma_i
       mu[i] = 0;
     }
   }
@@ -251,7 +170,7 @@ struct Data {
   }
 
       
-  void simulate(int sim_mode, const Theta& theta, uint64_t seed){
+  void simulate(const Theta& theta, uint64_t seed){
     cout << "\nsimulation parameters:\n"<<theta;
     //   Svd sing_vals;
     Normaldev normal(0,1,seed*seed);
@@ -272,6 +191,7 @@ struct Data {
       mean_state = mean_state + temp;
       ran_vec_M.reset_mu(theta.M*state[t]);
       x[t] = ran_vec_M.dev(); // x[t] = M*state[t] + noise
+      if(t < 10) cout << x[t].Tr();
     }
     mean_state *= 1.0/max_recs;
   }
@@ -335,78 +255,20 @@ int main(int argc, char** argv){
   if(cl.get("AR_mode")) {AR_mode = true; cout << "AR_mode\n";}
 
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-  if(data_file != "" && strcmp(data_file.c_str(),"stdin"))  
-    data_file = data_dir+data_file; // don't add prefix if input from stdin
-
   void qr_comp(const Matrix<double>& A, Matrix<double>& Q, Matrix<double>& R);
-  Data data(nstates,data_dim,max_recs,nchars,seed,ran_dict);
-  Theta theta(nstates,data_dim,seed);
-  //  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
-  int N;  // time of last training data point
+  Theta theta(nstates,data_dim,seed); // initialize parameters
+  Data data(nstates,data_dim,max_recs,nchars,seed,ran_dict); 
   bool simulation;
-  // // set up initial parameters
-  // theta.M.fill(0);
-  // theta.T.fill(0);
-  // theta.S_M.fill(0);
-  // theta.S_T.fill(0);
-  // theta.S_0.fill(0);
-  // theta.mu_0.fill(0);
-  // for(int i = 0;i < nstates;i++){
-  //   theta.M(i,i) = 1.0;
-  //   theta.T(i,i)= 1.0;
-  //   theta.S_M(i,i) = 1.0;
-  //   theta.S_T(i,i) = 1.0; // std dev .1
-  //   theta.S_0(i,i) = 1.0;
-   
-  // }
-  // if(AR_mode){
-  //   for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
-  //   theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
-  //   for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 0; 
-  // }
-  // else {//for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
-  //   /* set theta.T = random orthonormal matrix
-  //    * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
-  //    *" How to generate random matrices from the classical compact groups"
-  //    */
-  //   Matrix<double> A(nstates,nstates),R(nstates,nstates);
-  //   R.fill(0);
-  //   Normaldev normal(0,1,seed);
-  //   for(int i = 0;i < nstates;i++){
-  //     for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
-  //   }
-  //   qr_comp(A,theta.T,R);
-  // }
-  // for(int i = 0;i < data_dim;i++){
-  //   theta.S_M(i,i) = 1.0;
-  //   if(i < nstates)theta.M(i,i) = 1.0;
-  // }
-
-  // if(AR_mode){
-  //   for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
-  //   theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = +- 1
-  //   for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1; 
-  // }
-  // else {
-  //   //for(int s = 0;s < nstates;s++)theta.T(s,s) = 1.0;  // set to the identity
-  //   //       for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
-  //   //        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
-  //   // for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
-
-  //   /* set theta.T = random orthonormal matrix
-  //    * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
-  //    *" How to generate random matrices from the classical compact groups"
-  //    */
-  //   Matrix<double> A(nstates,nstates),R(nstates,nstates);
-  //   R.fill(0);
-  //   Normaldev normal(0,1,seed);
-  //   for(int i = 0;i < nstates;i++){
-  //     for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
-  //   }
-  //   qr_comp(A,theta.T,R);
-  // }
+  if(data_file != "" && strcmp(data_file.c_str(),"stdin")){  
+    data_file = data_dir+data_file; // don't add prefix if input from stdin
+    simulation = false;
+  }
+  else {
+    data.simulate(theta,seed);
+    simulation = true;
+  }
   
-  N = ntrain? ntrain*max_recs : max_recs; // testing from t = ntrain+1 to t = max_recs
+  int N = ntrain? ntrain*max_recs : max_recs; // testing from t = ntrain+1 to t = max_recs
   MatrixWelford welford(data_dim);
   for(int t = 1;t <= N;t++){
     welford.update(data.x[t]); // compute sample mean and variance
@@ -418,9 +280,9 @@ int main(int argc, char** argv){
   cout << endl;
   cout << "eigenvectors:\n"<<W.U;
   //  theta.S_M = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
-  Array<Matrix<double>> S_a(max_recs+1);
+  Array<Matrix<double>> S_a(max_recs+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
   Array<ColVector<double>> mu_a(max_recs+1);
-  Array<Matrix<double>> S_b(max_recs+1);
+  Array<Matrix<double>> S_b(max_recs+1); // beta[t](s) = N(s,S_b[t],mu_b[t])
   Array<ColVector<double>> mu_b(max_recs+1);
   //  Array<Matrix<double>> S_c(max_recs+1);
   Array<Matrix<double>> S_c_inv(max_recs+1); // needed for reestimation
@@ -458,10 +320,10 @@ int main(int argc, char** argv){
 
   Array<double> alpha_score(max_recs+1), beta_score(N), gamma_score(max_recs+1),
     detS_a(max_recs+1),detS_b(max_recs+1);
-  if(simulation){ // change from the simulation parameters
+  if(simulation){ // perturb the simulation parameters
     if(S_T_reestimate){ // perturb the transition matrix
       for(int i = 0;i < nstates;i++){
-        for(int j = 0;j < nstates;j++)theta.S_T(i,j) += 10.0;
+        for(int j = 0;j < nstates;j++)theta.S_T(i,j) += 1.0;
       }
     }
     if(S_M_reestimate){ // perturb the observation matrix
@@ -477,14 +339,14 @@ int main(int argc, char** argv){
     }
     if(M_reestimate){ // perturb the M-matrix
       for(int i = 0;i < data_dim;i++){
-        for(int j = 0;j < nstates;j++) theta.M(i,j) += 10.0;
+        for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
       }
     }
     if(T_reestimate){ // perturb the T-matrix
       if(AR_mode) for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 0.0;
       else{
         for(int i = 0; i < nstates;i++){
-          for(int j = 0;j  < nstates;j++) theta.T(i,j) += 10.0;
+          for(int j = 0;j  < nstates;j++) theta.T(i,j) += 1.0;
         }
       }
     }
@@ -503,8 +365,7 @@ int main(int argc, char** argv){
   double old_score, delta_score(1.0);
   for(int iter = 0;iter < niters && fabs(delta_score) > min_delta;iter++){
     cout << "Begin iteration "<<iter<<" with delta score = "<<delta_score <<endl;
-    cout << "T:\n"<<theta.T;
-    cout << "\nparameters:\n"<<theta;    // alpha pass
+    cout << "\nparameters:\n"<<theta;   
     S_T_T = theta.S_T*theta.T;
     S1_T = theta.T.Tr()*S_T_T;
     if(AR_mode){ // closed form for inverse of companion matrix
@@ -515,16 +376,16 @@ int main(int argc, char** argv){
       log_det_T = 0;
     }
     else {
-      T_inv = inv(theta.T,&det_T);
+      T_inv = inv(theta.T,&det_T,1.0e-20);
       log_det_T = log(det_T);
     }
     MTS_M = theta.M.Tr()*theta.S_M;
     MTS_MM = MTS_M*theta.M;
     mu_a[0] = theta.mu_0;
     S_a[0] = theta.S_0;
-    detS_a[0] = det(S_a[0], eps); // initialization
-    det_S_M = det(theta.S_M, eps); 
-    det_S1_T = det(S1_T, eps);
+    detS_a[0] = det(S_a[0]); // initialization
+    det_S_M = det(theta.S_M); 
+    det_S1_T = det(S1_T,1.0e-20);
     alpha_score[0] = 0;
     double detS_hat;
     for(int t = 1;t <= N;t++){ // NOTE: the infix notation is more readable, but inefficient.
@@ -532,16 +393,16 @@ int main(int argc, char** argv){
       S_t1_t_inv[t] = sym_inv(S1_T+S_a[t-1],&detS_hat); // save these two for S_T re-estimation
       S_t1_t_inv_S_a[t] = S_t1_t_inv[t]*S_a[t-1]; //S_{t-1,t}^{-1}S_{a,t-1}
       S_hat = S1_T*S_t1_t_inv_S_a[t]; //\hat{S}_{a,t-1}
-      if(iter == 3){
-        Svd svd1;
-        cout << format("det(T) = %g\n",det(theta.T));
-        svd1.reduce(S1_T.copy());
-        cout << svd1.A<<endl;
-        double test_det(1.0);
-        for(int i = 0;i < nstates;i++)test_det *= svd1.A(i,i);
-        cout << "test_det:  "<<test_det<<endl;
-        cout << svd1.U;
-      }
+      // if(iter == 3){
+      //   Svd test_svd;
+      //   cout << format("det(T) = %g\n",det(theta.T));
+      //   test_svd.reduce(S1_T.copy());
+      //   cout << test_svd.A<<endl;
+      //   double test_det(1.0);
+      //   for(int i = 0;i < nstates;i++)test_det *= test_svd.A(i,i);
+      //   cout << "test_det:  "<<test_det<<endl;
+      //   cout << test_svd.U;
+      // }
       detS_hat = det_S1_T*detS_a[t-1]/detS_hat; 
       S1_mu1 = MTS_M*data.x[t];
       S2_mu2 = T_inv.Tr()*(S_hat*mu_a[t-1]);
@@ -550,11 +411,12 @@ int main(int argc, char** argv){
       S_a[t] = (S_a[t] + S_a[t].Tr())* .5;
       //      symmetrize(S_a[t]);
       // fflush(stdout);
-      mu_a[t] = sym_inv(S_a[t],&detS_a[t])*S_mu; 
+      mu_a[t] = sym_inv(S_a[t],&detS_a[t])*S_mu;
+      if(t < 10 || t > N-10) cout << format("length x[%d]: %.9g, length mu_a_t: %.9g\n", t, length(data.x[t]), length(mu_a[t]));
       R = data.x[t].Tr()*theta.S_M*data.x[t] + mu_a[t-1].Tr()*S2_mu2 - mu_a[t].Tr()*S_mu;
       alpha_score[t] = alpha_score[t-1] + .5*(log(detS_hat*det_S_M/detS_a[t]) - R) - log_det_T; 
     } // end alpha pass
-      
+
     // beta pass
     mu_b[N].fill(0);
     S_b[N].fill(0);
@@ -564,7 +426,7 @@ int main(int argc, char** argv){
     for(int t = N-1;t >= 0;t--){
       S_hat = MTS_MM + S_b[t+1];
       S_b[t] = theta.T.Tr()*S_hat*sym_inv(S_hat + theta.S_T)*S_T_T;
-      S_b[t] - (S_b[t] + S_b[t].Tr())*.5;
+      S_b[t] = (S_b[t] + S_b[t].Tr())*.5;
       //      symmetrize(S_b[t]);
       //      fflush(stdout);
       S1_mu1 = MTS_M*data.x[t+1];
@@ -574,10 +436,10 @@ int main(int argc, char** argv){
       mu_b[t] = T_inv*mu_hat;
       R = data.x[t+1].Tr()*theta.S_M*data.x[t+1] + mu_b[t+1].Tr()*S2_mu2 - mu_hat.Tr()*S_hat*mu_hat;
       beta_score[t] = beta_score[t+1] + .5*(log(det_S_M*detS_b[t+1]/detS_hat) - R) - log_det_T; 
-      detS_b[t] = det(S_b[t]); // compute this for the next backward step 
+      detS_b[t] = det(S_b[t],1.0e-20); // compute this for the next backward step 
     } // end beta pass
 
-    // gamma calculation
+    // gamma calculation (gamma_t is the mean of the gamma distr at time t).
     double detS_c;
     for(int t = 0;t <= N;t++){
       S_c_inv[t] = sym_inv(S_a[t] + S_b[t],&detS_c);
@@ -597,18 +459,35 @@ int main(int argc, char** argv){
     //    Re-estimation
     if(S_0_reestimate){
       theta.mu_0 = mu_c[0];theta.S_0 = S_a[0]+S_b[0];
+      cout << "New S_0:\n"<<theta.S_0<< "new mu_0: " << theta.mu_0.Tr();
     }
 
     if(M_reestimate){
       // reestimate theta.M
-      Gamma1.fill(0);
-      Gamma2.fill(0);
-      for(int t = 1;t <= N;t++){
-        Gamma1 = Gamma1 + data.x[t]*mu_c[t].Tr();
-        Gamma2 = Gamma2 + S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
+      // re-estimation by least squares
+      cout << "M before reestimation:\n"<<theta.M;
+      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T from T*mu_c[t] = mu_c[t+1]
+      for(int i = 0;i < data_dim;i++){ // solve for one row at a time
+        qr_regs[i].reset(nstates); // 
+        for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
+          qr_regs[i].update(mu_c[t],data.x[t][i]);
+        }
       }
-      theta.M = Gamma1*sym_inv(Gamma2);
+      for(int i = 0; i < data_dim;i++){
+        qr_regs[i].solve();
+        for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
+      }
+      cout << "new M:\n"<<theta.T;
     }
+    //   Gamma1.fill(0);
+    //   Gamma2.fill(0);
+    //   for(int t = 1;t <= N;t++){
+    //     Gamma1 = Gamma1 + data.x[t]*mu_c[t].Tr();
+    //     Gamma2 = Gamma2 + S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
+    //   }
+    //   theta.M = Gamma1*sym_inv(Gamma2);
+    //   cout << "new M:\n"<<theta.M;
+    // }
     
     if(S_M_reestimate){
       // reestimate theta.S_M
@@ -620,30 +499,56 @@ int main(int argc, char** argv){
       }
       theta.S_M = sym_inv(theta.S_M);
       theta.S_M *= N;
+      cout << "new S_M:\n"<<theta.S_M;
     }
 
     if(T_reestimate){
-      Gamma1.fill(0);
-      Gamma2.fill(0);
-      for(int t = 1;t <= N;t++){
-        //        S_star = S_t1_t_inv[t]*S_a[t-1];
-        S_plus = S_t1_t_inv[t]*S_T_T.Tr();
-        nu = S_t1_t_inv[t]*(S_T_T.Tr()*mu_c[t] + S_a[t-1]*mu_a[t-1]);
-        I_1 = S_c_inv[t]*S_plus.Tr() + mu_c[t]*nu.Tr();
-        I_2 = S_plus*S_c_inv[t]*S_plus.Tr() + nu*nu.Tr();
-        Gamma1 = Gamma1 + I_1;
-        Gamma2 = Gamma2 + S_t1_t_inv[t] + I_2;
+      // re-estimation by least squares
+      cout << "T before reestimation:\n"<<theta.T;
+      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T from T*mu_c[t] = mu_c[t+1]
+      for(int i = 0;i < nstates;i++){ // solve for one row at a time
+        qr_regs[i].reset(nstates);
+        for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
+          qr_regs[i].update(mu_c[t],mu_c[t+1][i]);
+          // cout << format("alpha[%d]: ",t);
+          // for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_a[t][j]);
+          // cout << endl;
+          // if(t>= N- 5 || t <= 5){
+          //   cout << format("alpha[%d]: ",t);
+          //   for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_a[t][j]);
+          //   cout << format("beta[%d]: ",t);
+          //   for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_b[t][j]);
+          //   cout << format("gamma[%d]: ",t);
+          //   for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_c[t][j]);
+          //   cout <<"\nR:\n"<< qr_regs[i].R;
+          // }
+        }
       }
-      cout << "Gamma1:\n"<<Gamma1<<"Gamma2:\n"<<Gamma2;
-      T_bar = Gamma1*sym_inv(Gamma2);
-       cout << "T_bar:\n"<<T_bar;
-       if(AR_mode){// update the AR coefficients, leave everything else unchanged
-        for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) = T_bar(nstates-1,j); 
+      for(int i = 0;i < nstates;i++){
+        qr_regs[i].solve();
+        for(int j = 0;j < nstates;j++) theta.T(i,j) = qr_regs[i].solution[j];
       }
-      else theta.T.copy(T_bar); // update the whole matrix
-      cout << "theta.T:\n"<<theta.T;
+      cout << "new T:\n"<<theta.T;
     }
-    
+        // Gamma1.fill(0);
+      // Gamma2.fill(0);
+      // for(int t = 1;t <= N;t++){
+      //   //        S_star = S_t1_t_inv[t]*S_a[t-1];
+      //   S_plus = S_t1_t_inv[t]*S_T_T.Tr();
+      //   nu = S_t1_t_inv[t]*(S_T_T.Tr()*mu_c[t] + S_a[t-1]*mu_a[t-1]);
+      //   I_1 = S_c_inv[t]*S_plus.Tr() + mu_c[t]*nu.Tr();
+      //   I_2 = S_plus*S_c_inv[t]*S_plus.Tr() + nu*nu.Tr();
+      //   Gamma1 = Gamma1 + I_1;
+      //   Gamma2 = Gamma2 + S_t1_t_inv[t] + I_2;
+      // }
+      // cout << "Gamma1:\n"<<Gamma1<<"Gamma2:\n"<<Gamma2;
+      // T_bar = Gamma1*sym_inv(Gamma2);
+      //  cout << "T_bar:\n"<<T_bar;
+      //  if(AR_mode){// update the AR coefficients, leave everything else unchanged
+      //   for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) = T_bar(nstates-1,j); 
+      // }
+      // else theta.T.copy(T_bar); // update the whole matrix
+      // cout << "theta.T:\n"<<theta.T;
     if(S_T_reestimate){
       S_T.fill(0);
       for(int t = 1;t <= N;t++){
@@ -652,9 +557,10 @@ int main(int argc, char** argv){
       }
       theta.S_T = sym_inv(S_T);//sym_inv(S_T0sym_inv((S_T1 + S_T_inv*S_T0*S_T_inv));
       theta.S_T *= N;
+      cout << "new S_T:\n"<<theta.S_T;
     }
   }
-  for(int t = 1;t <=N;t++) cout << format("gamma_score[%d]: %f\n",t,gamma_score[t]);
+  //  for(int t = 1;t <=N;t++) cout << format("gamma_score[%d]: %f\n",t,gamma_score[t]);
   cout << "end training with delta_score = "<<delta_score<<endl;
 }
 #if 0
@@ -805,3 +711,167 @@ int main(int argc, char** argv){
                  stake,stake_stats.mean(), stake_sigma, sharpe, max_drawdown*100,nobet);
 #endif
 
+  //  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
+  int N;  // time of last training data point
+  bool simulation;
+  // // set up initial parameters
+  // theta.M.fill(0);
+  // theta.T.fill(0);
+  // theta.S_M.fill(0);
+  // theta.S_T.fill(0);
+  // theta.S_0.fill(0);
+  // theta.mu_0.fill(0);
+  // for(int i = 0;i < nstates;i++){
+  //   theta.M(i,i) = 1.0;
+  //   theta.T(i,i)= 1.0;
+  //   theta.S_M(i,i) = 1.0;
+  //   theta.S_T(i,i) = 1.0; // std dev .1
+  //   theta.S_0(i,i) = 1.0;
+   
+  // }
+  // if(AR_mode){
+  //   for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
+  //   theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = 1
+  //   for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 0; 
+  // }
+  // else {//for(int i = 0;i < nstates;i++)theta.T(i,i) = 1.0;
+  //   /* set theta.T = random orthonormal matrix
+  //    * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
+  //    *" How to generate random matrices from the classical compact groups"
+  //    */
+  //   Matrix<double> A(nstates,nstates),R(nstates,nstates);
+  //   R.fill(0);
+  //   Normaldev normal(0,1,seed);
+  //   for(int i = 0;i < nstates;i++){
+  //     for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
+  //   }
+  //   qr_comp(A,theta.T,R);
+  // }
+  // for(int i = 0;i < data_dim;i++){
+  //   theta.S_M(i,i) = 1.0;
+  //   if(i < nstates)theta.M(i,i) = 1.0;
+  // }
+
+  // if(AR_mode){
+  //   for(int i = 0;i < nstates-1;i++) theta.T(i,i+1) = 1.0;
+  //   theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // det = +- 1
+  //   for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1; 
+  // }
+  // else {
+  //   //for(int s = 0;s < nstates;s++)theta.T(s,s) = 1.0;  // set to the identity
+  //   //       for(int s = 0;s < nstates-1;s++) theta.T(s,s+1) = 1.0; // companion matrix
+  //   //        theta.T(nstates-1,0) = 1 - 2*((nstates-1)%2); // determinant = 1
+  //   // for(int j = 1;j < nstates;j++)theta.T(nstates-1,j) = 1.0;
+
+  //   /* set theta.T = random orthonormal matrix
+  //    * Ref: arXiv:math-ph/0609050v2 27 Feb 2007
+  //    *" How to generate random matrices from the classical compact groups"
+  //    */
+  //   Matrix<double> A(nstates,nstates),R(nstates,nstates);
+  //   R.fill(0);
+  //   Normaldev normal(0,1,seed);
+  //   for(int i = 0;i < nstates;i++){
+  //     for(int j = 0;j < nstates;j++) A(i,j) = normal.dev();
+  //   }
+  //   qr_comp(A,theta.T,R);
+  // }
+
+// struct ArrayInitializer : public Initializer<Array<double>> { 
+//   // For use with Array<Array<double>>
+//   int length;
+//   ArrayInitializer(int l = 100) : length(l) {}
+//   void operator()(Array<double>& A){A.reset(length);}
+// };
+
+// Matrix<double> solve(Matrix<double>& Gamma_1,Matrix<double>& Gamma_2, Matrix<double>& S_M,
+//                      double eps = 1.0e-8, int niters = 10){
+
+//   Svd svd;
+//   int n = S_M.nrows();
+//   double lambda(1.0);
+//   svd.reduce(Gamma_2); // copy to Svd space and diagonalize
+//   Matrix<double> hat_S_M(n,n);
+//   Matrix<double> M(Gamma_1.nrows(),Gamma_1.ncols());
+//   M = Gamma_1*svd.V;
+//   hat_S_M = M.Tr()*S_M*M;
+//   double err(1.0),sum2,sum3,s2,iter(0);
+//   while(fabs(err) > eps && iter++ < niters){
+//     sum2 = sum3 = 0;
+//     for(int i = 0;i < n;i++){
+//       sum2 += (s2 = hat_S_M(i,i)/((svd.A(i,i) + lambda)*(svd.A(i,i)+lambda)));
+//       sum3 += s2/(svd.A(i,i) + lambda);
+//     }
+//     err = 10*n-sum2;
+//     if(sum3 < eps)break;
+//     lambda -= err/(2*sum3); // lambda_{i+1} = lambda_i - f(lambda)/f'(lambda)
+//   }
+//   for(int j = 0;j < M.ncols();j++){
+//     for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
+//   }
+//   M = M*svd.V.Tr();
+//   return M;
+
+// }
+// struct Solver {
+//   matrix& Gamma1;
+//   matrix& Gamma2;
+//   matrix& S_M;
+//   matrix hat_S_M;
+//   matrix M;
+//   double eps;
+//   double niters;
+//   double lambda;
+//   int target;
+//   int n;
+//   Svd svd;
+//   Solver(Matrix<double>& G1,Matrix<double>& G2, Matrix<double>& S, int t, double e = 1.0e-5, int max = 100):
+//     Gamma1(G1), Gamma2(G2), S_M(S), target(t), eps(e), niters(max){
+//     n = S.nrows();
+//     //int n = S.nrows();
+//     hat_S_M.reset(n,n);
+//     M.reset(n,n);
+//     svd.reduce(Gamma2); // copy to Svd space and diagonalize
+//     M = Gamma1*svd.V;
+//     hat_S_M = M.Tr()*S_M*M;
+//   }
+//   double f(double x){
+//     double sum = 0;
+//     for(int i = 0;i < n;i++){
+//       sum += hat_S_M(i,i)/((svd.A(i,i) + x)*(svd.A(i,i) + x));
+//     }
+//     return target - sum;
+//   }
+//   matrix operator()(void){
+//     double delta = .5*svd.A(n-1,n-1);  // slightly to the right of the smallest eigenvalue (largest singularity)
+//     double lambda1 = -delta; 
+//     double lambda2 = -lambda1;
+//     while(f(lambda2) < 0) lambda2 *= 2;
+//     while(f(lambda1) > 0){
+//       delta /= 2;
+//       lambda1 -= delta; // move closer to the singularity
+//     }
+//     double err(1.0);
+//     int iter(0);
+//     double f1,f2;
+//     while(fabs(err) > eps && iter++ < niters){
+//       //      f1 = f(lambda1);
+//       //      f2 = f(lambda2);
+//       //      assert(f1 < 0 && f2 > 0);
+//       lambda = (lambda1+lambda2)/2;
+//       err = f(lambda);
+//       if(err < 0){
+//         lambda1 = lambda;
+//         //        f1 = err;
+//       }
+//       else{
+//         lambda2 = lambda;
+//         //        f2 = err;
+//       }
+//     }
+//     for(int j = 0;j < M.ncols();j++){
+//       for(int i = 0;i < M.nrows();i++)M(i,j) /= (svd.A(j,j) + lambda); 
+//     }
+//     M = M*svd.V.Tr();
+//     return M;
+//   }
+// };

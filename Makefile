@@ -91,13 +91,13 @@ MarketHMM: MarketHMM.cc HMM.o GetOpt.o util.o Array.h Matrix.h Gaussian.h Awk.o 
 	g++ $(CFLAGS) -o MarketHMM MarketHMM.cc HMM.o GetOpt.o util.o Awk.o matrix.o ProbHistogram.o QRreg.o \
 gzstream/gzstream.o -lz
 qr_reg: qr_reg.cc QRreg.o GetOpt.o util.o
-	g++ $(CFLAGS) -o qr_reg qr_reg.cc QRreg.o util.o GetOpt.o x
+	g++ $(CFLAGS) -o qr_reg qr_reg.cc QRreg.o util.o GetOpt.o 
 testSvd: testSvd.cc 
 	g++ $(CFLAGS) -o testSvd testSvd.cc matrix.o util.o
 testRanVec: testRanVec.cc matrix.o util.o 
 	g++ $(CFLAGS) -o testRanVec testRanVec.cc matrix.o util.o
-kalman: kalman.cc matrix.o util.o GetOpt.o qr_comp.o util.o
-	g++ $(CFLAGS) -o kalman kalman.cc matrix.o util.o GetOpt.o qr_comp.o
+kalman: kalman.cc matrix.o util.o GetOpt.o qr_comp.o util.o QRreg.o
+	g++ $(CFLAGS) -o kalman kalman.cc matrix.o util.o GetOpt.o qr_comp.o QRreg.o
 test_inv: test_inv.cc matrix.o util.o 
 	g++ $(CFLAGS) -o test_inv test_inv.cc matrix.o util.o
 test_chol: test_chol.cc matrix.o util.o 

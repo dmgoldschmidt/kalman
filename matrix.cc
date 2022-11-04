@@ -26,41 +26,42 @@ bool scale_rows(matrix& C){
 
 
 
-int ut0(matrix& A, double eps){// upper-triangularize in place by Givens row rotations
-  int nrot = 0;
-  double cos_t, sin_t, h, a,b, tmp;
-  for(int i = 1;i < A.nrows();i++){
-    for(int j = 0;j < i;j++){
-      if(A(i,j) > A(j,j)){ // numerical hygene for h = sqrt(A(i,j)^2 + A(j,j)^2
-        a = A(i,j);
-        b = A(j,j);
-      }
-      else{
-        a = A(j,j);
-        b = A(i,j);
-      }
-      if(a < eps) continue;
-      h = a*sqrt(1+b*b/(a*a));
-      nrot++;
-      sin_t = A(j,j)/h;
-      cos_t = A(i,j)/h;
-      A(j,j) = h;
-      A(i,j) = 0;
-      for(int k = j+1;k < A.ncols();k++){
-        tmp = sin_t*A(j,k) + cos_t*A(i,k);
-        A(i,k) = -cos_t*A(j,k) + sin_t*A(i,k);
-        A(j,k) = tmp;
-      }
-    }
-  }
-  return nrot;
-}
+// int ut0(matrix& A, double eps){// upper-triangularize in place by Givens row rotations
+//   int nrot = 0;
+//   double cos_t, sin_t, h, a,b, tmp;
+//   for(int i = 1;i < A.nrows();i++){
+//     for(int j = 0;j < i;j++){
+//       if(A(i,j) > A(j,j)){ // numerical hygene for h = sqrt(A(i,j)^2 + A(j,j)^2
+//         a = A(i,j);
+//         b = A(j,j);
+//       }
+//       else{
+//         a = A(j,j);
+//         b = A(i,j);
+//       }
+//       if(a < eps) continue;
+//       h = a*sqrt(1+b*b/(a*a));
+//       nrot++;
+//       sin_t = A(j,j)/h;
+//       cos_t = A(i,j)/h;
+//       A(j,j) = h;
+//       A(i,j) = 0;
+//       for(int k = j+1;k < A.ncols();k++){
+//         tmp = sin_t*A(j,k) + cos_t*A(i,k);
+//         A(i,k) = -cos_t*A(j,k) + sin_t*A(i,k);
+//         A(j,k) = tmp;
+//       }
+//     }
+//   }
+//   return nrot;
+// }
 
 
 
 int ut(matrix& A, double eps){// upper-triangularize in place by Givens row rotations
-  int nrot = 0; // eps has a default argument, but eps is not used!
-  Givens R;
+  if(eps == 0) eps = A.error_tolerance;
+  int nrot = 0; 
+  Givens R(eps);
 
   for(int i = 1;i < A.nrows();i++){
     for(int j = 0;j < std::min(i,A.ncols());j++){
@@ -83,13 +84,14 @@ double trace(const matrix& A){
 }
 
 double det(const matrix& A, double eps){
+  if(eps == 0) eps = A.error_tolerance;
   assert(A.nrows() == A.ncols());
   matrix B = A.copy();
   ut(B,eps);
   double d = 1.0;
   for(int i = 0;i < B.nrows();i++){
     d *= B(i,i);
-    if(d < 1.0e-20)return 0;
+    if(d < eps)return 0;
   }
   return d;
 }
@@ -110,7 +112,8 @@ double det(const matrix& A, double eps){
 //   return det;
 // }
     
-matrix qr(const matrix& A){
+matrix qr(const matrix& A, double eps){
+  if(eps == 0) eps = A.error_tolerance;
   double zero(0);
   matrix QR(A.nrows(),A.nrows()+A.ncols(),&zero);
   matrix Q(QR.slice(0,A.ncols(),A.nrows(),A.nrows()));
@@ -118,12 +121,13 @@ matrix qr(const matrix& A){
 
   R.copy(A);
   for(int i = 0;i < Q.nrows();i++)Q(i,i) = 1.0; // initialize Q to I
-  ut(QR);
+  ut(QR,eps);
   return QR;
 }
 
 
 bool reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
+  if(eps == 0) eps = A.error_tolerance;
   int n = A.nrows();
   double a,b;
 
@@ -144,6 +148,7 @@ bool reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
 
 void solve(matrix& A, double eps){ // solve linear equations in-place 
   // A is an m x (m+k) matrix of m equations (in m unknows) with k right-hand sides
+  if(eps == 0) eps = A.error_tolerance;
   ut(A); // rotate  to upper-triangular form;
   reduce(A,eps); // now row-reduce coefficients to identity.  Each rhs is now solved
 }
@@ -158,14 +163,14 @@ void solve(matrix& A, double eps){ // solve linear equations in-place
 // }
 
 matrix inv(const matrix& A, double* det, double eps){ // general matrix inverse
+  if(eps == 0) eps = A.error_tolerance;
   assert(A.nrows() == A.ncols());
   matrix QR = qr(A); // rotate to upper-triangular form
-  // and append the rotation matrix (as extra columns)
-  //    cout << "after qr:\n";QR.print();
+                                  // and append the rotation matrix (as extra columns)
   int n = QR.nrows();
   matrix Q(QR.slice(0,n,n,n));
   matrix R(QR.slice(0,0,n,n));
-  if(det != nullptr){
+  if(det != nullptr){ // compute determinant as a by-product if requested
     *det = 1.0;
     //  cout << "\nR:\n"<<R<<endl;
     for(int i = 0;i < n;i++){
@@ -173,7 +178,7 @@ matrix inv(const matrix& A, double* det, double eps){ // general matrix inverse
         std::cout << "error at i = "<<i<<"R:\n"; R.print();
         std::fflush(stdout);
       }
-      if(fabs(R(i,i)) < 1.0e-20){
+      if(fabs(R(i,i)) < eps){
         *det = 0;
         break;
       }
@@ -184,17 +189,18 @@ matrix inv(const matrix& A, double* det, double eps){ // general matrix inverse
       }
     }
   }
-  reduce(QR); // now row-reduce
+  reduce(QR,eps); // now row-reduce
   return Q;
 }
 
-matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
+matrix sym_inv(const matrix& A, double* det, double eps){ // symmetric matrix inverse
+  if(eps == 0) eps = A.error_tolerance;
   assert(A.nrows() == A.ncols());
   int n = A.nrows();
   matrix CB(n,2*n);
   matrix C(CB.slice(0,0,n,n));
   matrix B(CB.slice(0,n,n,n));
-  cholesky(A,C); // A = C.Tr()*C
+  cholesky(A,C,eps); // A = C.Tr()*C
   B.fill(0);
   for(int i = 0;i < n;i++) B(i,i) = 1.0; // B = I
   if(det != nullptr){
@@ -205,15 +211,15 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
         std::fflush(stdout);
       }
       d *= C(i,i);
-      if(fabs(d)< 1.0e-50){
+      if(fabs(d)< eps){
         d = 0;
         break;
       }
     }
     *det = d*d;
   }
-  reduce(CB); // now row-reduce. now B = C_inv
-#if 0
+  reduce(CB,eps); // now row-reduce. now B = C_inv
+#if 0 // debugging code
   matrix T = A*B*(B.Tr());
   for(int i = 0;i < n;i++){
     for(int j = 0;j < i;j++){
@@ -235,7 +241,7 @@ matrix sym_inv(const matrix& A, double* det){ // symmetric matrix inverse
 
 bool cholesky(const matrix& M, matrix& C, double eps){ // user-supplied answer
   /* M is symmetric positive definite. C is upper triangular with C^tC = M.*/
-  
+  if(eps == 0) eps = M.error_tolerance;
   C.fill(0);
   for(int j = 0;j < M.ncols();j++){
     for(int i = 0;i <= j;i++){
@@ -260,6 +266,7 @@ matrix cholesky(const matrix& M){ // we return the answer
 }
 
 Array<matrix> svd(const matrix& A, double eps, int maxiters){
+  if(eps == 0) eps = A.error_tolerance;
   Array<matrix> QR(2);
   Array<matrix> R(2);
   int j,niters,n = std::min(A.nrows(),A.ncols());
@@ -288,8 +295,9 @@ Array<matrix> svd(const matrix& A, double eps, int maxiters){
 }
 
 
-void Svd::reduce(const matrix& A0){
-  Givens R;
+void Svd::reduce(const matrix& A0, double eps){
+  if(eps == 0) eps = A0.error_tolerance;
+  Givens R(eps);
   reset(A0.nrows(),A0.ncols()); // call this for backward compatibility
   A.copy(A0); // copy in the input
   //cout <<"at line 159:\n"<<AUV;
@@ -357,6 +365,7 @@ void Svd::reset(int nr, int nc){
     
 
 Array<matrix> svd1(const matrix& A, double eps, int maxiters){
+  if(eps == 0) eps = A.error_tolerance;
   Array<matrix> QR(2);
   Array<matrix> R(2);
   int j,niters,n = std::min(A.nrows(),A.ncols());
@@ -395,54 +404,55 @@ double dotAB(const matrix& A, const matrix& B, int i, int j){
   return ans;
 }
 
-double gram_schmidt(matrix& A, matrix& S, double eps){ // orthonormalize the columns of A 
-  int m = A.nrows();
-  int n = A.ncols();
-  eps = eps*eps;
-  double error = 0;
+// double gram_schmidt(matrix& A, matrix& S, double eps){ // orthonormalize the columns of A
+// NOTE: this is just the qr algorithm, so unnecessary
+//   int m = A.nrows();
+//   int n = A.ncols();
+//   eps = eps*eps;
+//   double error = 0;
 
-  for(int i = 0;i < n;){
-    // inductively, col.s 0,1,...,i-1 are already orthonormal
-    S(0,i) = dot_cols(A,i,i); // save initial squared length
-    if(S(0,i) > eps){
-      for(int j = 0;j < i;j++){
-        double scale = dot_cols(A,i,j);
-#ifdef VERBOSE
-        cout <<format("dot product of col %d = ",i);
-        for(int k = 0;k < m;k++)cout << A(k,i)<<" ";
-        cout <<format("\n\twith col %d = ",j);
-        for(int k = 0;k < m;k++)cout << A(k,j)<<" ";
-        cout <<"\nis "<<scale<<endl;
-        cout <<"length of col "<<i<<" is "<<sqrt(S(0,i))<<endl;
-#endif
-        for(int k = 0;k < m;k++)A(k,i) -= scale*A(k,j); // A_i -= <A_i,A_j>A_j
-        // OK, col. i is now orthogonal to cols 0,1,...,j
-        double e0 = fabs(scale)/sqrt(S(0,i)); // |cos(\theta_i)|
-        //        cout << format("e0(%d,%d) = %f\n",i,j,e0);
-        if(e0 > error)error = e0;
-        S(0,i) -= scale*scale; // adjust sq. length
-        //      cout << format("error %d %d = %f\n",i,j,error);
-      }
-    }
-    if(S(0,i) < eps){// swap with last col and reduce n
-      if(i < n-1){
-        double temp;
-        for(int k = 0;k < m;k++){
-          temp = A(k,i);
-          A(k,i) = A(k,n-1);
-          A(i,n-1) = temp;
-        }
-      }
-      S(0,n-1) = 0;
-      n--;
-      continue;
-    }
-    S(0,i) = sqrt(S(0,i));
-    for(int k = 0;k < m;k++) A(k,i) /= S(0,i); // normalize col i
-    i++;
-  }
-  return error; // max value of |cos(\theta_i)|
-}
+//   for(int i = 0;i < n;){
+//     // inductively, col.s 0,1,...,i-1 are already orthonormal
+//     S(0,i) = dot_cols(A,i,i); // save initial squared length
+//     if(S(0,i) > eps){
+//       for(int j = 0;j < i;j++){
+//         double scale = dot_cols(A,i,j);
+// #ifdef VERBOSE
+//         cout <<format("dot product of col %d = ",i);
+//         for(int k = 0;k < m;k++)cout << A(k,i)<<" ";
+//         cout <<format("\n\twith col %d = ",j);
+//         for(int k = 0;k < m;k++)cout << A(k,j)<<" ";
+//         cout <<"\nis "<<scale<<endl;
+//         cout <<"length of col "<<i<<" is "<<sqrt(S(0,i))<<endl;
+// #endif
+//         for(int k = 0;k < m;k++)A(k,i) -= scale*A(k,j); // A_i -= <A_i,A_j>A_j
+//         // OK, col. i is now orthogonal to cols 0,1,...,j
+//         double e0 = fabs(scale)/sqrt(S(0,i)); // |cos(\theta_i)|
+//         //        cout << format("e0(%d,%d) = %f\n",i,j,e0);
+//         if(e0 > error)error = e0;
+//         S(0,i) -= scale*scale; // adjust sq. length
+//         //      cout << format("error %d %d = %f\n",i,j,error);
+//       }
+//     }
+//     if(S(0,i) < eps){// swap with last col and reduce n
+//       if(i < n-1){
+//         double temp;
+//         for(int k = 0;k < m;k++){
+//           temp = A(k,i);
+//           A(k,i) = A(k,n-1);
+//           A(i,n-1) = temp;
+//         }
+//       }
+//       S(0,n-1) = 0;
+//       n--;
+//       continue;
+//     }
+//     S(0,i) = sqrt(S(0,i));
+//     for(int k = 0;k < m;k++) A(k,i) /= S(0,i); // normalize col i
+//     i++;
+//   }
+//   return error; // max value of |cos(\theta_i)|
+// }
 
 void print_mat(const matrix& A, int i1, int i2){ std::cout <<"\n"<<A.slice(i1,0,i2-i1+1,A.ncols());}
   

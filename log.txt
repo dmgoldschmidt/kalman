@@ -116,8 +116,56 @@ that it's actually 3.39276e-21.  Looks like it's computed at line 527.  Next ste
 
 Mon 17 Oct 2022 10:31:37 AM PDT
 A possible problem is that there are inconsistent error tolerances for various Matrix<double> functions (in matrix.cc).
-I think a good solution would be to include a default error tolerance as a class variable in Matrix.h.  Then each function
-declaration has an error tolerance which defaults to the class default value, so it looks like this:
-<return value> function(matrix &A, ...., double eps = A.eps).  If this works, it should also allow any particular matrix
-A to be declared with an optional eps value, which will get set to the default value if it's not specified. 
+I think a good solution would be to include an error tolerance as a class variable in Matrix.h.  Then each function
+can be called with a particular error tolerance, or  use the class value (for the input matrix to the function).
+This allows any particular matrix A to be declared with an optional error tolerance, which will be set to the default value
+if it's not specified.   
  I'm going to commit the current versions of everything before trying out these changes.
+
+Tue 18 Oct 2022 10:30:46 AM PDT
+So a problem I've had forever is that when I edit a hardlinked file in emacs, the new file is no longer linked.  I found
+a clear explanation of this on the web, together with the solution:
+(setq backup-by-copying-when-linked t)
+The problem is that when emacs writes a modified file to disk, the default is to first rename the original linked file to
+<file>~ and then write the new version to a new file named <file>.  But with the above modification, this is reversed,
+the original contents are copied to the backup file and the new version overwrites the linked file.
+
+Tue 18 Oct 2022 08:48:54 PM PDT
+OK, I've made the changes to Matrix.h and matrix.cc.  And the emacs fix above is working.  Next step:  get a clean
+compile of kalman.cc with the new Matrix stuff, and re-run.  And on another note, MemoryBlock should really be
+in its own .h file.  That *should* be a relatively easy fix.
+
+Thu 20 Oct 2022 12:16:54 PM PDT
+I have a clean compile and when I run (--S_0 --T) I still get numeric errors, even when the error tolerances are
+1.0e-50.  In fact, in that case, I get garbage like negative determinants, etc.  I'm now going to review the re-estimation
+code for T, because I would like to try a simple least-squares approach instead.  After reviewing kalman.tex and
+kalman.cc, I see that this hasn't been tried.  I also find that struct QRreg given in QRreg.cc,h is just the ticket
+for this.  I need an Array<QRreg> of size nstates to solve for each row of T separately, fitting the overdetermined
+equation T\gamma_t = \gamma_{t+1} (1\le t\le N).  Hopefully, this is both easy and successful.  If it works, I can
+similarly fit the equation M_gama_t = x_t to solve for M.  Unfortunately, the noise matrices are another story, but
+might try \sum_{t=1}^N S_c[t]/N for example as a reestimation for S_T.
+
+Sat 22 Oct 2022 10:22:50 AM PDT
+I'm getting compile errors about interp and/or IndexPair, supposedly coming from Sort.h.  I don't understand
+the errors.  I thought I removed include/Sort.h.  I'll now actually delete it.
+
+Wed 26 Oct 2022 02:35:24 PM PDT
+I've solved the issue with Sort.h.  Moral:  NEVER put any serious code (more than a few lines) into a .h file,
+because when it get included more than once, you get multiple definitions from the linker.
+Anyway, on another subject, I discovered that the version of kalman.tex that I've been using seems to be out of
+date.  I checked out the latest version I could find, and moved the current one to kalman.tex.bak.
+
+Also, I think I need to recode kalman.cc in a modular fashion.  To begin with, I will
+write a class NormalDist which handles everything for a normal distribution, especially forming the product
+with another NormalDist by completing the square as in the document.  This can be tested independently.
+Then I will try to modularize the alpha pass.  Maybe with classes TimeUpdate and MeasurementUpdate?
+
+Sat Oct 29 09:01:02 2022
+The code now looks like it's running with T and M reestimation, but the climb is slow, and I don't think the running
+time is much better than on the Intel hardware.  Hmmm.  Anyway, next I want to get rid of the random start for
+M for now, to see better how the corrections look.  Also, I will print out any parameters that are being reestimated
+after each iteration.
+
+Fri Nov  4 09:04:16 2022
+OK, I changed M initialization to use the identity matrix if nstates == data_dim.  More importantly, I changed T and M reestimation to use QRreg least squares, fitting to T*mu_c[t] \approx mu_c[t+1] and M*mu_c[t] \approx x[t] respectively.  These changes look like they
+improve convergence drastically.  I'll try more runs with greater tweaking of initial values for T and M.  Also, I wonder if I can prove that they also converge to the maximum data likelihood.  Another thing to try:  let S_C = 1/N\sum_{t=1}^N S_c[t].  Then reestimate S_T  = T^tS_T(old)T and S_M = M^tS_M(old)M.  Also we might intialize S_0 to the sample covariance matrix of the data. 

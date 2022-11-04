@@ -2,6 +2,7 @@
 #define MATRIX_H
 #include <iostream>
 #include <atomic>
+#include <sstream>
 #include "using.h"
 #include "Array.h"
 #include "util.h"
@@ -27,7 +28,7 @@ struct Givens{ // reset computes, applies, and stores the 2x2 rotation matrix T 
   double h;
   double eps;
 
-  Givens(double e = 1.0e-10) : eps(e){}
+  Givens(double e = 1.0e-20) : eps(e){}
   
   bool reset(double& a0, double& b0){
     if(fabs(b0) < eps) return false;
@@ -184,13 +185,15 @@ protected:
   int _ncols;
   int col_stride;
 public:
+  double error_tolerance;  // default tolerance(for SCALAR = double)
   bool printall;
-  Matrix(void) : offset(0), _nrows(0), _ncols(0), col_stride(0), printall(false) {}
-  Matrix(int m, int n, const SCALAR* f = nullptr): data(m*n), offset(0), _nrows(m), _ncols(n), col_stride(n),printall(false){
+  Matrix(void) : error_tolerance(1.0e-20), offset(0), _nrows(0), _ncols(0), col_stride(0), printall(false) {}
+  Matrix(int m, int n, const SCALAR* f = nullptr, double eps = 1.0e-20):
+    data(m*n), offset(0), _nrows(m), _ncols(n), col_stride(n),printall(false), error_tolerance(eps) {
     if(f != nullptr)fill(*f);
   }
 
-  Matrix(std::initializer_list<Array<SCALAR>> l) : printall(false){
+  Matrix(std::initializer_list<Array<SCALAR>> l) : printall(false), error_tolerance(1.0e-20){
     
     _nrows = l.size();
     _ncols = 0;
@@ -207,17 +210,18 @@ public:
     }
   }
  
-  Matrix(const Matrix& M) : data(M.data), offset(M.offset), _nrows(M._nrows), _ncols(M._ncols), col_stride(M.col_stride),printall(M.printall){
+  Matrix(const Matrix& M) : data(M.data), offset(M.offset), _nrows(M._nrows), _ncols(M._ncols), col_stride(M.col_stride),printall(M.printall),error_tolerance(M.error_tolerance){
     //    cout << format("Matrix copy constructor called copying %x\n",&M.data[0]);
     // NOTE: This is a soft copy, using the same dynamic storage as M
   } 
 
-  void reset(int m, int n, const SCALAR* f = nullptr){
+  void reset(int m, int n, const SCALAR* f = nullptr, double eps =1.0e-20){
     data.reset(m*n);
     offset = 0;
     _nrows = m;
     col_stride = _ncols = n;
     printall = false;
+    error_tolerance = eps;
     if(f != nullptr)fill(*f);
   }
 
@@ -229,13 +233,14 @@ public:
     
   Matrix copy(int new_cols = 0) const{ // return a new deep copy
                                        // with optional extra cols
-    Matrix M(_nrows,_ncols+new_cols);
+    Matrix M(_nrows,_ncols+new_cols, nullptr, error_tolerance);
     for(int i = 0;i < _nrows;i++){
       for(int j = 0;j < _ncols;j++) M(i,j) = ENTRY(i,j);
     }
+    
     return M;
   }
-  void copy(const Matrix& A){ // deep copy A to *this
+  void copy(const Matrix& A){ // deep copy data from A to *this
     if(A._nrows != _nrows || A._ncols != _ncols)
       throw "Can't copy-- target has different dimensions\n";
     
@@ -407,7 +412,10 @@ public:
       for(int j = 0;j < i;j++) ENTRY(i,j) = ENTRY(j,i) = (ENTRY(i,j)+ENTRY(j,i))/2;
     }
   }
-  
+
+  void epsilon(double eps){error_tolerance = eps;}
+  double epsilon(void){return error_tolerance;}
+
 #ifdef DEBUG
   void dump(void) const{
     std::cout << "nrows = "<<_nrows<<", ncols = "<<_ncols<<", offset = "<<offset<<std::endl<<
@@ -510,7 +518,7 @@ public:
   
 template<typename SCALAR>
 std::ostream& operator <<(std::ostream& os, const Matrix<SCALAR>& M){
-  cout <<"&M: "<<&M<<endl;
+  cout <<"address: "<<&M<<endl;
   for(int i = 0;i < M.nrows();i++){
     for(int j = 0;j < M.ncols();j++)os << M(i,j)<<" ";
     os <<"\n";
@@ -559,22 +567,22 @@ std::istream& operator>>(std::istream& is, Matrix<SCALAR>& M){
 
 // declarations for matrix (=Matrix<double>) source in matrix.cc
 matrix cholesky(const matrix& A);
-bool cholesky(const matrix& M, matrix& C, double eps = 1.0e-20);
-matrix sym_inv(const matrix& A, double* det = nullptr);
+bool cholesky(const matrix& M, matrix& C, double eps = 0);
+matrix sym_inv(const matrix& A, double* det = nullptr,double eps = 0);
 void symmetrize(matrix& A);
-matrix inv(const matrix& A, double* det = nullptr, double eps = 1.0e-20);
+matrix inv(const matrix& A, double* det = nullptr, double eps = 0);
 bool scale_rows(matrix& A);
 double dot_cols(const matrix& A, int i, int j);
 double dotAB(const matrix& A, const matrix& B, int i, int j);
-double gram_schmidt(matrix& A, matrix& S, double eps = 1.0e-20);
-int ut0(matrix& A, double eps = 1.0e-20); // upper-triangularize in place by Givens row rotations
-int ut(matrix& A, double eps = 1.0e-20); // upper-triangularize in place by Givens row rotations
-matrix qr(const matrix& A);
-bool reduce(matrix& A, double eps = 1.0e-20); // row-reduce upper-triangular A in place
-void solve(matrix& A, double eps = 1.0e-20); // solve linear equations in-place 
-double det(const matrix& A, double eps = 1.0e-20); // determinant
+// double gram_schmidt(matrix& A, matrix& S, double eps = A.error_tolerance); NOTE: this is just qr
+//int ut0(matrix& A, double eps = 1.0e-20); // upper-triangularize in place by Givens row rotations
+int ut(matrix& A, double eps = 0); // upper-triangularize in place by Givens row rotations
+matrix qr(const matrix& A, double eps = 0);
+bool reduce(matrix& A, double eps =  0); // row-reduce upper-triangular A in place
+void solve(matrix& A, double eps = 0); // solve linear equations in-place 
+double det(const matrix& A, double eps = 0); // determinant
 double trace(const matrix& A); // trace
-Array<matrix> svd(const matrix& A, double eps = 1.0e-20, int maxiters = 10);
+Array<matrix> svd(const matrix& A, double eps = 0, int maxiters = 10);
 struct Svd{
   int ncols;
   int nrows;
@@ -588,7 +596,7 @@ struct Svd{
     reduce(A0);
   }
   void reset(int nr, int nc);
-  void reduce(const matrix& A0);
+  void reduce(const matrix& A0, double eps = 0);
   Svd(void){}
   ~Svd(void){
 #ifdef DEBUG
@@ -597,7 +605,7 @@ struct Svd{
 #endif
   }
 };
-Array<matrix> svd1(const matrix& A, double eps = 1.0e-20, int maxiters = 10);
+Array<matrix> svd1(const matrix& A, double eps = 0, int maxiters = 10);
 
 class MatrixWelford { // online computation of mean and variance
   int dim;
@@ -619,6 +627,16 @@ public:
     //    cout <<S2;
     return W == 0? S2: S2*(1.0/W);} 
 };
+template<typename SCALAR>
+string printmat(Matrix<SCALAR> A){ // for debugging
+  std::ostringstream oss;
+  for(int i = 0;i < A.nrows();i++){
+    for(int j = 0;j < A.ncols();j++)oss << A(i,j)<<" ";
+    oss<<"\n";
+  }
+  cout << oss.str();
+  return oss.str();
+}
 
 #endif
 
