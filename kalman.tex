@@ -39,14 +39,15 @@ $$
 So here and below, capital $S$ denotes an inverse covariance matrix. Also, note the symmetry $\N(x;\mu,S) = \N(\mu;x,S)$
 which we will exploit freely.
 
-We now define a Hidden Markov Model with state space $\R^n$ as follows.  Given the state $s\in\R^n$ and an observation $x_t\in\R^m$ at time $t$, the output density is
+We now define a Hidden Markov Model with state space $\R^n$ as follows.  Given a state $s_t\in\R^n$ and an observation $x_t\in\R^m$ at time $t$, the output density is
 $$
-X(x_t\mid s) := \N(x_t;M_ts + b_t,S_M),
+X(x_t\mid s) := \N(x_t;M_ts_t + b_t,S_x),
 $$
 where $M_t$ is a linear map from the state space to the
-measurement space, $b_t$ is a bias, and $S_M$ is an $m\times{m}$ positive definite real symmetric matrix.  In this paper, $S_M$ and $M$ are time-independent model parameters which we usually seek to re-estimate from the data.  The bias $b_t$ can
-usually be 
-subtracted from the data so we assume here that $b_t = 0$ for all $t$. 
+measurement space, $b_t$ is a bias, and $S_x$ is an $m\times{m}$ positive definite real symmetric matrix.  Thus, $x_t$
+is normally distributed with mean $M_ts_t$ and inverse covariance matrix $S_x$.  In this paper, $S_x$ and $M := M_t$ are
+time-independent model parameters which we usually seek to re-estimate from the data.  The bias $b_t$ can
+usually be subtracted from the data so we assume here that $b_t = 0$ for all $t$. 
 In the simplest case, $M_t = I$ for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  
 The state process is a discrete time continuous state Markov process with transition probability density
 from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
@@ -77,14 +78,15 @@ And it is convenient to note that companion matrices are invertible in closed fo
 it is easy to check that $u_{ij} = 0$ for all $i > 1$ and all $j\neq i-1$,
 $u_{i,i-1} = 1$ for all $i > 1$, $ u_{1j} = -t_{i,j+1}$ for $j < n$, and $u_{1n} = (-1)^{n-1}$.   
 
-As usual, we are given observations $\{x_t\mid 1\le t\le N\}$ and model parameters $\theta := \{M,S_M,T,S_T,S_0,\mu_0\}$
+As usual, we are given observations $\{x_t\mid 1\le t\le N\}$ and model parameters $\theta := \{M,S_x,T,S_T,S_0,\mu_0\}$
 where $S_0$ and $\mu_0$ are defined below.  For each observation time $t$ and state $s$, we define
 \begin{align*}
   \alpha_t(s) :&= L(x_1,x_2,\dots,x_t~ \& \text{state $s$ at time $t$}\mid \theta ),\\
   \beta_t(s) :&= L(x_{t+1},\dots,x_T \mid ~\text{state $s$ at time $t$},\theta)\\
-  \gamma_t(s) :&= \frac{\alpha_t(s)\beta_t(s)}{\int_{\R^n}\alpha_t(s)\beta_t(s)ds}.
+  \gamma_t(s) :&= \frac{\alpha_t(s)\beta_t(s)}{\int_{\R^n}\alpha_t(s)\beta_t(s)ds},
 \end{align*}
-
+where $L$ denotes likelihood, i.e. a non-negative function which can be normalized to a probability density by dividing
+by its integral.
 Thus, $\alpha_t(s)$ is the joint likelihood of state $s$ at time $t$ and the observations up to (and including) time $t$,
 $\beta_t(s)$ is the {\em conditional} likelihood of the future observations given state $s$ at time $t$, and $\gamma_t(s)$
 is the posterior probability density of state $s$ at time $t$.
@@ -247,10 +249,10 @@ $$
   First, for $1\le t \le N$ we inductively define
   \begin{align*}
     \hat{S}_{a,t-1} &= S_T'*S_{a,t-1},\\
-    S_{a,t} &:= M^TS_MM  +T^{-T} \hat{S}_{a,t-1}T^{-1},\\
-    \mu_{a,t} &:= S_{a,t}^{-1}(M^TS_Mx_t + T^{-T}\hat{S}_{a,t-1}\mu_{a,t-1})\\
-    R_{a,t} &:= x_t^TS_Mx_t + \mu_{a,t-1}^T\hat{S}_{a,t-1}\mu_{a,t-1} - \mu_{a,t}^TS_{a,t}\mu_{a,t},\\
-    N_{a,t} &:= \left(\frac{|S_M|\cdot|\hat{S}_{a,t-1}|}{2\pi|S_{a,t}|\cdot|T|^2}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
+    S_{a,t} &:= M^TS_xM  +T^{-T} \hat{S}_{a,t-1}T^{-1},\\
+    \mu_{a,t} &:= S_{a,t}^{-1}(M^TS_xx_t + T^{-T}\hat{S}_{a,t-1}\mu_{a,t-1})\\
+    R_{a,t} &:= x_t^TS_xx_t + \mu_{a,t-1}^T\hat{S}_{a,t-1}\mu_{a,t-1} - \mu_{a,t}^TS_{a,t}\mu_{a,t},\\
+    N_{a,t} &:= \left(\frac{|S_x|\cdot|\hat{S}_{a,t-1}|}{2\pi|S_{a,t}|\cdot|T|^2}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
     P_{a,t} &:= P_{a,t-1}N_{a,t}, \quad\text{and}\\
     P_{a,0} &:= 1.
   \end{align*}
@@ -275,7 +277,7 @@ For the time update, we have, using \eqref{exact_prod}
 Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:2} yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
-  &= P_{a,t-1}|T|^{-1}\N(Ms;x_t,S_M)\N(T^{-1}s;\mu_{a,t-1},\hat{S}_{a,t-1}) \\
+  &= P_{a,t-1}|T|^{-1}\N(Ms;x_t,S_x)\N(T^{-1}s;\mu_{a,t-1},\hat{S}_{a,t-1}) \\
   &= P_{a,t-1}N_{a,t}\N(s;\mu_{a,t},S_{a,t}).
 \end{align*}
 \end{proof}
@@ -288,12 +290,12 @@ and then we integrate with respect to $Pd(u\mid s)du$ for the time update.
 \begin{Thm}\label{beta:1}
   For $t < N$, inductively define
 \begin{align*}
-  \hat{S}_{b,t} :&= M^TS_MM + S_{b,t+1};\\
+  \hat{S}_{b,t} :&= M^TS_xM + S_{b,t+1};\\
   S_{b,t} :&= T^T(\hat{S}_{b,t}*S_T)T,\\
-  \hat{\mu}_{b,t} :&= \hat{S}_{b,t}^{-1}(M^TS_Mx_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
+  \hat{\mu}_{b,t} :&= \hat{S}_{b,t}^{-1}(M^TS_xx_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
   \mu_{b,t} :&= T^{-1}\hat{\mu}_{b,t},\\
-  R_{b,t} :&= x_{t+1}^TS_Mx_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \hat{\mu}_{b,t}^T\hat{S}_{b,t}\hat{\mu}_{b,t},\\
-  N_{b,t} :&= \left(\frac{|S_M|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t}|\cdot|T|^2}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}},\quad\text{and}\\
+  R_{b,t} :&= x_{t+1}^TS_xx_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \hat{\mu}_{b,t}^T\hat{S}_{b,t}\hat{\mu}_{b,t},\\
+  N_{b,t} :&= \left(\frac{|S_x|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t}|\cdot|T|^2}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}},\quad\text{and}\\
   P_{b,t}:&=P_{b,t+1}N_{b,t},
 \end{align*}
 with initial values at $t = N$ given below. Then for each state $s$ and time $t < N$,
@@ -318,7 +320,7 @@ assume the following values
   For $t <  N$, we use \eqref{comp_sq:2} to get the measurement update 
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
-    &= P_{b,t+1}\N(Mu;x_{t+1},S_M)\N(u;\mu_{b,t+1},S_{b,t+1})\\
+    &= P_{b,t+1}\N(Mu;x_{t+1},S_x)\N(u;\mu_{b,t+1},S_{b,t+1})\\
     &= P_{b,t+1}|T|N_{b,t}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t}).
   \end{align*}
   $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$, all future observations, {\em and}
@@ -370,11 +372,11 @@ Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
   By definition, the joint likelihood of all the data and states $s_{t-1},s_t$ is 
   \begin{align*}
     \hat{\gamma}_t(s_{t-1},s_t) &= \alpha_{t-1}(s_{t-1})Pd(s_t\mid s_{t-1})X(x_t\mid s_t)\beta_t(s_t) \\
-    &\propto \N(s_{t-1};\mu_{a,t-1},S_{a,t-1})\N(s_t;Ts_{t-1},S_T)\N(x_t;Ms_t,S_M)\N(s_t;\mu_{b,t},S_{b,t}).
+    &\propto \N(s_{t-1};\mu_{a,t-1},S_{a,t-1})\N(s_t;Ts_{t-1},S_T)\N(x_t;Ms_t,S_x)\N(s_t;\mu_{b,t},S_{b,t}).
   \end{align*}
   Combining the first two factors using \eqref{comp_sq:2} and \eqref{exact_prod} yields
   \begin{equation}\label{gamma_hat:1}
-    \hat{\gamma}_t(s_{t-1},s_t) = \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\N(T^{-1}s_t;\mu_{a,t-1},\hat{S}_{a,t-1})\N(Ms_t,x_t,S_M)\N(s_t;\mu_{b,t},S_{b,t}).
+    \hat{\gamma}_t(s_{t-1},s_t) = \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\N(T^{-1}s_t;\mu_{a,t-1},\hat{S}_{a,t-1})\N(Ms_t,x_t,S_x)\N(s_t;\mu_{b,t},S_{b,t}).
   \end{equation}
   Then using \eqref{comp_sq:2} again to combine the second and third factors of \eqref{gamma_hat:1}, and discarding
   the term that does not involve either $s_{t-1}$ or $s_t$, we have
@@ -443,9 +445,9 @@ Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
 
 Equipped with \eqref{E_Q}, we can now turn to the problem at hand.  Namely, if we are given a particular
 state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
-the joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_T,T,S_M,M\}$ is
+the joint probability density of $S$ and $X$ given parameters $\theta := \{\mu_0,S_0,S_T,T,S_x,M\}$ is
 $$
-P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_M)\N(s_t;Ts_{t-1},S_T).
+P(X,S\mid\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_x)\N(s_t;Ts_{t-1},S_T).
 $$
 
 Note that $P(X,S\mid\theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$.
@@ -468,7 +470,7 @@ Expanding $E(\theta,\bar{\theta})$, we have
 \begin{align}
   E(\theta,\bar{\theta}) &= -(2N+1)\frac{n\log(2\pi)}{2} + \frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
   E_0 :&=\int_{\R^{Nn}}P(X,S\mid\bar{\theta})\{\log|S_0| - Q(s_0;\mu_0,S_0)\}dS,\label{E0}\\
-  E_1 :&= \int_{\R^{Nn}}P(X,S\mid\bar{\theta})\left\{\sum_{t=1}^N\log|S_M| - Q(x_t;Ms_t,S_M)\right\}dS,
+  E_1 :&= \int_{\R^{Nn}}P(X,S\mid\bar{\theta})\left\{\sum_{t=1}^N\log|S_x| - Q(x_t;Ms_t,S_x)\right\}dS,
 \label{E1}\\
 E_2 :&= \int_{\R^{Nn}}P(X,S\mid\bar{\theta})\left\{\sum_{t=1}^N\log|S_T| - Q(s_t;Ts_{t-1},S_T)\right\}dS,
 \label{E2}
@@ -488,8 +490,8 @@ is just $\gamma_t(s_t)$.  It follows that
   E_0 &= \log|S_0| - E_{\gamma_0(s_0)}Q(s_0;\mu_0,S_0)ds_0 \\
   &= \log|S_0| - tr(\overline{S}_{c,0}^{-1}S_0) - (\mu_0-\bar{\mu}_{c,0})^TS_0(\mu_0 - \bar{\mu}_{c,0}),
   \label{E0:1}\quad\text{and}\\
-  E_1 &= N\log|S_M| - \sum_{t=1}^NE_{\gamma_t(s_t)}Q(Ms_t;x_t,S_M)ds_t \\
-  &= N\log|S_M| - \sum_{t=1}^Ntr(\overline{S}_{c,t}^{-1}M^TS_MM) + (x_t-M\bar{\mu}_{c,t})^TS_M(x_t-M\bar{\mu}_{c,t})\label{E1:1}.
+  E_1 &= N\log|S_x| - \sum_{t=1}^NE_{\gamma_t(s_t)}Q(Ms_t;x_t,S_x)ds_t \\
+  &= N\log|S_x| - \sum_{t=1}^Ntr(\overline{S}_{c,t}^{-1}M^TS_xM) + (x_t-M\bar{\mu}_{c,t})^TS_x(x_t-M\bar{\mu}_{c,t})\label{E1:1}.
 \end{align}
 
 
@@ -679,7 +681,7 @@ using the new value of $\overline{M}$:
   \int_{\R^n}\gamma_t(s_t)(x_t-\overline{M}s_t)(x_t-\overline{M}s_t)^Tds,
 \end{align*}
 where $B_{ij} := 2-\delta_{ij}$ as above.  Dividing by $B_{ij}$ in each component, we see that
-\begin{equation}\label{S_M}
+\begin{equation}\label{S_x}
   \begin{split}
     \overline{S}_M^{-1} &= \frac{1}{N}\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(x_tx_t^T - x_ts_t^T\overline{M}^T
     - \overline{M}s_tx_t^T + \overline{M}s_ts_t^T\overline{M}^T)ds_t \\
@@ -773,7 +775,7 @@ Finally, we complete our optimization of $E_2$ by differentiating with respect t
 \end{equation}
 
 As noted earlier, $\gamma_t(s_t)$ does not depend on $s_{t-1}$, so we can integrate first with respect to $s_{t-1}$, with
-a result analagous to \eqref{S_M}:
+a result analagous to \eqref{S_x}:
 \begin{align*}
   \int_{-\infty}^{\infty}&\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(\overline{T}s_{t-1}-s_t)
   (\overline{T}s_{t-1}-s_t)^Tds_{t-1}\\ &= S_{t-1,t}^{-1} +

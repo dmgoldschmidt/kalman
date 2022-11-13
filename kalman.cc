@@ -57,8 +57,9 @@ struct Theta { // Model parameters
     T.reset(nstates,nstates,&zero);
     
     for(int s = 0;s < nstates;s++){
-      S_0(s,s) = T(s,s) = S_T(s,s) = S_M(s,s) = 1.0;
-      mu_0[s] = normal.dev();
+      S_0(s,s) =  S_T(s,s) = S_M(s,s) = 100.0;
+      T(s,s) = 1.0;
+      mu_0[s] = 0;
     }
     if(nstates == data_dim){ // set M = identity
       for(int s = 0;s < nstates;s++) M(s,s) = 1.0;
@@ -191,14 +192,36 @@ struct Data {
       mean_state = mean_state + temp;
       ran_vec_M.reset_mu(theta.M*state[t]);
       x[t] = ran_vec_M.dev(); // x[t] = M*state[t] + noise
-      if(t < 10) cout << x[t].Tr();
+      if(t < 10) cout << format("x[%d]:  ",t)<<x[t].Tr();
     }
     mean_state *= 1.0/max_recs;
   }
 };
 
-  
+struct QF{ // quadratic form
+  int n;
+  Matrix<double> S; // inverse covariance matrix
+  ColVector<double> mu; // mean
+  QF(Matrix<double> S0, ColVector<double> mu0) : S(S0),mu(mu0){}
+  QF(int n) : S(n,n,0), mu(n,0){}
+};
 
+ostream& operator<<(ostream& os, const QF& Q){
+  os << "S:\n"<<Q.S;
+  os << "mu:  "<<Q.mu.Tr();
+  return os;
+}
+
+double sum(const QF& Q1, const Matrix<double>&A1, const QF& Q2, const Matrix<double>&A2, QF& Q){
+  Q.S = A1.Tr()*Q1.S*A1 + A2.Tr()*Q2.S*A2;
+  ColVector<double> v1 = Q1.S*Q1.mu;
+  cout <<"sum: v1 ref_count = "<<v1.ref_count()<<endl;
+  ColVector<double> v2 = Q2.S*Q2.mu;
+  Q.mu = sym_inv(Q.S)*(A1.Tr()*v1 + A2.Tr()*v2);
+  return Q1.mu.Tr()*v1 + Q2.mu.Tr()*v2 - Q.mu.Tr()*Q.S*Q.mu;
+}
+  
+    
 int main(int argc, char** argv){
 
   int niters = 50;
@@ -278,7 +301,7 @@ int main(int argc, char** argv){
    cout << "singular values of the sample covariance matrix: ";
   for(int i = 0;i < data_dim;i++){ cout << W.A(i,i) << " ";}
   cout << endl;
-  cout << "eigenvectors:\n"<<W.U;
+  //  cout << "eigenvectors:\n"<<W.U;
   //  theta.S_M = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
   Array<Matrix<double>> S_a(max_recs+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
   Array<ColVector<double>> mu_a(max_recs+1);
@@ -338,8 +361,9 @@ int main(int argc, char** argv){
       }
     }
     if(M_reestimate){ // perturb the M-matrix
+      Normaldev normal(0,1,seed);
       for(int i = 0;i < data_dim;i++){
-        for(int j = 0;j < nstates;j++) theta.M(i,j) += 1.0;
+        for(int j = 0;j < nstates;j++) theta.M(i,j) = 10*normal.dev();//+= 5.0;
       }
     }
     if(T_reestimate){ // perturb the T-matrix
@@ -441,13 +465,14 @@ int main(int argc, char** argv){
 
     // gamma calculation (gamma_t is the mean of the gamma distr at time t).
     double detS_c;
-    for(int t = 0;t <= N;t++){
+    for(int t = 1;t <= N;t++){
       S_c_inv[t] = sym_inv(S_a[t] + S_b[t],&detS_c);
       mu_c[t] = S_c_inv[t]*(S_a[t]*mu_a[t] + S_b[t]*mu_b[t]);
       R = (mu_a[t]-mu_b[t]).Tr()*S_a[t]*S_c_inv[t]*S_b[t]*(mu_a[t]-mu_b[t]);
       gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(detS_a[t]*detS_b[t]/detS_c)-R);
       //     cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
     }
+    //    Matrix<double> S_C(S_c_inv[1])
     delta_score = (iter == 0? -gamma_score[N] : (gamma_score[N] - old_score)/old_score);
     old_score = gamma_score[N];
     // svd_M.reduce(theta.M);  // get singular values of M
@@ -461,51 +486,11 @@ int main(int argc, char** argv){
       theta.mu_0 = mu_c[0];theta.S_0 = S_a[0]+S_b[0];
       cout << "New S_0:\n"<<theta.S_0<< "new mu_0: " << theta.mu_0.Tr();
     }
-
-    if(M_reestimate){
-      // reestimate theta.M
-      // re-estimation by least squares
-      cout << "M before reestimation:\n"<<theta.M;
-      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T from T*mu_c[t] = mu_c[t+1]
-      for(int i = 0;i < data_dim;i++){ // solve for one row at a time
-        qr_regs[i].reset(nstates); // 
-        for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
-          qr_regs[i].update(mu_c[t],data.x[t][i]);
-        }
-      }
-      for(int i = 0; i < data_dim;i++){
-        qr_regs[i].solve();
-        for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
-      }
-      cout << "new M:\n"<<theta.T;
-    }
-    //   Gamma1.fill(0);
-    //   Gamma2.fill(0);
-    //   for(int t = 1;t <= N;t++){
-    //     Gamma1 = Gamma1 + data.x[t]*mu_c[t].Tr();
-    //     Gamma2 = Gamma2 + S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
-    //   }
-    //   theta.M = Gamma1*sym_inv(Gamma2);
-    //   cout << "new M:\n"<<theta.M;
-    // }
-    
-    if(S_M_reestimate){
-      // reestimate theta.S_M
-      theta.S_M.fill(0);
-      ColVector<double> M_mu_x(data_dim);
-      for(int t = 1;t <= N;t++){
-        M_mu_x = theta.M*mu_c[t]-data.x[t];
-        theta.S_M += theta.M*S_c_inv[t]*theta.M.Tr() + M_mu_x*M_mu_x.Tr();
-      }
-      theta.S_M = sym_inv(theta.S_M);
-      theta.S_M *= N;
-      cout << "new S_M:\n"<<theta.S_M;
-    }
-
+ 
     if(T_reestimate){
       // re-estimation by least squares
       cout << "T before reestimation:\n"<<theta.T;
-      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T from T*mu_c[t] = mu_c[t+1]
+      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T using T*mu_c[t] = mu_c[t+1]
       for(int i = 0;i < nstates;i++){ // solve for one row at a time
         qr_regs[i].reset(nstates);
         for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
@@ -530,6 +515,48 @@ int main(int argc, char** argv){
       }
       cout << "new T:\n"<<theta.T;
     }
+
+    if(M_reestimate){
+      // reestimate theta.M
+      // re-estimation by least squares
+      cout << "M before reestimation:\n"<<theta.M;
+      Array<QRreg> qr_regs(data_dim); // qr_regs[i] solves for row i of M from M*mu_c[t] = x[t]
+      for(int i = 0;i < data_dim;i++){ // solve for one row at a time
+        qr_regs[i].reset(nstates); // row i has nstates components
+        for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
+          qr_regs[i].update(mu_c[t],data.x[t][i]);
+        }
+        //        cout << format("qr_regs[%d].R:\n",i)<<qr_regs[i].R;
+      }
+      for(int i = 0; i < data_dim;i++){
+        qr_regs[i].solve();
+        for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
+      }
+      cout << "new M:\n"<<theta.M;
+    }
+    //   Gamma1.fill(0);
+    //   Gamma2.fill(0);
+    //   for(int t = 1;t <= N;t++){
+    //     Gamma1 = Gamma1 + data.x[t]*mu_c[t].Tr();
+    //     Gamma2 = Gamma2 + S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
+    //   }
+    //   theta.M = Gamma1*sym_inv(Gamma2);
+    //   cout << "new M:\n"<<theta.M;
+    // }
+    
+    if(S_M_reestimate){
+      // reestimate theta.S_M
+      theta.S_M.fill(0);
+      ColVector<double> M_mu_x(data_dim);
+      for(int t = 1;t <= N;t++){
+        M_mu_x = theta.M*mu_c[t]-data.x[t];
+        theta.S_M += theta.M*S_c_inv[t]*theta.M.Tr() + M_mu_x*M_mu_x.Tr();
+      }
+      theta.S_M = sym_inv(theta.S_M);
+      theta.S_M *= N;
+      cout << "new S_M:\n"<<theta.S_M;
+    }
+
         // Gamma1.fill(0);
       // Gamma2.fill(0);
       // for(int t = 1;t <= N;t++){

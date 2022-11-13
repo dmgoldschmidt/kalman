@@ -51,6 +51,7 @@ struct Givens{ // reset computes, applies, and stores the 2x2 rotation matrix T 
 };
 template<typename T>
 class MemoryBlock {
+  friend class Matrix<T>;
   int n;
   uint* ref_count;
   T* data;
@@ -295,6 +296,11 @@ public:
   SCALAR val(void) const{
     if(_nrows != 1 || _ncols != 1) throw "val: Matrix size != 1x1\n";
     return ENTRY(0,0);
+  }
+
+  int ref_count(void){
+    if(data.ref_count != nullptr) return *(data.ref_count);
+    else return -1;
   }
   
   int nrows(void) const {return _nrows;}
