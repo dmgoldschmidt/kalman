@@ -188,7 +188,7 @@ protected:
 public:
   double error_tolerance;  // default tolerance(for SCALAR = double)
   bool printall;
-  Matrix(void) : error_tolerance(1.0e-20), offset(0), _nrows(0), _ncols(0), col_stride(0), printall(false) {}
+  Matrix(void) : error_tolerance(1.0e-20), offset(0), _nrows(0), _ncols(0), col_stride(0), printall(false){}
   Matrix(int m, int n, const SCALAR* f = nullptr, double eps = 1.0e-20):
     data(m*n), offset(0), _nrows(m), _ncols(n), col_stride(n),printall(false), error_tolerance(eps) {
     if(f != nullptr)fill(*f);
@@ -242,11 +242,12 @@ public:
     return M;
   }
   void copy(const Matrix& A){ // deep copy data from A to *this
-    if(A._nrows != _nrows || A._ncols != _ncols)
+    if(data.data == nullptr) reset(A.nrows(), A.ncols());
+    else if (A._nrows != _nrows || A._ncols != _ncols)
       throw "Can't copy-- target has different dimensions\n";
     
-    for(int i = 0;i < _nrows;i++){
-      for(int j = 0;j < _ncols;j++) ENTRY(i,j) = A(i,j);
+    for(int i = 0;i < nrows();i++){
+      for(int j = 0;j < ncols();j++) ENTRY(i,j) = A(i,j);
     }
   }
   void fill(const SCALAR x){

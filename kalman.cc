@@ -200,10 +200,22 @@ struct Data {
 
 struct QF{ // quadratic form
   int n;
+  double _det;
   Matrix<double> S; // inverse covariance matrix
   ColVector<double> mu; // mean
-  QF(Matrix<double> S0, ColVector<double> mu0) : S(S0),mu(mu0){}
-  QF(int n) : S(n,n,0), mu(n,0){}
+  QF(Matrix<double> S0, ColVector<double> mu0) : S(S0),mu(mu0){_det = det(S0);}
+  QF(int n) : S(n,n), mu(n){S.fill(0);mu.fill(0); _det = 0;}
+  QF(void) {}
+  void reset(Matrix<double> S0, ColVector<double> mu0){
+    S.copy(S0); 
+    mu.copy(mu0);
+    _det = det(S0);
+  }
+  void reset(int n){
+    S.reset(n,n); S.fill(0);
+    mu.reset(n,n); mu.fill(0);
+    _det = 0;
+  }
 };
 
 ostream& operator<<(ostream& os, const QF& Q){
@@ -383,7 +395,13 @@ int main(int argc, char** argv){
   Matrix<double> S1_T(nstates,nstates);
   Matrix<double> T_inv(nstates,nstates);
   Matrix<double> S_T_T(nstates,nstates);
-
+  Array<QF> alpha(N+1), beta(N+1), gamma(N+1);
+  Array<double> N_a(N+1);
+  for(int t = 0;t <=N;t++){
+    alpha[t].reset(nstates);
+    beta[t].reset(nstates);
+    gamma[t].reset(nstates);
+  }
   Svd svd_M;
   //  niters = 1;
   double old_score, delta_score(1.0);
@@ -403,17 +421,20 @@ int main(int argc, char** argv){
       T_inv = inv(theta.T,&det_T,1.0e-20);
       log_det_T = log(det_T);
     }
-    MTS_M = theta.M.Tr()*theta.S_M;
-    MTS_MM = MTS_M*theta.M;
-    mu_a[0] = theta.mu_0;
-    S_a[0] = theta.S_0;
-    detS_a[0] = det(S_a[0]); // initialization
+    //    MTS_M = theta.M.Tr()*theta.S_M;
+    //    MTS_MM = MTS_M*theta.M;
+    alpha[0].reset(theta.S0,theta.mu_0);
+    
+    //    S_a[0] = theta.S_0;
+    //    detS_a[0] = det(S_a[0]); // initialization
     det_S_M = det(theta.S_M); 
     det_S1_T = det(S1_T,1.0e-20);
     alpha_score[0] = 0;
     double detS_hat;
+
     for(int t = 1;t <= N;t++){ // NOTE: the infix notation is more readable, but inefficient.
-    
+      alpha[t].S.copy(alpha[t-1].S);
+      alpha[t].mu.copy(alpha[t-1].mu);
       S_t1_t_inv[t] = sym_inv(S1_T+S_a[t-1],&detS_hat); // save these two for S_T re-estimation
       S_t1_t_inv_S_a[t] = S_t1_t_inv[t]*S_a[t-1]; //S_{t-1,t}^{-1}S_{a,t-1}
       S_hat = S1_T*S_t1_t_inv_S_a[t]; //\hat{S}_{a,t-1}
@@ -471,7 +492,7 @@ int main(int argc, char** argv){
       R = (mu_a[t]-mu_b[t]).Tr()*S_a[t]*S_c_inv[t]*S_b[t]*(mu_a[t]-mu_b[t]);
       gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(detS_a[t]*detS_b[t]/detS_c)-R);
       //     cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
-    }
+413    }
     //    Matrix<double> S_C(S_c_inv[1])
     delta_score = (iter == 0? -gamma_score[N] : (gamma_score[N] - old_score)/old_score);
     old_score = gamma_score[N];
