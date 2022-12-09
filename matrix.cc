@@ -132,7 +132,7 @@ bool reduce(matrix& A, double eps){ // row-reduce upper-triangular A in place
   double a,b;
 
   for(int i = 0;i < n;i++){
-    //cout << "reduce:\n"<<A;
+    //    cout << "reduce:\n"<<A;
     if( fabs(b = A(i,i)) < eps) return false;
     A(i,i)  = 1.0;
     for(int j = i+1;j < A.ncols();j++) A(i,j) /= b;
@@ -200,7 +200,11 @@ matrix sym_inv(const matrix& A, double* det, double eps){ // symmetric matrix in
   matrix CB(n,2*n);
   matrix C(CB.slice(0,0,n,n));
   matrix B(CB.slice(0,n,n,n));
-  cholesky(A,C,eps); // A = C.Tr()*C
+  if(!cholesky(A,C,eps)) {
+    cout << "cholesky: input A:\n"<<A<<"is not pos. definite.  Bailing out.\n"; // A = C.Tr()*C
+    exit(1);
+  }
+  cout << "A:\n"<<A<<"C:\n"<<C<<"C.Tr()*C:\n"<<C.Tr()*C;
   B.fill(0);
   for(int i = 0;i < n;i++) B(i,i) = 1.0; // B = I
   if(det != nullptr){
@@ -250,7 +254,8 @@ bool cholesky(const matrix& M, matrix& C, double eps){ // user-supplied answer
         C(i,j) = ((M(i,j)+M(j,i))/2 - C(i,j))/C(i,i);
       }
       else{
-        if(M(j,j) - C(j,j) < 0) return false;
+        if(M(j,j) - C(j,j) < 0)
+          return false;
         C(i,i) = sqrt(M(j,j)-C(j,j));
         if(C(i,i) < eps) return false; 
       }

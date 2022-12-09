@@ -192,18 +192,18 @@ struct Data {
       mean_state = mean_state + temp;
       ran_vec_M.reset_mu(theta.M*state[t]);
       x[t] = ran_vec_M.dev(); // x[t] = M*state[t] + noise
-      if(t < 10) cout << format("x[%d]:  ",t)<<x[t].Tr();
     }
     mean_state *= 1.0/max_recs;
   }
 };
 
-struct QF{ // quadratic form
-  int n;
-  double _det;
+struct QF{ // Multivariate quadratic form
+  int n; // dimension
+  double _det; // det(S)
   Matrix<double> S; // inverse covariance matrix
   ColVector<double> mu; // mean
-  QF(Matrix<double> S0, ColVector<double> mu0) : S(S0),mu(mu0){_det = det(S0);}
+
+  QF(Matrix<double> S0, ColVector<double> mu0) : S(S0),mu(mu0){_det = det(S);}
   QF(int n) : S(n,n), mu(n){S.fill(0);mu.fill(0); _det = 0;}
   QF(void) {}
   void reset(Matrix<double> S0, ColVector<double> mu0){
@@ -213,9 +213,11 @@ struct QF{ // quadratic form
   }
   void reset(int n){
     S.reset(n,n); S.fill(0);
-    mu.reset(n,n); mu.fill(0);
+    mu.reset(n); mu.fill(0);
     _det = 0;
   }
+  double get_det(void){return _det;}
+  void set_det(double d){_det = d;}
 };
 
 ostream& operator<<(ostream& os, const QF& Q){
@@ -232,8 +234,10 @@ double sum(const QF& Q1, const Matrix<double>&A1, const QF& Q2, const Matrix<dou
   Q.mu = sym_inv(Q.S)*(A1.Tr()*v1 + A2.Tr()*v2);
   return Q1.mu.Tr()*v1 + Q2.mu.Tr()*v2 - Q.mu.Tr()*Q.S*Q.mu;
 }
-  
-    
+
+matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(A+B)*B;}
+
+
 int main(int argc, char** argv){
 
   int niters = 50;
@@ -315,36 +319,36 @@ int main(int argc, char** argv){
   cout << endl;
   //  cout << "eigenvectors:\n"<<W.U;
   //  theta.S_M = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
-  Array<Matrix<double>> S_a(max_recs+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
-  Array<ColVector<double>> mu_a(max_recs+1);
-  Array<Matrix<double>> S_b(max_recs+1); // beta[t](s) = N(s,S_b[t],mu_b[t])
-  Array<ColVector<double>> mu_b(max_recs+1);
-  //  Array<Matrix<double>> S_c(max_recs+1);
-  Array<Matrix<double>> S_c_inv(max_recs+1); // needed for reestimation
-  Array<ColVector<double>> mu_c(max_recs+1);
-  Array<Matrix<double>> S_t1_t_inv(max_recs+1);
-  Array<Matrix<double>> S_t1_t_inv_S_a(max_recs+1);
-  for(int t = 0;t <= max_recs;t++){
-    S_a[t].reset(nstates,nstates);
-    mu_a[t].reset(nstates);
-    S_b[t].reset(nstates,nstates);
-    mu_b[t].reset(nstates);
+  // Array<Matrix<double>> S_a(N+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
+  // Array<ColVector<double>> mu_a(N+1);
+  // Array<Matrix<double>> S_b(N+1); // beta[t](s) = N(s,S_b[t],mu_b[t])
+  // Array<ColVector<double>> mu_b(N+1);
+  //  Array<Matrix<double>> S_c(N+1);
+  Array<Matrix<double>> S_c_inv(N+1); // needed for reestimation
+  //  Array<ColVector<double>> mu_c(N+1);
+  Array<Matrix<double>> S_t1_t_inv(N+1);
+  Array<Matrix<double>> S_t1_t_inv_S_a(N+1);
+  for(int t = 0;t <= N;t++){
+    // S_a[t].reset(nstates,nstates);
+    // mu_a[t].reset(nstates);
+    // S_b[t].reset(nstates,nstates);
+    // mu_b[t].reset(nstates);
     //    S_c[t].reset(nstates,nstates);
     S_c_inv[t].reset(nstates,nstates); 
-    mu_c[t].reset(nstates);
-    S_t1_t_inv[t].reset(nstates,nstates);
-    S_t1_t_inv_S_a[t].reset(nstates,nstates);
+    // mu_c[t].reset(nstates);
+    // S_t1_t_inv[t].reset(nstates,nstates);
+    // S_t1_t_inv_S_a[t].reset(nstates,nstates);
   }
   Matrix<double> Gamma1(data_dim,nstates);
   Matrix<double> Gamma2(nstates,nstates);
-  Matrix<double> T_bar(nstates,nstates);
-  //  Matrix<double> Lambda(nstates,nstates);
-  //  Matrix<double> S_star(nstates,nstates);
-  Matrix<double> S_plus(nstates,nstates);
-  Matrix<double> I_1(nstates,nstates);
-  Matrix<double> I_2(nstates,nstates);
-  matrix S_T(nstates,nstates);
-  ColVector<double> nu(nstates);
+  // Matrix<double> T_bar(nstates,nstates);
+  // //  Matrix<double> Lambda(nstates,nstates);
+  // //  Matrix<double> S_star(nstates,nstates);
+  // Matrix<double> S_plus(nstates,nstates);
+  // Matrix<double> I_1(nstates,nstates);
+  // Matrix<double> I_2(nstates,nstates);
+  // matrix S_T(nstates,nstates);
+  // ColVector<double> nu(nstates);
   //  matrix S_T1(nstates,nstates);
   //  matrix S_a_hat(nstates,nstates);
   //  matrix S_b_hat(nstates,nstates);
@@ -353,8 +357,8 @@ int main(int argc, char** argv){
 
   // Begin Baum-Welch iterations
 
-  Array<double> alpha_score(max_recs+1), beta_score(N), gamma_score(max_recs+1),
-    detS_a(max_recs+1),detS_b(max_recs+1);
+  Array<double> alpha_score(N+1), beta_score(N+1), gamma_score(N+1);
+    //    detS_a(N+1),detS_b(N+1);
   if(simulation){ // perturb the simulation parameters
     if(S_T_reestimate){ // perturb the transition matrix
       for(int i = 0;i < nstates;i++){
@@ -382,34 +386,32 @@ int main(int argc, char** argv){
       if(AR_mode) for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 0.0;
       else{
         for(int i = 0; i < nstates;i++){
-          for(int j = 0;j  < nstates;j++) theta.T(i,j) += 1.0;
+          for(int j = 0;j  < nstates;j++) theta.T(i,j) = 1.0;
         }
       }
     }
   }
   double det_S_M,det_S1_T,R,det_T,log_det_T;
-  ColVector<double> S_mu(nstates),S1_mu1(nstates),S2_mu2(nstates),mu_hat(nstates);
-  Matrix<double> MTS_M(nstates,data_dim);
-  Matrix<double> MTS_MM(nstates,nstates);
-  Matrix<double> S_hat(nstates,nstates);
-  Matrix<double> S1_T(nstates,nstates);
+  // ColVector<double> S_mu(nstates),S1_mu1(nstates),S2_mu2(nstates),mu_hat(nstates);
+  // Matrix<double> MTS_M(data_dim,data_dim);
+  // Matrix<double> MTS_MM(nstates,nstates);
+  Matrix<double> S1(nstates,nstates);
   Matrix<double> T_inv(nstates,nstates);
-  Matrix<double> S_T_T(nstates,nstates);
+  //  Matrix<double> S_T_T(nstates,nstates);
   Array<QF> alpha(N+1), beta(N+1), gamma(N+1);
-  Array<double> N_a(N+1);
+  Matrix<double> S_hat(nstates,nstates);
+
   for(int t = 0;t <=N;t++){
     alpha[t].reset(nstates);
     beta[t].reset(nstates);
     gamma[t].reset(nstates);
   }
-  Svd svd_M;
-  //  niters = 1;
+  double ntwopi = nstates*8*atan(1);
+  
   double old_score, delta_score(1.0);
   for(int iter = 0;iter < niters && fabs(delta_score) > min_delta;iter++){
     cout << "Begin iteration "<<iter<<" with delta score = "<<delta_score <<endl;
     cout << "\nparameters:\n"<<theta;   
-    S_T_T = theta.S_T*theta.T;
-    S1_T = theta.T.Tr()*S_T_T;
     if(AR_mode){ // closed form for inverse of companion matrix
       T_inv.fill(0);
       for(int i = 1;i < nstates;i++)T_inv(i,i-1) = 1.0;
@@ -421,113 +423,74 @@ int main(int argc, char** argv){
       T_inv = inv(theta.T,&det_T,1.0e-20);
       log_det_T = log(det_T);
     }
-    //    MTS_M = theta.M.Tr()*theta.S_M;
-    //    MTS_MM = MTS_M*theta.M;
-    alpha[0].reset(theta.S0,theta.mu_0);
-    
-    //    S_a[0] = theta.S_0;
-    //    detS_a[0] = det(S_a[0]); // initialization
-    det_S_M = det(theta.S_M); 
-    det_S1_T = det(S1_T,1.0e-20);
+
+    matrix M1 = theta.M.Tr()*theta.S_M*theta.M;
+    matrix T1 = theta.T.Tr()*theta.S_T*theta.T;
+    double det_S_M = det(theta.S_M);
+    alpha[0].reset(theta.S_0,theta.mu_0);
     alpha_score[0] = 0;
-    double detS_hat;
-
-    for(int t = 1;t <= N;t++){ // NOTE: the infix notation is more readable, but inefficient.
-      alpha[t].S.copy(alpha[t-1].S);
-      alpha[t].mu.copy(alpha[t-1].mu);
-      S_t1_t_inv[t] = sym_inv(S1_T+S_a[t-1],&detS_hat); // save these two for S_T re-estimation
-      S_t1_t_inv_S_a[t] = S_t1_t_inv[t]*S_a[t-1]; //S_{t-1,t}^{-1}S_{a,t-1}
-      S_hat = S1_T*S_t1_t_inv_S_a[t]; //\hat{S}_{a,t-1}
-      // if(iter == 3){
-      //   Svd test_svd;
-      //   cout << format("det(T) = %g\n",det(theta.T));
-      //   test_svd.reduce(S1_T.copy());
-      //   cout << test_svd.A<<endl;
-      //   double test_det(1.0);
-      //   for(int i = 0;i < nstates;i++)test_det *= test_svd.A(i,i);
-      //   cout << "test_det:  "<<test_det<<endl;
-      //   cout << test_svd.U;
-      // }
-      detS_hat = det_S1_T*detS_a[t-1]/detS_hat; 
-      S1_mu1 = MTS_M*data.x[t];
-      S2_mu2 = T_inv.Tr()*(S_hat*mu_a[t-1]);
-      S_mu =  S1_mu1 + S2_mu2;  
-      S_a[t] = MTS_MM + T_inv.Tr()*S_hat*T_inv;
-      S_a[t] = (S_a[t] + S_a[t].Tr())* .5;
-      //      symmetrize(S_a[t]);
-      // fflush(stdout);
-      mu_a[t] = sym_inv(S_a[t],&detS_a[t])*S_mu;
-      if(t < 10 || t > N-10) cout << format("length x[%d]: %.9g, length mu_a_t: %.9g\n", t, length(data.x[t]), length(mu_a[t]));
-      R = data.x[t].Tr()*theta.S_M*data.x[t] + mu_a[t-1].Tr()*S2_mu2 - mu_a[t].Tr()*S_mu;
-      alpha_score[t] = alpha_score[t-1] + .5*(log(detS_hat*det_S_M/detS_a[t]) - R) - log_det_T; 
+    //    double detS_hat;
+    for(int t = 1;t <= N;t++){ 
+      S_hat = star(T1,alpha[t-1].S); 
+      alpha[t].S = M1 + T_inv.Tr()*S_hat*T_inv;
+      alpha[t].mu = sym_inv(alpha[t].S,&alpha[t]._det)*(theta.M.Tr()*theta.S_M*data.x[t] + T_inv.Tr()*S_hat*alpha[t-1].mu);
+      R = data.x[t].Tr()*theta.S_M*data.x[t] + alpha[t-1].mu.Tr()*S_hat*alpha[t-1].mu - alpha[t].mu.Tr()*alpha[t].S*alpha[t].mu;
+      alpha_score[t] = alpha_score[t-1] + .5*(log(det(S_hat)*det_S_M/(alpha[t]._det*ntwopi)) - R) - log_det_T;
+      cout << format("alpha[%d]: S: %.3f, alpha._det: %.3g, R: %.3g, log_det_T: %.3g\n",
+                     t,alpha[t].S(0,0),alpha[t]._det,R,log_det_T);
     } // end alpha pass
-
+      
     // beta pass
-    mu_b[N].fill(0);
-    S_b[N].fill(0);
-    for(int i = 0;i < nstates;i++)S_b[N](i,i) = 1.0;
+    beta[N].mu.fill(0);
+    beta[N].S.fill(0);
+    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
+    beta[N]._det = 1.0;
     beta_score[N] = 0;
-    detS_b[N] = 1.0;
+    //    detS_b[N] = 1.0;
     for(int t = N-1;t >= 0;t--){
-      S_hat = MTS_MM + S_b[t+1];
-      S_b[t] = theta.T.Tr()*S_hat*sym_inv(S_hat + theta.S_T)*S_T_T;
-      S_b[t] = (S_b[t] + S_b[t].Tr())*.5;
-      //      symmetrize(S_b[t]);
-      //      fflush(stdout);
-      S1_mu1 = MTS_M*data.x[t+1];
-      S2_mu2 = S_b[t+1]*mu_b[t+1];
-      S_mu = S1_mu1 + S2_mu2;
-      mu_hat = sym_inv(S_hat,&detS_hat)*S_mu;
-      mu_b[t] = T_inv*mu_hat;
-      R = data.x[t+1].Tr()*theta.S_M*data.x[t+1] + mu_b[t+1].Tr()*S2_mu2 - mu_hat.Tr()*S_hat*mu_hat;
-      beta_score[t] = beta_score[t+1] + .5*(log(det_S_M*detS_b[t+1]/detS_hat) - R) - log_det_T; 
-      detS_b[t] = det(S_b[t],1.0e-20); // compute this for the next backward step 
+      S_hat = M1 + beta[t+1].S; 
+      beta[t].S = theta.T.Tr()*star(S_hat,theta.S_T)*theta.T;
+      beta[t]._det = det(beta[t].S);
+      ColVector<double> mu_hat = sym_inv(S_hat)*(theta.M.Tr()*theta.S_M*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
+      beta[t].mu = T_inv*mu_hat;
+      R = data.x[t+1].Tr()*theta.S_M*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu  - mu_hat.Tr()*S_hat*mu_hat;
+      beta_score[t] = beta_score[t+1] + .5*(log(det_S_M*beta[t+1]._det/det(S_hat*ntwopi)) - R) - log_det_T; 
+      cout << format("beta[%d]:  S: %.3g, beta._det: %.3g, R: %.3g, log_det_T: %.3g\n",
+                     t,beta[t].S(0,0),beta[t]._det,R,log_det_T);
     } // end beta pass
 
-    // gamma calculation (gamma_t is the mean of the gamma distr at time t).
+    // gamma pass
     double detS_c;
     for(int t = 1;t <= N;t++){
-      S_c_inv[t] = sym_inv(S_a[t] + S_b[t],&detS_c);
-      mu_c[t] = S_c_inv[t]*(S_a[t]*mu_a[t] + S_b[t]*mu_b[t]);
-      R = (mu_a[t]-mu_b[t]).Tr()*S_a[t]*S_c_inv[t]*S_b[t]*(mu_a[t]-mu_b[t]);
-      gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(detS_a[t]*detS_b[t]/detS_c)-R);
-      //     cout << format("gamma_score[%d] = %f\n",t,gamma_score[t]);
-413    }
-    //    Matrix<double> S_C(S_c_inv[1])
-    delta_score = (iter == 0? -gamma_score[N] : (gamma_score[N] - old_score)/old_score);
+      //S_c_inv[t] = sym_inv(S_a[t] + S_b[t],&detS_c);
+      gamma[t].S = alpha[t].S + beta[t].S;
+      gamma[t].mu = sym_inv(gamma[t].S,&gamma[t]._det)*(alpha[t].S*alpha[t].mu + beta[t].S*beta[t].mu);
+      R = (alpha[t].mu - beta[t].mu).Tr()*star(alpha[t].S,beta[t].S)*(alpha[t].mu - beta[t].mu);
+      gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(alpha[t]._det*beta[t]._det/ntwopi*gamma[t]._det)-R);
+      //    NOTE: P_{ct} as defined in the writeup doesn't make sense.  And I don't think we need 2pi anywhere.
+    }
+    // end gamma pass
+    
+    delta_score = (iter == 0? fabs(gamma_score[N] ): fabs((gamma_score[N] - old_score)/old_score));
     old_score = gamma_score[N];
-    // svd_M.reduce(theta.M);  // get singular values of M
-    // cout << "singular values of M: ";
-    // for(int i = 0;i < min(theta.M.nrows(),theta.M.ncols());i++){ cout << svd_M.A(i,i)<<" ";}
-    // cout <<endl;
-    cout << format("delta_score at iteration %d: %f, gamma_score[%d]: %f\n",iter,delta_score,N,gamma_score[N]);
-
+    cout << format("delta_score at iteration %d: %.9f, gamma_score[%d]: %g\n",iter,delta_score,N,gamma_score[N]);
+    for(int t = 1;t <=N;t++) cout<<format("t = %d:  alpha: %.3g, beta: %.3g, gamma: %.3g\n",t,alpha_score[t],
+                                          beta_score[t],gamma_score[t]);
+  
     //    Re-estimation
     if(S_0_reestimate){
-      theta.mu_0 = mu_c[0];theta.S_0 = S_a[0]+S_b[0];
+      theta.mu_0 = gamma[0].mu; theta.S_0 = gamma[0].S;
       cout << "New S_0:\n"<<theta.S_0<< "new mu_0: " << theta.mu_0.Tr();
     }
  
     if(T_reestimate){
       // re-estimation by least squares
       cout << "T before reestimation:\n"<<theta.T;
-      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T using T*mu_c[t] = mu_c[t+1]
-      for(int i = 0;i < nstates;i++){ // solve for one row at a time
+      Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T using T*gamma[t].mu = gamma[t+1].mu
+      for(int i = 0;i < nstates;i++){ // get one row at a time
         qr_regs[i].reset(nstates);
         for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
-          qr_regs[i].update(mu_c[t],mu_c[t+1][i]);
-          // cout << format("alpha[%d]: ",t);
-          // for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_a[t][j]);
-          // cout << endl;
-          // if(t>= N- 5 || t <= 5){
-          //   cout << format("alpha[%d]: ",t);
-          //   for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_a[t][j]);
-          //   cout << format("beta[%d]: ",t);
-          //   for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_b[t][j]);
-          //   cout << format("gamma[%d]: ",t);
-          //   for(int j = 0;j < nstates;j++)cout << format("%.9g ",mu_c[t][j]);
-          //   cout <<"\nR:\n"<< qr_regs[i].R;
-          // }
+          qr_regs[i].update(gamma[t].mu,gamma[t+1].mu[i]);
         }
       }
       for(int i = 0;i < nstates;i++){
@@ -537,34 +500,34 @@ int main(int argc, char** argv){
       cout << "new T:\n"<<theta.T;
     }
 
-    if(M_reestimate){
-      // reestimate theta.M
-      // re-estimation by least squares
+    if(M_reestimate){//reestimate theta.M
       cout << "M before reestimation:\n"<<theta.M;
-      Array<QRreg> qr_regs(data_dim); // qr_regs[i] solves for row i of M from M*mu_c[t] = x[t]
-      for(int i = 0;i < data_dim;i++){ // solve for one row at a time
-        qr_regs[i].reset(nstates); // row i has nstates components
-        for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
-          qr_regs[i].update(mu_c[t],data.x[t][i]);
-        }
-        //        cout << format("qr_regs[%d].R:\n",i)<<qr_regs[i].R;
+      Gamma1.fill(0);
+      Gamma2.fill(0);
+      for(int t = 1;t <= N;t++){
+        Gamma1 += data.x[t]*gamma[t].mu.Tr();
+        Gamma2 += sym_inv(gamma[t].S) + gamma[t].mu*gamma[t].mu.Tr();
       }
-      for(int i = 0; i < data_dim;i++){
-        qr_regs[i].solve();
-        for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
-      }
-      cout << "new M:\n"<<theta.M;
+      theta.M = Gamma1*sym_inv(Gamma2);
+
+      // re-estimation by least squares
+      // cout << "M before reestimation:\n"<<theta.M;
+      // Array<QRreg> qr_regs(data_dim); // qr_regs[i] solves for row i of M from M*mu_c[t] = x[t]
+      // for(int i = 0;i < data_dim;i++){ // solve for one row at a time
+      //   qr_regs[i].reset(nstates); // row i has nstates components
+      //   for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
+      //     cout << format("x[%d]: %g, gamma.mu:  %g\n",t,data.x[t][0],gamma[t].mu[0]);
+      //     qr_regs[i].update(gamma[t].mu,data.x[t][i]);
+      //   }
+      //   cout << format("qr_regs[%d].R:\n",i)<<qr_regs[i].R;
+      // }
+      // for(int i = 0; i < data_dim;i++){
+      //   qr_regs[i].solve();
+      //   for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
+      // }
+      cout << format("new M: %.4f\n", theta.M(0,0));
     }
-    //   Gamma1.fill(0);
-    //   Gamma2.fill(0);
-    //   for(int t = 1;t <= N;t++){
-    //     Gamma1 = Gamma1 + data.x[t]*mu_c[t].Tr();
-    //     Gamma2 = Gamma2 + S_c_inv[t] + mu_c[t]*mu_c[t].Tr();
-    //   }
-    //   theta.M = Gamma1*sym_inv(Gamma2);
-    //   cout << "new M:\n"<<theta.M;
-    // }
-    
+#ifdef covariance_reestimate    
     if(S_M_reestimate){
       // reestimate theta.S_M
       theta.S_M.fill(0);
@@ -578,41 +541,29 @@ int main(int argc, char** argv){
       cout << "new S_M:\n"<<theta.S_M;
     }
 
-        // Gamma1.fill(0);
-      // Gamma2.fill(0);
-      // for(int t = 1;t <= N;t++){
-      //   //        S_star = S_t1_t_inv[t]*S_a[t-1];
-      //   S_plus = S_t1_t_inv[t]*S_T_T.Tr();
-      //   nu = S_t1_t_inv[t]*(S_T_T.Tr()*mu_c[t] + S_a[t-1]*mu_a[t-1]);
-      //   I_1 = S_c_inv[t]*S_plus.Tr() + mu_c[t]*nu.Tr();
-      //   I_2 = S_plus*S_c_inv[t]*S_plus.Tr() + nu*nu.Tr();
-      //   Gamma1 = Gamma1 + I_1;
-      //   Gamma2 = Gamma2 + S_t1_t_inv[t] + I_2;
-      // }
-      // cout << "Gamma1:\n"<<Gamma1<<"Gamma2:\n"<<Gamma2;
-      // T_bar = Gamma1*sym_inv(Gamma2);
-      //  cout << "T_bar:\n"<<T_bar;
-      //  if(AR_mode){// update the AR coefficients, leave everything else unchanged
-      //   for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) = T_bar(nstates-1,j); 
-      // }
-      // else theta.T.copy(T_bar); // update the whole matrix
-      // cout << "theta.T:\n"<<theta.T;
     if(S_T_reestimate){
-      S_T.fill(0);
+      theta.S_T.fill(0);
       for(int t = 1;t <= N;t++){
-        S_T += S_t1_t_inv[t] + S_t1_t_inv_S_a[t]*(S_c_inv[t] +(mu_c[t]-mu_a[t-1])*(mu_c[t]-
-                                                                                   mu_a[t-1]).Tr())*S_t1_t_inv_S_a[t].Tr();
+        theta.S_T += S_t1_t_inv[t] + S_t1_t_inv_S_a[t]*(S_c_inv[t] +(mu_c[t]-mu_a[t-1])*(mu_c[t]-
+                                                                                         mu_a[t-1]).Tr())*S_t1_t_inv_S_a[t].Tr();
       }
       theta.S_T = sym_inv(S_T);//sym_inv(S_T0sym_inv((S_T1 + S_T_inv*S_T0*S_T_inv));
       theta.S_T *= N;
       cout << "new S_T:\n"<<theta.S_T;
     }
-  }
-  //  for(int t = 1;t <=N;t++) cout << format("gamma_score[%d]: %f\n",t,gamma_score[t]);
-  cout << "end training with delta_score = "<<delta_score<<endl;
+    //  for(int t = 1;t <=N;t++) cout << format("gamma_score[%d]: %g\n",t,gamma_score[t]);
+    cout << "end training with delta_score = "<<delta_score<<endl;
+#endif
+  }  
 }
+
+
+
+
+
 #if 0
-  // test section
+------------------------------------------------------------------------------------------------------------------
+// test section
   MTS_M = theta.M.Tr()*theta.S_M;
   MTS_MM = MTS_M*theta.M;
   double tot_score(0);
@@ -661,7 +612,7 @@ int main(int argc, char** argv){
     }
 
   } 
-}
+
 
 
 
@@ -759,9 +710,11 @@ int main(int argc, char** argv){
                  stake,stake_stats.mean(), stake_sigma, sharpe, max_drawdown*100,nobet);
 #endif
 
-  //  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
-  int N;  // time of last training data point
-  bool simulation;
+
+
+//  Theta sim_theta(nstates,data_dim,seed); // get a separate parameter set
+//  int N;  // time of last training data point
+//  bool simulation;
   // // set up initial parameters
   // theta.M.fill(0);
   // theta.T.fill(0);
@@ -923,3 +876,19 @@ int main(int argc, char** argv){
 //     return M;
 //   }
 // };
+
+
+      // S_t1_t_inv[t] = sym_inv(S1_T+S_a[t-1],&detS_hat); // save these two for S_T re-estimation
+      // S_t1_t_inv_S_a[t] = S_t1_t_inv[t]*S_a[t-1]; //S_{t-1,t}^{-1}S_{a,t-1}
+      // S_hat = S1_T*S_t1_t_inv_S_a[t]; //\hat{S}_{a,t-1}
+      // detS_hat = det_S1_T*detS_a[t-1]/detS_hat; 
+      // S1_mu1 = MTS_M*data.x[t];
+      // S2_mu2 = T_inv.Tr()*(S_hat*mu_a[t-1]);
+      // S_mu =  S1_mu1 + S2_mu2;  
+      // S_a[t] = MTS_MM + T_inv.Tr()*S_hat*T_inv;
+      // S_a[t] = (S_a[t] + S_a[t].Tr())* .5;
+      // //      symmetrize(S_a[t]);
+      // // fflush(stdout);
+      // mu_a[t] = sym_inv(S_a[t],&detS_a[t])*S_mu;
+      // if(t < 10 || t > N-10) cout << format("length x[%d]: %.9g, length mu_a_t: %.9g\n", t, length(data.x[t]), length(mu_a[t]));
+      // R = data.x[t].Tr()*theta.S_M*data.x[t] + mu_a[t-1].Tr()*S2_mu2 - mu_a[t].Tr()*S_mu;

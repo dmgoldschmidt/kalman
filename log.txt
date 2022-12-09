@@ -167,5 +167,64 @@ M for now, to see better how the corrections look.  Also, I will print out any p
 after each iteration.
 
 Fri Nov  4 09:04:16 2022
-OK, I changed M initialization to use the identity matrix if nstates == data_dim.  More importantly, I changed T and M reestimation to use QRreg least squares, fitting to T*mu_c[t] \approx mu_c[t+1] and M*mu_c[t] \approx x[t] respectively.  These changes look like they
-improve convergence drastically.  I'll try more runs with greater tweaking of initial values for T and M.  Also, I wonder if I can prove that they also converge to the maximum data likelihood.  Another thing to try:  let S_C = 1/N\sum_{t=1}^N S_c[t].  Then reestimate S_T  = T^tS_T(old)T and S_M = M^tS_M(old)M.  Also we might intialize S_0 to the sample covariance matrix of the data. 
+OK, I changed M initialization to use the identity matrix if nstates == data_dim.  More importantly, I changed T ,M
+reestimation to use QRreg least squares, fitting to T*mu_c[t] \approx mu_c[t+1] and M*mu_c[t] \approx x[t] resp.
+These changes seem to improve convergence drastically.  I'll try more runs with greater tweaking of initial values
+for T and M.  Also, I wonder if I can actually prove that they converge to the maximum data likelihood.  Another thing
+to try:  let S_C = 1/N\sum_{t=1}^N S_c[t].  Then reestimate S_T  = T^tS_T(old)T and S_M = M^tS_M(old)M.  NOTE:
+I'm not sure this is a good idea -- S_M (should really be S_x) is basically observation noise, and the uncertainty in
+gamma is already taken care of in the equations.  Also, we might consider making S_T time-dependent and reestimating
+via S_T = S_c[t], which is the posterior uncertainty in gamma.
+Finally, we might intialize S_0 to the sample covariance matrix of the data. 
+
+Tue Nov  8 16:21:50 2022
+I downloaded a dataset from the Indian stock exchange?  It's in code/kalman/data.
+
+Wed Nov  9 08:15:27 2022
+I'm not happy with what reestimatation is doing to T and M (virtually nothing, actually).  I think the first move
+is to write some test code to verify that QRreg is operating properly.
+
+Fri Nov 11 08:12:37 2022
+OK, I wrote testQRreg.cc and verified that QRreg is working.  Next step:  review the simulation and tweaking
+parameters for M, then make them obviously different. Run another test and  leave T = identity.
+
+Fri Nov 11 14:40:56 2022
+Same problem.  My kalman.cc code is very difficult to debug, and I can't figure out if it even agrees with the
+writeup.  Solution:  I will re-write the alpha and beta passes inefficiently, referencing each computation with a
+line of the writeup.  First step: define struct QF and double sum and debug them.
+
+Sun Nov 13 11:31:25 2022
+OK QF looks good.  Now I'm going to do a commit, and then modify the alpha pass.
+
+Tue Nov 15 10:32:57 2022
+I think I may have seen a bug in the old gamma calculation.  I'll check carefully before I substitute the new
+one.
+
+Mon Nov 28 12:14:24 2022
+Back from LA.  I ran 100 data points (cut to 80) with no re-estimation, and printed out alpha_score, beta-score, and
+gamma_score at each time step.  The alpha score was positive and increasing with each successive forward step, which
+seems right, but the beta score was negative, and got smaller with each successive backward step.  This seems wrong.  
+
+Fri Dec  2 10:01:12 2022
+In addition to the 11/28 changes, I changed both the data dimention and the no. of states to 1.  Now the gamma score is constant across the 100 points.  In addition, I perturbed T to 10.0 and
+re-estimated it and got back to close to 1.0 (the simulation value) after 4 iterations.  This all looks good, AND the alpha score was
+also negative.  I tried just solving for M, with an initial perturbed value of 15 (and a simulation value of 1) but it didn't work.  Gotta look into this.
+
+Mon Dec  5 10:35:43 2022
+I stepped through QRreg::reduce for the first three time steps, and everything looked OK.  So if I'm feeding in the
+context/goal pairs correctly, I'm pretty sure I'm getting the correct least squares solution.  But it looks like the simulated data is wrong.  I'm supposedly simulating with with both T and M = 1.0, so the simulated data should look like the
+alpha state, and I don't think it does.  That's the next thing to check.
+
+Tue Dec  6 08:22:14 2022
+Well, it looks like we can't use least-squares for M-reestimation, for the simple reason that the gammas have been
+computed using the purposely tweaked value of M, and thus they reflect that value.  So the thinko was to imagine
+that they will still look something like the simulation state values, but they don't.  I think the T-reestimation works
+because the simulation value is 1.0.  If we change that to, say, 2.0, and then tweak it to 1.0, I predict we'll still get a
+value close to 1.0 by least squares, because the least squares calculation is really fitting to gamma[t+1]-gamma[t].
+
+Thu Dec  8 16:56:14 2022
+OK, I've re-installed the EM code for M-reestimation and it is working (in dimension 1).  Also, my prediction for
+T-reestimation using least squares didn't pan out.  I generated simulated data at T = 2.0 (dim = 1) and tweaked
+back to 1.0, and the code found the 2.0 value.  So for now I'm keeping the least squares version.  Next up:
+increase the dimension.  BTW, I think it's pretty clear that T needs to be a rotation matrix.   I'll try that in dimension
+2.  I also need to record the simulation state at every value of t and compare it with the final gamma[t].  
