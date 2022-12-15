@@ -227,4 +227,16 @@ OK, I've re-installed the EM code for M-reestimation and it is working (in dimen
 T-reestimation using least squares didn't pan out.  I generated simulated data at T = 2.0 (dim = 1) and tweaked
 back to 1.0, and the code found the 2.0 value.  So for now I'm keeping the least squares version.  Next up:
 increase the dimension.  BTW, I think it's pretty clear that T needs to be a rotation matrix.   I'll try that in dimension
-2.  I also need to record the simulation state at every value of t and compare it with the final gamma[t].  
+2.  I also need to record the simulation state at every value of t and compare it with the final gamma[t].
+
+Sat Dec 10 08:11:41 2022
+I ran with nstates = data_dim = 2 and got non-constant gamma_score.  So I tried nstates = 1, data_dim = 2 and
+the gamma_scores were constant, but with nstates = 2, data_dim = 1, they were back to non-constant again.  So
+it looks like I need to stare closely at the time update equations and code.
+
+Wed Dec 14 17:12:45 2022
+After reviewing the write-up carefully, I can't figure out how the alpha and beta pass equations were derived.
+In the first place, the basic equation for completing the square, eq. (3.2), does not have any inverse matrices.
+These only show up in (3.7), which gives an alternative equation for R which I don't need.  Actually, the only
+equation I actually need is Cor. 3.13.  So I'm going to re-write the alpha pass and beta pass sections strictly
+following Cor. 3.13.

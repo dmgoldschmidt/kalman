@@ -57,10 +57,11 @@ struct Theta { // Model parameters
     T.reset(nstates,nstates,&zero);
     
     for(int s = 0;s < nstates;s++){
-      S_0(s,s) =  S_T(s,s) = S_M(s,s) = 100.0;
+      S_0(s,s) =  S_T(s,s) = 100.0;
       T(s,s) = 1.0;
       mu_0[s] = 0;
     }
+    for(int i = 0;i < data_dim;i++) S_M(i,i) = 100.0;
     if(nstates == data_dim){ // set M = identity
       for(int s = 0;s < nstates;s++) M(s,s) = 1.0;
     }
@@ -384,10 +385,12 @@ int main(int argc, char** argv){
     }
     if(T_reestimate){ // perturb the T-matrix
       if(AR_mode) for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 0.0;
+      else if(nstates ==2){
+          double phi = atan(1.0);
+          theta.T = {{sin(phi),cos(phi)},{-cos(phi),sin(phi)}};
+      }
       else{
-        for(int i = 0; i < nstates;i++){
-          for(int j = 0;j  < nstates;j++) theta.T(i,j) = 1.0;
-        }
+        for(int i = 0; i < nstates;i++) theta.T(i,i) = 1.0;
       }
     }
   }
@@ -443,14 +446,14 @@ int main(int argc, char** argv){
     // beta pass
     beta[N].mu.fill(0);
     beta[N].S.fill(0);
-    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
+    //    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
     beta[N]._det = 1.0;
     beta_score[N] = 0;
     //    detS_b[N] = 1.0;
     for(int t = N-1;t >= 0;t--){
       S_hat = M1 + beta[t+1].S; 
       beta[t].S = theta.T.Tr()*star(S_hat,theta.S_T)*theta.T;
-      beta[t]._det = det(beta[t].S);
+      beta[t]._det = (t < N ? det(beta[t].S): 1.0);
       ColVector<double> mu_hat = sym_inv(S_hat)*(theta.M.Tr()*theta.S_M*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
       beta[t].mu = T_inv*mu_hat;
       R = data.x[t+1].Tr()*theta.S_M*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu  - mu_hat.Tr()*S_hat*mu_hat;
@@ -845,7 +848,7 @@ int main(int argc, char** argv){
 //   matrix operator()(void){
 //     double delta = .5*svd.A(n-1,n-1);  // slightly to the right of the smallest eigenvalue (largest singularity)
 //     double lambda1 = -delta; 
-//     double lambda2 = -lambda1;
+ //     double lambda2 = -lambda1;
 //     while(f(lambda2) < 0) lambda2 *= 2;
 //     while(f(lambda1) > 0){
 //       delta /= 2;
