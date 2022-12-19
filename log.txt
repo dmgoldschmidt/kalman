@@ -240,3 +240,22 @@ In the first place, the basic equation for completing the square, eq. (3.2), doe
 These only show up in (3.7), which gives an alternative equation for R which I don't need.  Actually, the only
 equation I actually need is Cor. 3.13.  So I'm going to re-write the alpha pass and beta pass sections strictly
 following Cor. 3.13.
+
+Fri Dec 16 16:46:38 2022
+ I figured out why T^{-1} shows up -- it comes from applying (3.15).
+But, I *think* there's a mistake in the writeup deriving \alpha_t(s).  Namely, in the step from \hat(\alpha) to \alpha
+we are supposed to apply Cor. 3.13, but I get S_{a,t} = M^tS_xM + T^{-t}\hat{S_{a,t-1}}T^{-1} and the document
+says S_{s,t} = M^tS_xM + \hat{S_{a,t-1}}.
+
+Sat Dec 17 08:55:30 2022
+So that was indeed a mistake, but only in my current revision.  The original tex has it right.   I fixed it in the revision.
+Next:  check the rest of the alpha pass and then check the beta pass.  I thought I saw something fishy there
+a few days ago when I looked.
+
+Sat Dec 17 15:29:14 2022
+I cleaned up and checked the forward pass.  I thought there might be a problem with the outside constant but
+it looks like it checks.  I put some  additional steps in the proof for verification of the results.
+
+Sun Dec 18 08:57:22 2022
+I found a mistake in the writeup of the beta pass:  I had a det(T) in the denominator of the constant for \hat{\beta}_t(s),
+and it doesn't belong there.

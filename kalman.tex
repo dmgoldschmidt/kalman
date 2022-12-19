@@ -171,7 +171,7 @@ and \eqref{mu} becomes
 \end{equation}.
 We can re-write this as
 \begin{equation}\label{mu:1}
-\mu = S^{-1}(S_1'\mu_1' + S_2'\mu_1' + S_2'(\mu_2'-\mu_1) = \mu_1' + S^{-1}S_2'(\mu_2'-\mu_1'),
+\mu = S^{-1}(S_1'\mu_1' + S_2'\mu_1' + S_2'(\mu_2'-\mu_1)) = \mu_1' + S^{-1}S_2'(\mu_2'-\mu_1'),
 \end{equation}
 and by symmetry we have
 \begin{equation}\label{mu:2}
@@ -244,16 +244,17 @@ $$
   likelihood of observations $x_1,\dots,x_{t-1}$ and state $s$ at time $t$.
   Then in the second step, which we call the {\em measurement update}, we multiply
   $\hat{\alpha}_t(s)$ by $X(x_t \mid s)$, the probability density of observing $x_t$ at time $t$
-  in state $s$, to get $\alpha_t(s)$.  Henceforth, we put $S_T' := T^TS_TT$.
+  in state $s$, to get $\alpha_t(s)$.  %Henceforth, we put $S'_T  := T^TS_TT$.
 
   First, for $1\le t \le N$ we inductively define
   \begin{align*}
-    \hat{S}_{a,t-1} &= S_T'*S_{a,t-1},\\
-    S_{a,t} &:= M^TS_xM  +T^{-T} \hat{S}_{a,t-1}T^{-1},\\
-    \mu_{a,t} &:= S_{a,t}^{-1}(M^TS_xx_t + T^{-T}\hat{S}_{a,t-1}\mu_{a,t-1})\\
+    \hat{S}_{a,t-1} :&= T^{t}S_TT * S_{a,t-1},\\
+%    \hat{\mu}_{a,t} :&= \hat{S}_{a,t}^{-1}(T^TS_Ts + S_{a,t-1}\mu_{a,t-1}),\\
+    S_{a,t} &:= M^TS_xM  + T^{-T}\hat{S}_{a,t-1}T^{-1},\\
+    \mu_{a,t} &:= S_{a,t}^{-1}(M^TS_xx_t + T^{-T}\hat{S}_{a,t-1}\mu_{a,t-1}),\\
     R_{a,t} &:= x_t^TS_xx_t + \mu_{a,t-1}^T\hat{S}_{a,t-1}\mu_{a,t-1} - \mu_{a,t}^TS_{a,t}\mu_{a,t},\\
-    N_{a,t} &:= \left(\frac{|S_x|\cdot|\hat{S}_{a,t-1}|}{2\pi|S_{a,t}|\cdot|T|^2}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
-    P_{a,t} &:= P_{a,t-1}N_{a,t}, \quad\text{and}\\
+    P_{a,t} &:= P_{a,t-1}|T|^{-1}\left(\frac{|S_x|\cdot|\hat{S}_{a,t-1}|}{2\pi|S_{a,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}},\\
+%    P_{a,t} &:= P_{a,t-1}N_{a,t}, \quad\text{and}\\
     P_{a,0} &:= 1.
   \end{align*}
 
@@ -267,18 +268,23 @@ $$
 \begin{proof}
 
 Proceeding by induction on $t$, we note that the case $t = 0$ holds by definition.
-For the time update, we have, using \eqref{exact_prod}
+For the time update, we have
 \begin{align}
-  \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \\\notag
-  &= P_{a,t-1}\int_{\R^n}\N(Tu;s,S_T)\N(u;\mu_{a,t-1},S_{a,t-1})du \notag\\
-  &= P_{a,t-1}|T|^{-1}\N(T^{-1}s;\mu_{a,t-1},\hat{S}_{a,t-1}).
+  \hat{\alpha}_t(s) &= \int_{\R^n}Pd(s|u)\alpha_{t-1}(u)du \notag \\
+  &= P_{a,t-1}\int_{\R^n}\N(Tu;s,S_T)\N(u;\mu_{a,t-1},S_{a,t-1})du \quad\text{(by symmetry of $s$ and $Tu$)}\notag\\
+  &= P_{a,t-1}|T|^{-1}\N(T^{-1}s;\mu_{a,t-1},\hat{S}_{a,t-1}),\label{time_update} %\int_{\R^n}\N(u;\hat{\mu}_{a,t-1},\hat{S}_{a,t-1})du
 \end{align}
-
-Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:2} yields
+where \eqref{time_update} was obtained by using \eqref{exact_prod} together with the fact that the normal
+density integrates to unity.  Then multiplying by $X(x_t\mid s)$ and using \eqref{comp_sq:2} yields
 \begin{align*}
   \alpha_t(s) &= X(x_t\mid s)\hat{\alpha}_t(s) \\
   &= P_{a,t-1}|T|^{-1}\N(Ms;x_t,S_x)\N(T^{-1}s;\mu_{a,t-1},\hat{S}_{a,t-1}) \\
-  &= P_{a,t-1}N_{a,t}\N(s;\mu_{a,t},S_{a,t}).
+  &= P_{a,t-1}|T|^{-1}(2\pi)^{-n}(|S_x||\hat{S}_{a,t-1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(T^{-1}s;
+  \mu_{a,t-1},\hat{S}_{a,t-1}) + Q(Ms;x_t,S_x)\} \\
+  &= P_{a,t-1}|T|^{-1}(2\pi)^{-n}(|S_x||\hat{S}_{a,t-1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(s;\mu_{a,t},S_{a,t}) + R_{a,t})\}\\
+  &= P_{a,t-1}|T|^{-1}\left(\frac{|S_x||\hat{S}_{a,t-1}|}{|2\pi S_{a,t}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{a,t}}
+  \N(s;\mu_{a,t},S_{a,t})\\
+  &= P_{a,t}\N(s;\mu_{a,t},S_{a,t}).
 \end{align*}
 \end{proof}
 
@@ -290,13 +296,12 @@ and then we integrate with respect to $Pd(u\mid s)du$ for the time update.
 \begin{Thm}\label{beta:1}
   For $t < N$, inductively define
 \begin{align*}
-  \hat{S}_{b,t} :&= M^TS_xM + S_{b,t+1};\\
-  S_{b,t} :&= T^T(\hat{S}_{b,t}*S_T)T,\\
-  \hat{\mu}_{b,t} :&= \hat{S}_{b,t}^{-1}(M^TS_xx_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
-  \mu_{b,t} :&= T^{-1}\hat{\mu}_{b,t},\\
-  R_{b,t} :&= x_{t+1}^TS_xx_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \hat{\mu}_{b,t}^T\hat{S}_{b,t}\hat{\mu}_{b,t},\\
-  N_{b,t} :&= \left(\frac{|S_x|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t}|\cdot|T|^2}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}},\quad\text{and}\\
-  P_{b,t}:&=P_{b,t+1}N_{b,t},
+  \hat{S}_{b,t+1} :&= M^TS_xM + S_{b,t+1};\\
+  S_{b,t} :&= T^T(\hat{S}_{b,t+1}*S_T)T,\\
+  \hat{\mu}_{b,t+1} :&= \hat{S}_{b,t+1}^{-1}(M^TS_xx_{t+1} + S_{b,t+1}\mu_{b,t+1}),\\
+  \mu_{b,t} :&= T^{-1}\hat{\mu}_{b,t+1},\\
+  R_{b,t} :&= x_{t+1}^TS_xx_{t+1} + \mu_{b,t+1}^TS_{b,t+1}\mu_{b,t+1} - \hat{\mu}_{b,t+1}^T\hat{S}_{b,t+1}\hat{\mu}_{b,t+1},\quad\text{and}\\
+  P_{b,t} :&= P_{b,t+1}\left(\frac{|S_x|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t+1}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}}
 \end{align*}
 with initial values at $t = N$ given below. Then for each state $s$ and time $t < N$,
 $$
@@ -309,11 +314,11 @@ We proceed by reverse induction on $t$. However, to get started we first must  d
 the special case of $\beta_{N}(u)$, the conditional probability of the future observations given
 state $u$ at time $N$, but of course there are no such observations.  In the standard discrete
 state HMM, we set $\beta_N(s) = 1$ for all states $s$ and this will work in our case as well by
-setting $S_{b,N} = 0$, provided that $M$ is 1-1. But we really need a proper gaussian 
-density in order to get the reverse induction started in all cases, so we somewhat arbitrarily
-assume the following values
+setting $S_{b,N} = 0$, so we somewhat arbitrarily assume the following values
+%provided that $M$ is 1-1. But we really need a proper gaussian 
+%density in order to get the reverse induction started in all cases,
 \begin{align*}
-  S_{b,N} :&= I,\\
+  S_{b,N} :&= 0,\\
   \mu_{b,N} :&= 0,\quad\text{and}\\
   P_{b,N} :&= 1.
 \end{align*}
@@ -321,15 +326,19 @@ assume the following values
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_x)\N(u;\mu_{b,t+1},S_{b,t+1})\\
-    &= P_{b,t+1}|T|N_{b,t}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t}).
+    &= P_{b,t+1}(2\pi)^{-n}(|S_x||S_{b,t+1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(Mu;x_{t+1},S_x) + Q(u;\mu_{b,t+1},S_{b,t+1}) \} \\
+    &= P_{b,t+1}(2\pi)^{-n}(|S_x||S_{b,t+1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}) + R_{b,t})\}\\
+  &= P_{b,t+1}\left(\frac{|S_x||S_{b,t+1}|}{|2\pi \hat{S}_{b,t+1}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}}
+  \N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\\
+    &= P_{b,t}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}).
   \end{align*}
-  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$, all future observations, {\em and}
-  $x_{t+1}$. Then an application of \eqref{exact_prod} and \eqref{comp_sq:4} yields the time update
+  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$, all observations $x_\tau~(\tau > t+1)$,
+      {\em and} $x_{t+1}$. Then an application of \eqref{exact_prod} and \eqref{comp_sq:4} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
-    &= P_{b,t+1}|T|N_{b,t}\int_{\R^n}\N(u;\hat{\mu}_{b,t},\hat{S}_{b,t+1})\N(u;Ts,S_T)du\\
-    &=P_{b,t+1}|T|N_{b,t}\N(Ts;\hat{\mu}_{b,t},\hat{S}_{b,t+1}*S_T)\\
-    &=P_{b,t+1}N_{b,t}\N(s;T^{-1}\hat{\mu}_{b,t},T^T(\hat{S}_{b,t+1}*S_T)T)\\
+    &= P_{b,t}\int_{\R^n}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\N(u;Ts,S_T)du\\
+    &=P_{b,t}\N(Ts;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}*S_T)\\
+%    &=P_{b,t}\N(s;T^{-1}\hat{\mu}_{b,t+1},T^T(\hat{S}_{b,t+1}*S_T)T)\\
     &=P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
   \end{align*}
 \end{proof}
@@ -364,10 +373,10 @@ The joint likelihood of all the data and states $s_{t-1},s_t$ is
   \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t), \quad\text{where} \\
   S_{t-1,t} &:= S_{a,t-1}+S_T',\quad\text{and}\\
   \mu_{t-1,t} &:= S_{t-1,t}^{-1}(T^TS_Ts_t + S_{a,t-1}\mu_{a,t-1})\\
-  &= S_{t-1,t}^{-1}(S'_Ts'_t + S_{a,t-1}\mu_{a,t-1}).\\
+  &= S_{t-1,t}^{-1}(T^{t}S_TTs'_t + S_{a,t-1}\mu_{a,t-1}).\\
 \end{align*}
 \end{Lem}
-Recall that $S'_T := T^TS_TT,$ and $s'_t := T^{-1}s_t$.
+Recall that $s'_t := T^{-1}s_t$.
 \begin{proof}
   By definition, the joint likelihood of all the data and states $s_{t-1},s_t$ is 
   \begin{align*}
@@ -792,9 +801,9 @@ However, there is a problem evaluating this integral because after checking \eqr
 depends on $s'_t = \overline{T}^{-1}s_t$, namely 
 \begin{equation}\label{s-mu_1}
   \begin{split}
-    \left(\mu_{t-1,t}-s'_t\right) &= (S_{t-1,t}^{-1}S'_T - I)s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= (S_{t-1,t}^{-1}S'_T)s'_t - S_{t-1,t}^{-1}S_{t-1,t}) + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{t-1,t}^{-1}(S'_T - S_{t-1,t} )s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    \left(\mu_{t-1,t}-s'_t\right) &= (S_{t-1,t}^{-1}T^{t}S_TT - I)s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= (S_{t-1,t}^{-1}T^{t}S_TT)s'_t - S_{t-1,t}^{-1}S_{t-1,t}) + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+    &= S_{t-1,t}^{-1}(T^{t}S_TT - S_{t-1,t} )s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
     &= S_{t-1,t}^{-1}S_{a,t-1}(\mu_{a,t-1}-s'_t),\\
     &= S_*(\mu_{a,t-1}-s_t')
   \end{split}

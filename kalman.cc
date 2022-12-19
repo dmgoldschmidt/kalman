@@ -44,14 +44,14 @@ struct Theta { // Model parameters
   Matrix<double> S_0;
   ColVector<double> mu_0;
   Matrix<double> S_T;
-  Matrix<double> S_M;
+  Matrix<double> S_x;
   Matrix<double> M;
   Matrix<double> T;
   Theta(int nstates, int data_dim, uint64_t seed){
     Normaldev normal(0,1,seed);
     S_0.reset(nstates,nstates,&zero);
     mu_0.reset(nstates);
-    S_M.reset(data_dim,data_dim,&zero);
+    S_x.reset(data_dim,data_dim,&zero);
     S_T.reset(nstates,nstates,&zero);
     M.reset(data_dim,nstates,&zero);
     T.reset(nstates,nstates,&zero);
@@ -61,7 +61,7 @@ struct Theta { // Model parameters
       T(s,s) = 1.0;
       mu_0[s] = 0;
     }
-    for(int i = 0;i < data_dim;i++) S_M(i,i) = 100.0;
+    for(int i = 0;i < data_dim;i++) S_x(i,i) = 100.0;
     if(nstates == data_dim){ // set M = identity
       for(int s = 0;s < nstates;s++) M(s,s) = 1.0;
     }
@@ -74,7 +74,7 @@ struct Theta { // Model parameters
 };
 
 ostream& operator<<(ostream& os, const Theta& t){
-  cout <<  "T:\n"<<t.T<<"M:\n"<<t.M<<"S_0:\n"<<t.S_0<<"mu_0:\n"<<t.mu_0.Tr()<<"S_M:\n"<<t.S_M<<"S_T:\n"<<t.S_T;
+  cout <<  "T:\n"<<t.T<<"M:\n"<<t.M<<"S_0:\n"<<t.S_0<<"mu_0:\n"<<t.mu_0.Tr()<<"S_x:\n"<<t.S_x<<"S_T:\n"<<t.S_T;
   return os;
 }
 
@@ -181,7 +181,7 @@ struct Data {
     state[0] = theta.mu_0;
     ColVector<double> mean_state(nstates);
     mean_state.fill(0);
-    ran_vec_M.reset(theta.S_M); // set the inverse covariance matrices
+    ran_vec_M.reset(theta.S_x); // set the inverse covariance matrices
     ran_vec_T.reset(theta.S_T);
     for(int t = 1;t <= max_recs;t++){
       ran_vec_T.reset_mu(theta.T*state[t-1]); 
@@ -259,7 +259,7 @@ int main(int argc, char** argv){
   bool verbose = false;
   bool ran_dict = false;
   bool S_T_reestimate = false;
-  bool S_M_reestimate = false;
+  bool S_x_reestimate = false;
   bool S_0_reestimate = false;
   bool M_reestimate = false;
   //  bool M_constraint = false;
@@ -287,7 +287,7 @@ int main(int argc, char** argv){
   if(cl.get("verbose")){ verbose = true; cout << "verbose mode ";}
   if(cl.get("ran_dict")){ ran_dict = true; cout << "random dictionary mode ";}
   if(cl.get("S_T_reestimate")) {S_T_reestimate = true; cout << "re-estimate S_T\n";}
-  if(cl.get("S_M_reestimate")) {S_M_reestimate = true; cout << "re-estimate S_M\n";}
+  if(cl.get("S_x_reestimate")) {S_x_reestimate = true; cout << "re-estimate S_x\n";}
   if(cl.get("S_0_reestimate")) {S_0_reestimate = true; cout << "re-estimate S_0\n";}
   if(cl.get("M_reestimate")) {M_reestimate = true; cout << "re-estimate M\n";}
   //  if(cl.get("M_constraint")) {M_constraint = true; cout << "constrain M\n";}
@@ -319,7 +319,7 @@ int main(int argc, char** argv){
   for(int i = 0;i < data_dim;i++){ cout << W.A(i,i) << " ";}
   cout << endl;
   //  cout << "eigenvectors:\n"<<W.U;
-  //  theta.S_M = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
+  //  theta.S_x = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
   // Array<Matrix<double>> S_a(N+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
   // Array<ColVector<double>> mu_a(N+1);
   // Array<Matrix<double>> S_b(N+1); // beta[t](s) = N(s,S_b[t],mu_b[t])
@@ -366,9 +366,9 @@ int main(int argc, char** argv){
         for(int j = 0;j < nstates;j++)theta.S_T(i,j) += 1.0;
       }
     }
-    if(S_M_reestimate){ // perturb the observation matrix
+    if(S_x_reestimate){ // perturb the observation matrix
       for(int i = 0;i < data_dim;i++){
-        for(int j = 0;j < data_dim;j++)theta.S_M(i,j) += 1.0;
+        for(int j = 0;j < data_dim;j++)theta.S_x(i,j) += 1.0;
       }
     }
     if(S_0_reestimate){ // perturb the initial state
@@ -394,10 +394,10 @@ int main(int argc, char** argv){
       }
     }
   }
-  double det_S_M,det_S1_T,R,det_T,log_det_T;
+  double det_S_x,det_S1_T,R,det_T,log_det_T;
   // ColVector<double> S_mu(nstates),S1_mu1(nstates),S2_mu2(nstates),mu_hat(nstates);
-  // Matrix<double> MTS_M(data_dim,data_dim);
-  // Matrix<double> MTS_MM(nstates,nstates);
+  // Matrix<double> MTS_x(data_dim,data_dim);
+  // Matrix<double> MTS_xM(nstates,nstates);
   Matrix<double> S1(nstates,nstates);
   Matrix<double> T_inv(nstates,nstates);
   //  Matrix<double> S_T_T(nstates,nstates);
@@ -426,19 +426,19 @@ int main(int argc, char** argv){
       T_inv = inv(theta.T,&det_T,1.0e-20);
       log_det_T = log(det_T);
     }
-
-    matrix M1 = theta.M.Tr()*theta.S_M*theta.M;
+    // begin alpha pass
+    matrix M1 = theta.M.Tr()*theta.S_x*theta.M;
     matrix T1 = theta.T.Tr()*theta.S_T*theta.T;
-    double det_S_M = det(theta.S_M);
+    det_S_x = det(theta.S_x);
     alpha[0].reset(theta.S_0,theta.mu_0);
     alpha_score[0] = 0;
     //    double detS_hat;
     for(int t = 1;t <= N;t++){ 
       S_hat = star(T1,alpha[t-1].S); 
       alpha[t].S = M1 + T_inv.Tr()*S_hat*T_inv;
-      alpha[t].mu = sym_inv(alpha[t].S,&alpha[t]._det)*(theta.M.Tr()*theta.S_M*data.x[t] + T_inv.Tr()*S_hat*alpha[t-1].mu);
-      R = data.x[t].Tr()*theta.S_M*data.x[t] + alpha[t-1].mu.Tr()*S_hat*alpha[t-1].mu - alpha[t].mu.Tr()*alpha[t].S*alpha[t].mu;
-      alpha_score[t] = alpha_score[t-1] + .5*(log(det(S_hat)*det_S_M/(alpha[t]._det*ntwopi)) - R) - log_det_T;
+      alpha[t].mu = sym_inv(alpha[t].S,&alpha[t]._det)*(theta.M.Tr()*theta.S_x*data.x[t] + T_inv.Tr()*S_hat*alpha[t-1].mu);
+      R = data.x[t].Tr()*theta.S_x*data.x[t] + alpha[t-1].mu.Tr()*S_hat*alpha[t-1].mu - alpha[t].mu.Tr()*alpha[t].S*alpha[t].mu;
+      alpha_score[t] = alpha_score[t-1] + .5*(log(det(S_hat)*det_S_x/(alpha[t]._det*ntwopi)) - R) - log_det_T;
       cout << format("alpha[%d]: S: %.3f, alpha._det: %.3g, R: %.3g, log_det_T: %.3g\n",
                      t,alpha[t].S(0,0),alpha[t]._det,R,log_det_T);
     } // end alpha pass
@@ -449,17 +449,16 @@ int main(int argc, char** argv){
     //    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
     beta[N]._det = 1.0;
     beta_score[N] = 0;
-    //    detS_b[N] = 1.0;
     for(int t = N-1;t >= 0;t--){
       S_hat = M1 + beta[t+1].S; 
       beta[t].S = theta.T.Tr()*star(S_hat,theta.S_T)*theta.T;
-      beta[t]._det = (t < N ? det(beta[t].S): 1.0);
-      ColVector<double> mu_hat = sym_inv(S_hat)*(theta.M.Tr()*theta.S_M*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
+      //      beta[t]._det = (t < N ? det(beta[t].S): 1.0);
+      ColVector<double> mu_hat = sym_inv(S_hat,&beta[t]._det)*(theta.M.Tr()*theta.S_x*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
       beta[t].mu = T_inv*mu_hat;
-      R = data.x[t+1].Tr()*theta.S_M*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu  - mu_hat.Tr()*S_hat*mu_hat;
-      beta_score[t] = beta_score[t+1] + .5*(log(det_S_M*beta[t+1]._det/det(S_hat*ntwopi)) - R) - log_det_T; 
-      cout << format("beta[%d]:  S: %.3g, beta._det: %.3g, R: %.3g, log_det_T: %.3g\n",
-                     t,beta[t].S(0,0),beta[t]._det,R,log_det_T);
+      R = data.x[t+1].Tr()*theta.S_x*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu  - mu_hat.Tr()*S_hat*mu_hat;
+      beta_score[t] = beta_score[t+1] + .5*(log(det_S_x*beta[t+1]._det/det(S_hat*ntwopi)) - R); 
+      cout << format("beta[%d]:  S: %.3g, beta._det: %.3g, R: %.3g\n",
+                     t,beta[t].S(0,0),beta[t]._det,R);
     } // end beta pass
 
     // gamma pass
@@ -531,17 +530,17 @@ int main(int argc, char** argv){
       cout << format("new M: %.4f\n", theta.M(0,0));
     }
 #ifdef covariance_reestimate    
-    if(S_M_reestimate){
-      // reestimate theta.S_M
-      theta.S_M.fill(0);
+    if(S_x_reestimate){
+      // reestimate theta.S_x
+      theta.S_x.fill(0);
       ColVector<double> M_mu_x(data_dim);
       for(int t = 1;t <= N;t++){
         M_mu_x = theta.M*mu_c[t]-data.x[t];
-        theta.S_M += theta.M*S_c_inv[t]*theta.M.Tr() + M_mu_x*M_mu_x.Tr();
+        theta.S_x += theta.M*S_c_inv[t]*theta.M.Tr() + M_mu_x*M_mu_x.Tr();
       }
-      theta.S_M = sym_inv(theta.S_M);
-      theta.S_M *= N;
-      cout << "new S_M:\n"<<theta.S_M;
+      theta.S_x = sym_inv(theta.S_x);
+      theta.S_x *= N;
+      cout << "new S_x:\n"<<theta.S_x;
     }
 
     if(S_T_reestimate){
