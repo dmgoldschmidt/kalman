@@ -821,6 +821,74 @@ so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
   \end{split}
 \end{equation}
 \newpage
+
+
+\appendix
+\section{A Standard Form for Orthonormal Matrices}
+Let $A$ be a real orthonormal $n\times n$ matrix, i.e. such that $A^tA = AA^t = I$.  Since $A+A^t$ is real
+symmetric, it has an  orthonormal basis of eigenvectors    $\{v_0,\dots,v_n\}$ with
+real eigenvalues $\{\lambda_i \mid 0\le i < n\}$.
+Let $\hat{v}_0 = Av_0$, then $A^{-1} \hat{v}_0 = A^t\hat{v}_0 = v_0$, and 
+\begin{align*}
+  (A + A^t)v_0 &= \lambda_0 v_0,\\
+  \hat{v}_0 & = \lambda_0 v_0 - A^tv_0, \\
+  A\hat{v}_0 &= \lambda_0 Av_0 - AA^tv_0 = \lambda_0 \hat{v}_0 - v_0.
+\end{align*}
+Thus, $(A+A^t)\hat{v}_0 = \lambda_0 \hat{v}_0$, so either $\hat{v}_0 = \mu v_0$ for some eigenvalue $\mu$ of $A$ (which, because $A$ is orthonormal, must be $\pm 1$) or the subspace $V_0:= <v_0,\hat{v}_0>$ is a 2-dimensional eigenspace of $A+A^t$ with eigenvalue $\lambda_0$.  In either case, $V_0$  is invariant under both $A$ and $A^t$.
+%% and 
+%% with respect to the basis $\{v_0,\hat{v}_0\}$ we have
+
+%% $$
+%% A|_{V_0} \sim \left[ \begin{matrix}
+%%     0 & -1 \\
+ %%     1 & \lambda_0\\
+%%     \end{matrix}
+%%   \right].
+%% $$
+Since $A$ is orthonormal, it is immediate that $V_0^{\perp}$,
+the orthogonal complement of $V_0$, is also $A$ and $A^t$ invariant, so an obvious induction argument shows that
+$$
+V = W_1\oplus W_{-1} \bigoplus_{i=0}^{k-1} V_i
+$$
+where $A|_{W_j} = jI$ for $j = -1,1$, and $V_i$ is a 2-dimensional eigenspace of $A+A^t$ with eigenvalue $\lambda_i$
+%% A|_{V_i} \sim \left[ \begin{matrix}
+%%     0 & -1 \\
+%%     1 & \lambda_i\\
+%% \end{matrix}
+%%   \right].
+%% $$
+for $0\le i < k$, where $\{\lambda_0,\dots,\lambda_{k-1}\}$ are the eigenvalues of $A+A^t$ different
+from $\pm 1$.  It follows that if $W$ is the matrix of eigenvectors of $A+A^t$ with respect to a suitable
+re-ordering of the eigenvalues, then $W^tAW$ is a block diagonal matrix whose entries are either $\pm 1$
+or $2\times 2$ rotation matrices.
+
+
+%% $A$ is
+%% similar to a block-diagonal matrix with $2\times 2$ blocks
+
+
+%% \begin{align*}
+%%   \hat{v}_0 &= \lambda_0 A^{-1}\hat{v}_0 - A^{-1}v_0,\\
+%%   A^tv_0 &= A^{-1}v_0 = \lambda_0 v_0 - \hat{v}_0.
+%% \end{align*}
+%% In particular, the 2-dimensional subspace $V_0:= <v_0,\hat{v}_0>$ is $A$-invariant and $A^t$-invariant, and 
+%% \quad\text{and}\quad A^t  \sim \left[\begin{matrix}
+%%     \lambda_0 & 1 \\
+%%     -1 & 0\\
+%%   \end{matrix}
+%%   \right].\\
+%% $$
+
+%% Thus, with respect to the basis $\{v_0,\hat{v}_0\}$ we have the diagonal matrix
+%% $$
+%% A+A^t \sim \left[\begin{matrix}
+%%     \lambda_0 & 0 \\
+%%     0 & \lambda_0 \\
+%%   \end{matrix}
+%%   \right]
+%% $$
+%% In other words, $v_0$ and $\hat{v}_0$ are both eigenvectors of $A+A^t$ with eigenvalue $\lambda_0$.
+
 \begin{thebibliography}{9}
 \bibitem{Hinton}
   Ghahramani, Z. and Hinton, G.,
@@ -842,7 +910,7 @@ so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
   April, 1998
 \bibitem{Dempster}
   Dempster, A Laird, N and Rubin, D,
-  \emph{Maximum-likelihood from incomplete data via the EM algorithm},
+   \emph{Maximum-likelihood from incomplete data via the EM algorithm},
   J.Royal Statist. Soc. Ser. B, 39,
   1977
 \bibitem{Shumway}

@@ -259,3 +259,10 @@ it looks like it checks.  I put some  additional steps in the proof for verifica
 Sun Dec 18 08:57:22 2022
 I found a mistake in the writeup of the beta pass:  I had a det(T) in the denominator of the constant for \hat{\beta}_t(s),
 and it doesn't belong there.
+
+Fri Dec 23 15:28:29 2022
+So after fixing the bug, the gamma score is close to constant
+over time.  I next ran with 20 iterations, but got a error after
+seven.  Turns out that the corrections to T made det(T) < 0 and
+log(det(T)) bombed out.  That got me thinking about restricting
+T to be orthonormal, and how to do that.  I poked around on the internet a bit, and got a hint about how to proceed.  It turned into an algorithm for finding an orthonormal change of basis for any given orthonormal matrix A with respect to which A has block diagonal form with 2x2 rotations along the diagonal, except for some \pm 1 eigenvalues.  I wrote this up as an appendix to kalman.tex.  
