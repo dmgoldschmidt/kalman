@@ -5,11 +5,23 @@
 
 //void printmat(matrix& A){ cout << A;}
 
-template<typename SCALAR>
-void printmat( const Matrix<SCALAR>& M){ cout << M;}
+// template<typename SCALAR>
+// void printmat( const Matrix<SCALAR>& M){ cout << M;}
+// template<typename SCALAR>
+// void printmat( Matrix<SCALAR>& M){ cout << M;}
 
-template<typename SCALAR>
-void printmat( Matrix<SCALAR>& M){ cout << M;}
+string printmat(const Matrix<double>& A){
+  std::ostringstream oss;
+  for(int i = 0;i < A.nrows();i++){
+    for(int j = 0;j < A.ncols();j++){
+      oss << A(i,j)<<" ";
+      cout << format("%.9g ",A(i,j));
+    }
+    oss<<"\n";
+    cout <<"\n";
+  }
+  return oss.str();
+}
 
 bool scale_rows(matrix& C){
   double d;

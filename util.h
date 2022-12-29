@@ -279,5 +279,4 @@ ostream& operator<<(ostream& os, const IndexPair<T1,T2>& p){
   return os;
 }
 
-
 #endif

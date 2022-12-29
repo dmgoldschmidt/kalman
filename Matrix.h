@@ -634,16 +634,18 @@ public:
     //    cout <<S2;
     return W == 0? S2: S2*(1.0/W);} 
 };
-template<typename SCALAR>
-string printmat(Matrix<SCALAR> A){ // for debugging
-  std::ostringstream oss;
-  for(int i = 0;i < A.nrows();i++){
-    for(int j = 0;j < A.ncols();j++)oss << A(i,j)<<" ";
-    oss<<"\n";
-  }
-  cout << oss.str();
-  return oss.str();
-}
+string printmat(const matrix& M);
+
+// template<typename SCALAR>
+// string printmat(Matrix<SCALAR> A){ // for debugging
+//   std::ostringstream oss;
+//   for(int i = 0;i < A.nrows();i++){
+//     for(int j = 0;j < A.ncols();j++)oss << A(i,j)<<" ";
+//     oss<<"\n";
+//   }
+//   cout << oss.str();
+//   return oss.str();
+// }
 
 #endif
 

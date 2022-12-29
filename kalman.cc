@@ -61,6 +61,10 @@ struct Theta { // Model parameters
       T(s,s) = 1.0;
       mu_0[s] = 0;
     }
+    // Svd svd;
+    // svd.reduce(T.copy());
+    // T.copy(svd.V);  // set T = random orthonormal matrix
+    
     for(int i = 0;i < data_dim;i++) S_x(i,i) = 100.0;
     if(nstates == data_dim){ // set M = identity
       for(int s = 0;s < nstates;s++) M(s,s) = 1.0;
@@ -446,11 +450,13 @@ int main(int argc, char** argv){
     // beta pass
     beta[N].mu.fill(0);
     beta[N].S.fill(0);
-    //    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
+    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
     beta[N]._det = 1.0;
     beta_score[N] = 0;
     for(int t = N-1;t >= 0;t--){
-      S_hat = M1 + beta[t+1].S; 
+      S_hat = M1 + beta[t+1].S;
+      //cout << S_hat(0,0)*S_hat(1,1) - S_hat(0,1)*S_hat(1,0)<<endl;
+      
       beta[t].S = theta.T.Tr()*star(S_hat,theta.S_T)*theta.T;
       //      beta[t]._det = (t < N ? det(beta[t].S): 1.0);
       ColVector<double> mu_hat = sym_inv(S_hat,&beta[t]._det)*(theta.M.Tr()*theta.S_x*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
@@ -499,7 +505,10 @@ int main(int argc, char** argv){
         qr_regs[i].solve();
         for(int j = 0;j < nstates;j++) theta.T(i,j) = qr_regs[i].solution[j];
       }
-      cout << "new T:\n"<<theta.T;
+      // Svd svd;
+      // svd.reduce(theta.T.copy());
+      // theta.T.copy(svd.V);
+      cout << "New T:\n"<<theta.T;
     }
 
     if(M_reestimate){//reestimate theta.M
