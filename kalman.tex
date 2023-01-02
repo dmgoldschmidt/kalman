@@ -824,7 +824,7 @@ so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
 
 
 \appendix
-\section{A Standard Form for Orthonormal Matrices}
+\section{A Standard Form for Orthonormal Matrices}\label{ortho_std_form}
 Let $A$ be a real orthonormal $n\times n$ matrix, i.e. such that $A^tA = AA^t = I$.  Since $A+A^t$ is real
 symmetric, it has an  orthonormal basis of eigenvectors    $\{v_0,\dots,v_n\}$ with
 real eigenvalues $\{\lambda_i \mid 0\le i < n\}$.
@@ -859,9 +859,63 @@ where $A|_{W_j} = jI$ for $j = -1,1$, and $V_i$ is a 2-dimensional eigenspace of
 %% $$
 for $0\le i < k$, where $\{\lambda_0,\dots,\lambda_{k-1}\}$ are the eigenvalues of $A+A^t$ different
 from $\pm 1$.  It follows that if $W$ is the matrix of eigenvectors of $A+A^t$ with respect to a suitable
-re-ordering of the eigenvalues, then $W^tAW$ is a block diagonal matrix whose entries are either $\pm 1$
-or $2\times 2$ rotation matrices.
+re-ordering of the eigenvalues, i.e. sorted in descending order, then $W^tAW$ is a block diagonal matrix
+whose entries are either $\pm 1$ or $2\times 2$ rotation matrices.  Then for each corresponding $2\times 2$
+block $B$ of $W^tAW$,
 
+
+
+\section{Solving for T by least-squares}
+We first consider the general problem of solving for T by least squares, and then specialize to a constrained
+version which uses Newton's method (non-linear least squares).  We don't have a proof that this approach actually
+increases the score, but in practice it seems to work well.
+
+\subsection{The general method} We observe that $T$ maps the true mean state at time $t$ to the true mean state at
+time $t+1$.  Since $\gamma_t$ is the posterior mean state at time $t$, we can use $\gamma_t$ and
+$\gamma_{t+1}$ to build overdetermined linear equations $T\gamma_t = \gamma_{t+1}$ on the coefficients of $T$
+and solve them by least squares.
+This approach seems to work fairly well, but in practice we often see that $\det(T)$ becomes negative,
+which means that we can't compute the log score, which we need in order to verify that each iteration in fact
+improves the log-likelihood.  Another problem is that if the data set is long, repeated application of $T$ to the
+mean posterior state may produce an unstable result.  We can solve these problems by orthogonalizing $T$
+after every iteration using Gram-Schmidt (via QR-reduction), but the following algorithm is an alternate.
+
+\subsection{Non-linear least squares}
+We can solve both problems by constraining $T$ to be
+orthonormal, and by the previous appendix, we can choose coordinates for the state space with respect to which
+$T$ has block diagonal form, with either $\pm 1$ or $2\times 2$ rotation matrices on the diagonal.  This restricts the
+parameterization of $T$ to a set of angles $\{\theta_1,\dots,\theta_k\}$, one for each $2\times 2$ block.  In addition,
+the block form of $T$ allows us to independently set up and solve equations for each $\theta_i$ separately.  Consider
+one such block
+$$
+B_i = \left[\begin{matrix} \cos\theta_i & \sin\theta_i \\ -\sin\theta_i & \cos\theta_i\end{matrix}\right].
+$$
+If we let $u_t$ and $v_t$ be the components of $\gamma_t$ corresponding to $B_i$ for all $t$, then we have two
+approximate equations
+\begin{align*}
+  u_{t+1} &\approx \hat{u}_{t+1}(\theta_i) := u_t\cos(\theta_i)  + v_t\sin(\theta_i),\\
+  v_{t+1} &\approx \hat{v}_{t+1}(\theta_i) := -u_t\sin(\theta_i ) + v_t\cos(\theta_i) 
+\end{align*}
+which are linear in $\cos\theta_i$ and $\sin\theta_i$, but we need linear equations in $\theta_i$.  We obtain these
+iteratively by using the first-order expansions of $\hat{u}_{t+1}(\theta_i)$ and $\hat{v}_{t+1}(\theta_i)$ around the value
+$\bar{\theta_i}$ from the previous iteration and solving for delta values:
+\begin{equation}\label{nls}
+  \begin{split}
+    u_{t+1}&\approx  \hat{u}_{t+1}(\bar{\theta_i}) + \hat{u}'_{t+1}(\bar{\theta_i})(\theta_i-\bar{\theta_i}) =\hat{u}_{t+1}(\bar{\theta_i})+  [-u_t\sin(\bar{\theta_i})+ v_t\cos(\bar{\theta_i})] (\theta_i-\bar{\theta_i}) ,\\
+     v_{t+1} &\approx  \hat{v}_{t+1}(\bar{\theta_i})  + \hat{v}'_{t+1}(\bar{\theta_i})(\theta_i-\bar{\theta_i})
+       = \hat{v}_{t+1}(\bar{\theta_i}) + [-u_t\cos(\bar{\theta_i}) - v_t\sin(\bar{\theta_i})] (\theta_i-\bar{\theta_i}).\\
+  \end{split}
+\end{equation}
+We then use least squares to get  $\theta_i$ from the overdetermined system of equations \eqref{nls} for all $t$,
+namely
+$$
+\theta_i-\bar{\theta_i} = \frac{\sum_t (u_{t+1}-\hat{u}_{t+1}(\bar{\theta_i}))\hat{u}'_{t+1}(\bar{\theta_i})+
+  (v_{t+1}-\hat{v}_{t+1}(\bar{\theta_i}))\hat{v}'_{t+1}(\bar{\theta_i})}{\sum_t\hat{u}'_{t+1}(\bar{\theta_i})^2 +
+\hat{v}'_{t+1}(\bar{\theta_i})^2}.
+$$
+
+Due to the various approximations involved, it may be advisable to bound $|\theta_i-\bar{\theta_i}|$.  Also, an
+inner iteration is possible using the same values for the $\gamma_t$ but updating $\bar{\theta_i} \leftarrow \theta_i$.
 
 %% $A$ is
 %% similar to a block-diagonal matrix with $2\times 2$ blocks
@@ -903,7 +957,7 @@ or $2\times 2$ rotation matrices.
   Sep. 25, 2016
 \bibitem{Bilmes}
   Bilmes, J.,
-  \emph{A Gentle Tutorial of the EM Algorithm and its Application to Parameter Estimation
+   \emph{A Gentle Tutorial of the EM Algorithm and its Application to Parameter Estimation
     for Gaussian Maixture and Hidden Markov Models},
   Department of Electrical Engineering and Computer Science, University of California, Berkeley,
   Technical Report 97-021

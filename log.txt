@@ -265,4 +265,20 @@ So after fixing the bug, the gamma score is close to constant
 over time.  I next ran with 20 iterations, but got a error after
 seven.  Turns out that the corrections to T made det(T) < 0 and
 log(det(T)) bombed out.  That got me thinking about restricting
-T to be orthonormal, and how to do that.  I poked around on the internet a bit, and got a hint about how to proceed.  It turned into an algorithm for finding an orthonormal change of basis for any given orthonormal matrix A with respect to which A has block diagonal form with 2x2 rotations along the diagonal, except for some \pm 1 eigenvalues.  I wrote this up as an appendix to kalman.tex.  
+T to be orthonormal, and how to do that.  I poked around on the internet a bit, and got a hint about how to proceed.  It turned into an algorithm for finding an orthonormal change of basis for any given orthonormal matrix A with respect to which A has block diagonal form with 2x2 rotations along the diagonal, except for some \pm 1 eigenvalues.  I wrote this up as an appendix to kalman.tex.
+
+Tue Dec 27 15:49:30 2022
+I tried just re-orthogonalizing T after every iteration, but that doesn't work.  So I have to put T in block diagonal form
+and just correct the theta_i parameters.  I'm going to use non-linear least squares at first.  If this doesn't work, I'll
+switch to EM.
+
+Sat Dec 31 14:08:06 2022
+Oops -- reorthogonalizing works fine.  I used the SVD which is wrong.  To achieve Gram-Schmidt, use qr_comp(A,Q,R)
+followed by A = Q.Tr().
+
+Mon Jan  2 14:55:47 2023
+Changed the initialization of beta.S back to zero, and caught the special case t = N-1.  The gamma scores look
+better after this.  They're still not completely constant, but pretty close.  I added using standard form for
+T and re-estimating using non-linear least-squares to kalman.tex.
+
+

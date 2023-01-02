@@ -450,19 +450,19 @@ int main(int argc, char** argv){
     // beta pass
     beta[N].mu.fill(0);
     beta[N].S.fill(0);
-    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
+    //for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 1.0;
     beta[N]._det = 1.0;
     beta_score[N] = 0;
     for(int t = N-1;t >= 0;t--){
       S_hat = M1 + beta[t+1].S;
+      double det_S_hat = (t ==N-1? 1.0: det(S_hat*ntwopi));
       //cout << S_hat(0,0)*S_hat(1,1) - S_hat(0,1)*S_hat(1,0)<<endl;
       
       beta[t].S = theta.T.Tr()*star(S_hat,theta.S_T)*theta.T;
-      //      beta[t]._det = (t < N ? det(beta[t].S): 1.0);
       ColVector<double> mu_hat = sym_inv(S_hat,&beta[t]._det)*(theta.M.Tr()*theta.S_x*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
       beta[t].mu = T_inv*mu_hat;
       R = data.x[t+1].Tr()*theta.S_x*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu  - mu_hat.Tr()*S_hat*mu_hat;
-      beta_score[t] = beta_score[t+1] + .5*(log(det_S_x*beta[t+1]._det/det(S_hat*ntwopi)) - R); 
+      beta_score[t] = beta_score[t+1] + .5*(log(det_S_x*beta[t+1]._det/det_S_hat) - R); 
       cout << format("beta[%d]:  S: %.3g, beta._det: %.3g, R: %.3g\n",
                      t,beta[t].S(0,0),beta[t]._det,R);
     } // end beta pass
@@ -505,6 +505,9 @@ int main(int argc, char** argv){
         qr_regs[i].solve();
         for(int j = 0;j < nstates;j++) theta.T(i,j) = qr_regs[i].solution[j];
       }
+      matrix Q(nstates,nstates),R(nstates,nstates);
+      qr_comp(theta.T,Q,R);  
+      theta.T = Q.Tr(); //orthogonalize the T-matrix (Gram-Schmidt via the QR decomposition)
       // Svd svd;
       // svd.reduce(theta.T.copy());
       // theta.T.copy(svd.V);
