@@ -326,8 +326,9 @@ setting $S_{b,N} = 0$, so we somewhat arbitrarily assume the following values
   \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_x)\N(u;\mu_{b,t+1},S_{b,t+1})\\
-    &= P_{b,t+1}(2\pi)^{-n}(|S_x||S_{b,t+1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(Mu;x_{t+1},S_x) + Q(u;\mu_{b,t+1},S_{b,t+1}) \} \\
-    &= P_{b,t+1}(2\pi)^{-n}(|S_x||S_{b,t+1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}) + R_{b,t})\}\\
+    &= P_{b,t+1}\N_0\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\\
+%    &= P_{b,t+1}(2\pi)^{-n}(|S_x||S_{b,t+1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(Mu;x_{t+1},S_x) + Q(u;\mu_{b,t+1},S_{b,t+1}) \} \\
+%    &= P_{b,t+1}(2\pi)^{-n}(|S_x||S_{b,t+1}|)^{\frac{1}{2}}\exp\{-\frac{1}{2}(Q(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}) + R_{b,t})\}\\
   &= P_{b,t+1}\left(\frac{|S_x||S_{b,t+1}|}{|2\pi \hat{S}_{b,t+1}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}}
   \N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\\
     &= P_{b,t}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}).
