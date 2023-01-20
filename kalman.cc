@@ -520,31 +520,31 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
     }
 
     if(M_reestimate){//reestimate theta.M
-      //      cout << "M before reestimation:\n"<<theta.M;
-      // Gamma1.fill(0);
-      // Gamma2.fill(0);
-      // for(int t = 1;t <= N;t++){
-      //   Gamma1 += data.x[t]*gamma[t].mu.Tr();
-      //   Gamma2 += sym_inv(gamma[t].S) + gamma[t].mu*gamma[t].mu.Tr();
-      // }
-      // theta.M = Gamma1*sym_inv(Gamma2);
-
-      //      re-estimation by least squares
       cout << "M before reestimation:\n"<<theta.M;
-      Array<QRreg> qr_regs(data_dim); // qr_regs[i] solves for row i of M from M*mu_c[t] = x[t]
-      for(int i = 0;i < data_dim;i++){ // solve for one row at a time
-        qr_regs[i].reset(nstates); // row i has nstates components
-        for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
-          //      cout << format("x[%d]: %g, gamma.mu: ",t,data.x[t][0]) <<gamma[t].mu;
-          qr_regs[i].update(gamma[t].mu,data.x[t][i]);
-          //          cout << format("updated qr_reg: ")<<qr_regs[i].R;
-        }
-            //        cout << format("qr_regs[%d].R:\n",i)<<qr_regs[i].R;
+      Gamma1.fill(0);
+      Gamma2.fill(0);
+      for(int t = 1;t <= N;t++){
+        Gamma1 += data.x[t]*gamma[t].mu.Tr();
+        Gamma2 += sym_inv(gamma[t].S) + gamma[t].mu*gamma[t].mu.Tr();
       }
-      for(int i = 0; i < data_dim;i++){
-        qr_regs[i].solve();
-        for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
-      }
+      theta.M = Gamma1*sym_inv(Gamma2);
+
+      // //      re-estimation by least squares
+      // cout << "M before reestimation:\n"<<theta.M;
+      // Array<QRreg> qr_regs(data_dim); // qr_regs[i] solves for row i of M from M*mu_c[t] = x[t]
+      // for(int i = 0;i < data_dim;i++){ // solve for one row at a time
+      //   qr_regs[i].reset(nstates); // row i has nstates components
+      //   for(int t = 1;t < N;t++){ // OK, now upper-triangularize 
+      //     //      cout << format("x[%d]: %g, gamma.mu: ",t,data.x[t][0]) <<gamma[t].mu;
+      //     qr_regs[i].update(gamma[t].mu,data.x[t][i]);
+      //     //          cout << format("updated qr_reg: ")<<qr_regs[i].R;
+      //   }
+      //       //        cout << format("qr_regs[%d].R:\n",i)<<qr_regs[i].R;
+      // }
+      // for(int i = 0; i < data_dim;i++){
+      //   qr_regs[i].solve();
+      //   for(int j  = 0;j < nstates;j++) theta.M(i,j) = qr_regs[i].solution[j];
+      // }
       cout << "new M "<<theta.M;
     }
 #ifdef covariance_reestimate    

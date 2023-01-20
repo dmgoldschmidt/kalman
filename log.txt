@@ -281,4 +281,24 @@ Changed the initialization of beta.S back to zero, and caught the special case t
 better after this.  They're still not completely constant, but pretty close.  I added using standard form for
 T and re-estimating using non-linear least-squares to kalman.tex.
 
+Thu Jan 12 08:40:16 2023
+Well, I've been putzing around for over a week, trying to figure out why solving for M doesn't really work very well.
+Namely, we never head back to the simulation value (of the identity matrix).  Whereas, solving for T does this very well
+indeed.  A second problem is the non-constant value of the gamma score.  For a while, it looked like it was constantly
+decreasing with time, but this isn't true.  I also observe increasing scores.  But so far, they're all essentially monotonic.
+I suspect the beta calculation, but I'm not sure how to go about checking it.  One issue is the start, which I don't really
+know how to do properly.  
 
+Sun Jan 15 17:06:12 2023
+I'm suspicious of the beta pass, so I'm rechecking the equations.  The measurement update checks, and now I need a
+careful check of the time update.
+
+Mon Jan 16 15:22:31 2023
+OK, I found two bugs in the beta score, one of which was repeated in the alpha score: 1) When I inverted \hat{S} and
+saved the determinant, I set it to det(S), which is a bug.  2) I was using n*(2pi) inside the argument to log, which
+is incorrect.  I changed ntwopi to nlog2pi and removed it from the argument to log in both the alpha and beta scores.
+Now I need to check the gamma score, which seems to have the second bug at least, and maybe more.
+
+Tue Jan 17 09:09:46 2023
+I fixed the ntwopi bug in all three places and ran.  HALLELUJAH!! The gamma score is now rock solid constant.  Whew!
+Unfortunately, the least squares alternative still doesn't work with M reestimation.
