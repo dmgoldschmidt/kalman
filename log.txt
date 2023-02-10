@@ -296,9 +296,20 @@ careful check of the time update.
 Mon Jan 16 15:22:31 2023
 OK, I found two bugs in the beta score, one of which was repeated in the alpha score: 1) When I inverted \hat{S} and
 saved the determinant, I set it to det(S), which is a bug.  2) I was using n*(2pi) inside the argument to log, which
-is incorrect.  I changed ntwopi to nlog2pi and removed it from the argument to log in both the alpha and beta scores.
+h is incorrect.  I changed ntwopi to nlog2pi and removed it from the argument to log in both the alpha and beta scores.
 Now I need to check the gamma score, which seems to have the second bug at least, and maybe more.
 
 Tue Jan 17 09:09:46 2023
 I fixed the ntwopi bug in all three places and ran.  HALLELUJAH!! The gamma score is now rock solid constant.  Whew!
 Unfortunately, the least squares alternative still doesn't work with M reestimation.
+
+Thu Feb  9 15:19:44 2023
+I've been busy with Docent stuff the past few weeks, but I did re-code the S_T reestimation, first using
+just the noise from (gamma[t].mu -T*gamma[t-1].mu), which didn't work, and then using the EM formula
+from the write-up, which unfortunately also didn't work.  I'm looking into that now.  I suspect that 9.15
+isn't right.  
+
+Fri Feb 10 10:58:43 2023
+I think the problem is that the joint posterior likelihood of states (s_t-1},s_t) is not defined correctly.
+It should be the conditional likelihood of s_t given s_{t-1} X posterior likelihood of S_{t-1} =
+\N(s_t;TS_{t-1},S_T) X \gamma_{t-1}(s).  

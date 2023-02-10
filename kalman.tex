@@ -14,10 +14,15 @@
 \newcommand{\VV}{V}
 \maketitle
 
+\section{Preface}
+This expository paper  was begun as my pandemic project during the initial lockdown of spring 2020, and then sporadically
+continued over the next few years.  I was already familiar with the classical Hidden Markov Model from earlier
+work, and I decided to see if I could  convert all the finite probability distributions to gaussian distributions.
+After I got into it, I realized that I was probably re-discovering the Kalman Filter, or more acurately as I later learned,
+the Kalman Smoother.  
 
 \section{Introduction}
-In this expository paper, we define a discrete-time hidden Markov model (HMM) with a continuous state.
-The Markov state transitions
+We define a discrete-time hidden Markov model (HMM) with a continuous state, where the  Markov state transitions
 are governed by a deterministic linear map with added gaussian noise, and the outputs are similarly obtained from the
 state via another deterministic linear map with added gaussian noise.  In other words, we are re-casting a discrete-time
 linear dynamical system as a hidden Markov model.  The result is 1) a derivation of the Kalman filtering and smoothing
@@ -404,15 +409,13 @@ Recall that $s'_t := T^{-1}s_t$.
   normalization factor is required.  We remark that $\mu_{t-1,t}$ does depend on $s_t$, showing that $\gamma_{t-1}(s)$
   and $\gamma_t(s)$ are not independent.  This fact will play a role in the reestimation of $S_T$ and $T$ below.
   
-  \section{The Expected Log-Likelihood}
+  \section{The Expectation}
     
-    It turns out that the expected log-likelihood is computable in closed form.
-    Although this isn't strictly necessary in order to derive the re-estimation formulas, it serves as a useful check on the
-    derivation and on the numerical computation.  We begin with the key lemma.
+We begin with the key lemma.
     
   \begin{Lem}\label{exp_log}
     Recall the notation of \eqref{comp_sq:1}. Let $\gamma := \N(x;\mu_0,S_0)$ be an $n$-dimensional gaussian, and let $A$ be any
-    full rank $n\times{m}$ matrix. Then for any vector $\mu\in\R^n$, 
+    full rank $m\times{n}$ matrix. Then for any vector $\mu\in\R^n$, 
     \begin{align}
       E_{\gamma}(x-\mu)(x-\mu)^T &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^T, \label{E_xx^T}\\
       E_{\gamma}(x-\mu)^T(x - \mu) &=  tr(S_0^{-1}) + (\mu-\mu_0)^T(\mu-\mu_0),\quad\text{and}\label{E_x^Tx}\\
@@ -550,7 +553,7 @@ We can now re-write \eqref{E2:1} in a form amenable to \eqref{E_Q}:
 \end{equation}
 
 
-\section{Re-estimation}
+\section{The Maximization}
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors
 (when $n=1$). We will also denote by $C = A\circ{B}$ the element-wise product of $A$ and $B$ whose $i,j$-entry is
@@ -564,9 +567,9 @@ $$
 where $A^*$ is the transposed matrix of cofactors and $B_{ij} := 2-\delta_{ij}$ for all $i,j$.
 The off-diagonal elements are doubled because $A$ is symmetric.
 It follows that
-$$
-\frac{\partial{\log|A|}}{\partial{A}} = B\circ{A}^{-1}. 
-$$
+\begin{equation}\label{partial_logdet}
+  \frac{\partial{\log|A|}}{\partial{A}} = B\circ{A}^{-1}. 
+\end{equation}
 
 In addition, since $Q(x;\mu,S)$ is linear in the coefficients of $S$, we see that
 $$
@@ -773,7 +776,7 @@ Thus,  we have
 Note that if $T$ is a companion matrix, we only update $T_{nj}$ for $j > 1$ from \eqref{T:2} and
 leave all other entries unchanged.
 
-Finally, we complete our optimization of $E_2$ by differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat}:
+Finally, we complete our optimization of $E_2$ by differentiating with respect to $\overline{S}_T$ and using \eqref{gamma_hat} and \eqref{partial_logdet}:
 \begin{equation}\label{Sigma_Tr:0}
   \begin{split}
   0 &= \frac{\partial{E_2}}{\partial{\overline{S}_T}} = \frac{\partial{\log|\overline{S}_T|}}{\partial\overline{S}_T}

@@ -41,12 +41,19 @@ string print_svd(Matrix<double>& M){
 // }
 
 struct Theta { // Model parameters
-  Matrix<double> S_0;
-  ColVector<double> mu_0;
-  Matrix<double> S_T;
-  Matrix<double> S_x;
-  Matrix<double> M;
-  Matrix<double> T;
+  Matrix<double> S_0; // Initial inv covariance matrix for the alpha pass
+  ColVector<double> mu_0; // initial mean for the alpha pass
+  Matrix<double> S_T; // inv. covariance matrix for the time update
+  Matrix<double> S_x; /* inv. covariance matrix for the data.  
+                       *Note: this is computed initially and should
+                       * probably not be reestimated, because that doesn't really make any sense.
+                       */
+  Matrix<double> M; // conversion matrix state -> data
+  Matrix<double> T; // deterministic portion of the time update (i.e. "drift")
+  /* This should in reality be time-dependent, but in order to reestimate it, we need 
+   * an average value.  We force T to be orthonormal, to avoid instability problems with
+   * a lot of data.
+   */
   Theta(int nstates, int data_dim, uint64_t seed){
     Normaldev normal(0,1,seed);
     S_0.reset(nstates,nstates,&zero);
@@ -320,13 +327,14 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
   for(int t = 1;t <= N;t++){
     welford.update(data.x[t]); // compute sample mean and variance
   }
+  theta.S_x = sym_inv(welford.variance()); // set Observation matrix to inverse sample covariance
   Svd W;
   W.reduce(welford.variance().copy());
    cout << "singular values of the sample covariance matrix: ";
   for(int i = 0;i < data_dim;i++){ cout << W.A(i,i) << " ";}
   cout << endl;
   //  cout << "eigenvectors:\n"<<W.U;
-  //  theta.S_x = sym_inv(welford.variance().copy()); // set Observation matrix to inverse sample covariance
+  //  
   // Array<Matrix<double>> S_a(N+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
   // Array<ColVector<double>> mu_a(N+1);
   // Array<Matrix<double>> S_b(N+1); // beta[t](s) = N(s,S_b[t],mu_b[t])
@@ -474,13 +482,12 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
 
     // gamma pass
     double detS_c;
-    for(int t = 1;t <= N;t++){
+    for(int t = 0;t <= N;t++){
       //S_c_inv[t] = sym_inv(S_a[t] + S_b[t],&detS_c);
       gamma[t].S = alpha[t].S + beta[t].S;
       gamma[t].mu = sym_inv(gamma[t].S,&gamma[t]._det)*(alpha[t].S*alpha[t].mu + beta[t].S*beta[t].mu);
       R = (alpha[t].mu - beta[t].mu).Tr()*star(alpha[t].S,beta[t].S)*(alpha[t].mu - beta[t].mu);
       gamma_score[t] = alpha_score[t]+beta_score[t] + .5*(log(alpha[t]._det*beta[t]._det/gamma[t]._det) - nlog2pi - R);
-      //    NOTE: P_{ct} as defined in the writeup doesn't make sense.  And I don't think we need 2pi anywhere.
     }
     // end gamma pass
     
@@ -547,33 +554,50 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
       // }
       cout << "new M "<<theta.M;
     }
-#ifdef covariance_reestimate    
-    if(S_x_reestimate){
-      // reestimate theta.S_x
-      theta.S_x.fill(0);
-      ColVector<double> M_mu_x(data_dim);
-      for(int t = 1;t <= N;t++){
-        M_mu_x = theta.M*mu_c[t]-data.x[t];
-        theta.S_x += theta.M*S_c_inv[t]*theta.M.Tr() + M_mu_x*M_mu_x.Tr();
-      }
-      theta.S_x = sym_inv(theta.S_x);
-      theta.S_x *= N;
-      cout << "new S_x:\n"<<theta.S_x;
-    }
+    // if(S_x_reestimate){  // NOTE: this is probably a bad idea, data-science-wise
+    //   // reestimate theta.S_x
+    //   theta.S_x.fill(0);
+    //   ColVector<double> M_mu_x(data_dim);
+    //   for(int t = 1;t <= N;t++){
+    //     M_mu_x = theta.M*gamma[t].mu -data.x[t];
+    //     theta.S_x += theta.M*S_c_inv[t]*theta.M.Tr() + M_mu_x*M_mu_x.Tr();
+    //   }
+    //   theta.S_x = sym_inv(theta.S_x);
+    //   theta.S_x *= N;
+    //   cout << "new S_x:\n"<<theta.S_x;
+    // }
 
+#define EM
     if(S_T_reestimate){
-      theta.S_T.fill(0);
+#ifdef EM
+      matrix new_S_T(nstates,nstates);
+      new_S_T.fill(0);
+      matrix S1_T  = theta.T.Tr()*theta.S_T*theta.T;
+      matrix S_t1_t_inv(nstates,nstates);
+      matrix TS_star(nstates,nstates);
+      ColVector<double> v_ac(nstates);
+      matrix T_inv = sym_inv(theta.T);
       for(int t = 1;t <= N;t++){
-        theta.S_T += S_t1_t_inv[t] + S_t1_t_inv_S_a[t]*(S_c_inv[t] +(mu_c[t]-mu_a[t-1])*(mu_c[t]-
-                                                                                         mu_a[t-1]).Tr())*S_t1_t_inv_S_a[t].Tr();
+        S_t1_t_inv  = sym_inv(alpha[t-1].S);
+        TS_star  = theta.T*S_t1_t_inv*alpha[t-1].S;
+        v_ac = alpha[t-1].mu - T_inv*gamma[t].mu;
+        new_S_T +=  S_t1_t_inv + TS_star*(sym_inv(gamma[t].S) + v_ac*v_ac.Tr())*TS_star.Tr();
       }
-      theta.S_T = sym_inv(S_T);//sym_inv(S_T0sym_inv((S_T1 + S_T_inv*S_T0*S_T_inv));
-      theta.S_T *= N;
+      theta.S_T = sym_inv(new_S_T)*N;
+
+#else
+      MatrixWelford S_T_comp(nstates);
+      for(int t = 1;t <= N;t++){
+        S_T_comp.update(gamma[t].mu - theta.T*gamma[t-1].mu); // compute sample mean and variance
+        if(t <= 5) cout << (gamma[t].mu - theta.T*gamma[t-1].mu).Tr()<<"Var:\n"<<S_T_comp.variance();
+      }
+      theta.S_T = sym_inv(S_T_comp.variance());
+#endif
       cout << "new S_T:\n"<<theta.S_T;
     }
+    
     //  for(int t = 1;t <=N;t++) cout << format("gamma_score[%d]: %g\n",t,gamma_score[t]);
     cout << "end training with delta_score = "<<delta_score<<endl;
-#endif
   }  
 }
 
