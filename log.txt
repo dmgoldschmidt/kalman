@@ -312,4 +312,24 @@ isn't right.
 Fri Feb 10 10:58:43 2023
 I think the problem is that the joint posterior likelihood of states (s_t-1},s_t) is not defined correctly.
 It should be the conditional likelihood of s_t given s_{t-1} X posterior likelihood of S_{t-1} =
-\N(s_t;TS_{t-1},S_T) X \gamma_{t-1}(s).  
+\N(s_t;TS_{t-1},S_T) X \gamma_{t-1}(s).
+
+Mon Feb 20 09:08:58 2023
+So, the previous remark leads to the usual product of two gaussians.  But after going down that rabbit hole, I
+discovered that it really seems to further complicate the formulas.  But if I leave it as a product, and integrate
+w.r.t. $s_t$ first, the second factor can be moved outside that integral since it only depends on $s_{t-1]$.  This
+leaves us with only the expectation over $S_{t-1}$, which seems like a simplification.  We'll see.
+
+Mon Feb 20 17:18:15 2023
+I'm not distinguishing the known $\bar{\theta}$ parameters from the unknown $\theta$ parameters in section 8
+and probably beyond.
+
+Fri Feb 24 15:52:08 2023
+OK, I'm now distinguishing the known from the unknown parameters, and I seem to be making progress by not trying to
+combine quadratic forms as described in the first 2/20 post above.  
+
+Sun Feb 26 11:27:27 2023
+I've finished the Estimation step, and the result for E_2 looks pretty reasonable.
+
+Fri Mar  3 10:00:22 2023
+I've done the maximization for mu_0 and S_0.  I created a new branch: "new_reestimation" before pushing the changes.
