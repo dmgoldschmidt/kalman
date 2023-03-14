@@ -691,7 +691,11 @@ Next, we optimize \eqref{E1:1} with respect to $M$ using %\eqref{partial_logdet}
 \end{equation}
 It follows that
 \begin{equation}\label{M}
-  M = \frac{\sum_{t=1}^N x_t\bar{\mu}_{c,t}^t}{\sum_{t=1}^N (S_{c,t}^{-1}+ \bar{\mu}_{c,t}\bar{\mu}_{c,t}^t)}.
+  \begin{split}
+    M &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
+    \Gamma_1 :&= \sum_{t=1}^N x_t\bar{\mu}_{c,t}^t\quad\text{and}\\
+    \Gamma_2 :&= \sum_{t=1}^N S_{c,t}^{-1}+ \bar{\mu}_{c,t}\bar{\mu}_{c,t}^t.
+  \end{split}
 \end{equation}
 
 
@@ -707,35 +711,8 @@ It follows that
 
 =========================================================
 
- \subsection{Solving for $\mu_0$ and $S_0$ (old)}
-Armed with the above preliminaries, we first optimize $E_0$ with respect to $\mu_0$: 
- 
-\begin{align}
-0 = \frac{\partial{E_0}}{\partial{\mu_0}} &= \int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_0,S_0)}}{\partial{\mu_0}}ds_0 \notag\\
-&= \int_{\R^n}\gamma_0(s_0)(2S_0(\mu_0-s_0))ds_0\notag\\
-&= 2S_0\int_{\R^n}\gamma_0(s_0)(\mu_0-s_0)ds_0 \notag\\
-&= 2S_0(\mu_0-\mu_{c,0}), \quad\text{hence}\notag\\
-\mu_0 &= \mu_{c,0}
-\end{align}
 
-Next, we optimize $E_0$ with respect to $S_0$, and we can set $\mu_0 = \mu_{c,0}$ by \eqref{mu_0}:
-\begin{align*}
-  0 = \frac{\partial{E_0}}{\partial{S_0}} &= \frac{\partial\log|S_0|}{\partial{S_0}}
-  -\int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_{c,0},S_0)}}{\partial{S_0}}ds_0 \\
-&= (2-\delta_{ij})S_0^{-1} - (2-\delta_{ij})\int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^tds_0.
-\end{align*}
-Not surprisingly, it follows that
-\begin{equation}\label{Sigma_0}
-  \begin{split}
-    S_0^{-1} &= \int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^tds_0 = S_{c,0}^{-1}, \quad\text{i.e.}\\
-    S_0 &= S_{c,0}.
-  \end{split}
-\end{equation}
-
-We note that above and in what follows, we have vector and matrix integrands.  Of course, this is just a convenient
-notation for sets of integrals, each one having a particular vector or matrix entry as the integrand.
-
-\subsection{Solving for M and $S_M$} (old)
+\subsection{Solving for M and $S_M$ (old)}
 To optimize $E_1$, we first differentiate with respect to $\overline{M}$ using \eqref{dM}.
 Setting the derivative to zero we need to solve for $\overline{M}$:
 \begin{align*}
@@ -1142,3 +1119,30 @@ inner iteration is possible using the same values for the $\gamma_t$ but updatin
 %%     &= tr(\overline{S}_{c,t}^{-1}(T\overline{S}_*+I)^tS_T(T\overline{S}_* + I)) + (T\bar{v}_t - \mu_{c,t})^tS_T(T\bar{v}_t-\mu_{c,t}).
 %%   \end{split}
 %% \end{equation}
+%%  \subsection{Solving for $\mu_0$ and $S_0$ (old)}
+%% Armed with the above preliminaries, we first optimize $E_0$ with respect to $\mu_0$: 
+ 
+%% \begin{align}
+%% 0 = \frac{\partial{E_0}}{\partial{\mu_0}} &= \int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_0,S_0)}}{\partial{\mu_0}}ds_0 \notag\\
+%% &= \int_{\R^n}\gamma_0(s_0)(2S_0(\mu_0-s_0))ds_0\notag\\
+%% &= 2S_0\int_{\R^n}\gamma_0(s_0)(\mu_0-s_0)ds_0 \notag\\
+%% &= 2S_0(\mu_0-\mu_{c,0}), \quad\text{hence}\notag\\
+%% \mu_0 &= \mu_{c,0}
+%% \end{align}
+
+%% Next, we optimize $E_0$ with respect to $S_0$, and we can set $\mu_0 = \mu_{c,0}$ by \eqref{mu_0}:
+%% \begin{align*}
+%%   0 = \frac{\partial{E_0}}{\partial{S_0}} &= \frac{\partial\log|S_0|}{\partial{S_0}}
+%%   -\int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_{c,0},S_0)}}{\partial{S_0}}ds_0 \\
+%% &= (2-\delta_{ij})S_0^{-1} - (2-\delta_{ij})\int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^tds_0.
+%% \end{align*}
+%% Not surprisingly, it follows that
+%% \begin{equation}\label{Sigma_0}
+%%   \begin{split}
+%%     S_0^{-1} &= \int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^tds_0 = S_{c,0}^{-1}, \quad\text{i.e.}\\
+%%     S_0 &= S_{c,0}.
+%%   \end{split}
+%% \end{equation}
+
+%% We note that above and in what follows, we have vector and matrix integrands.  Of course, this is just a convenient
+%% notation for sets of integrals, each one having a particular vector or matrix entry as the integrand.
