@@ -333,3 +333,10 @@ I've finished the Estimation step, and the result for E_2 looks pretty reasonabl
 
 Fri Mar  3 10:00:22 2023
 I've done the maximization for mu_0 and S_0.  I created a new branch: "new_reestimation" before pushing the changes.
+
+Sat Mar 11 08:30:37 2023
+April,Vince, and Cara leaving today.  Now I need another preliminary result:  d(tr(AX^tSX)/dX) where dA/dX = 0.
+Note: 8.26 is wrong, and referenced at 8.29.
+
+Tue Mar 14 15:30:16 2023
+OK, I solved for M and got a reasonable result.  I'm pushing it to github now.

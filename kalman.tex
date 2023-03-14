@@ -417,7 +417,7 @@ We begin with the key lemma.
       E_{\gamma}(x-\mu)(x-\mu)^t &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^t, \label{E_xx^t}\\
       E_{\gamma}(x-\mu)^t(x - \mu) &=  \tr(S_0^{-1}) + (\mu-\mu_0)^t(\mu-\mu_0), \label{E_x^tx}\\
       E_{\gamma}(x^tSx) &= \tr(S_0^{-1}S) + \mu_0^tS\mu_0, \quad\text{and} \label{E_x^tSx} \\
-        E_{\gamma}{Q}(Ax;\mu,S) &=  \tr(S_0^{-1}A^tSA) + (\mu-A\mu_0)^tS(\mu-A\mu_0), \label{E_Q}
+      E_{\gamma}{Q}(Ax;\mu,S) &=  \tr(S_0^{-1}A^tSA) + (\mu-A\mu_0)^tS(\mu-A\mu_0), \label{E_Q}
     \end{align}
   \end{Lem}
   \begin{proof}
@@ -442,14 +442,14 @@ We begin with the key lemma.
       We can re-write the quadratic form as follows:
       \begin{align*}
         Q(C^{-1}y,\mu_0,S_0) &= (C^{-1}y-\mu_0)^tS_0(C^{-1}y-\mu_0)\\
-        &= y^tC^{-T}S_0C^{-1}y - y^tC^{-T}S_0\mu_0 - \mu_0^tS_0C^{-1}y + \mu_0^tS_0\mu_0 \\
-        &= y^tC^{-T}S_0C^{-1}y - 2y^t(C^{-T}S_0C^{-1})C\mu_0 + \mu_0C^t(C^{-T}S_0C^{-1})C\mu_0\\
-        &= Q(y;C\mu_0,C^{-T}S_0C^{-1}).
+        &= y^tC^{-t}S_0C^{-1}y - y^tC^{-t}S_0\mu_0 - \mu_0^tS_0C^{-1}y + \mu_0^tS_0\mu_0 \\
+        &= y^tC^{-t}S_0C^{-1}y - 2y^t(C^{-t}S_0C^{-1})C\mu_0 + \mu_0C^t(C^{-t}S_0C^{-1})C\mu_0\\
+        &= Q(y;C\mu_0,C^{-t}S_0C^{-1}).
       \end{align*}
       Substituting above yields
       \begin{align*}
-        E_{\gamma}(x^tSx) &=  |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty~\exp\left\{-\frac{1}{2}Q(y;C\mu_0,C^{-T}S_0C^{-1})\right\}dy \\
-        &= \int_{\R^n}y^ty~\N(y;C\mu_0,C^{-T}S_0C^{-1})dy.
+        E_{\gamma}(x^tSx) &=  |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty~\exp\left\{-\frac{1}{2}Q(y;C\mu_0,C^{-t}S_0C^{-1})\right\}dy \\
+        &= \int_{\R^n}y^ty~\N(y;C\mu_0,C^{-t}S_0C^{-1})dy.
       \end{align*}
       Then using \eqref{E_x^tx} we get
       \begin{align*}
@@ -479,7 +479,7 @@ P(S\mid X,\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_x)\N(s_t;Ts_{t-1
 Note that $P(S\mid X, \theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$
 given observations $X$ and state sequence $S$.  The objective here is to choose $\theta$ to maximize $L(\theta)$.
 We use the EM technology to do this, which begins with an initial choice of $\theta$, then re-estimates
-parameters and (typically) iterates this procedure, replacing the initial parameters with their re-estimates .
+parameters and (typically) iterates this procedure, replacing the initial parameters with their re-estimates.
 
 We begin by defining 
 $$
@@ -512,29 +512,35 @@ with respect to all $s_t$ for $t > 0$, and the expected value
 collapses to the marginal 
 expected value of the integrand with respect to the marginalization of $P(S\mid X,\bar{\theta})$ at $s_0$, which is just 
 $\gamma_0(s_0)$.  Furthermore, after pulling the constant and the summation 
-outside the integral in \eqref{E1} we have the same collapse of the posterior to the marginalization at $s_t$, which
-is just $\gamma_t(s_t)$.  It follows that
-\begin{align}
-  \notag E_0 &= \log|S_0| - E_{\gamma_0(s_0)}Q(s_0;\mu_0,S_0)\\
-  &= \log|S_0| - \tr(\overline{S}_{c,0}^{-1}S_0) - (\mu_0-\bar{\mu}_{c,0})^tS_0(\mu_0 - \bar{\mu}_{c,0}),
-  \label{E0:1}\quad\text{and}\\
-  \notag E_1 &= N\log|S_x| - \sum_{t=1}^NE_{\gamma_t(s_t)}Q(Ms_t;x_t,S_x)\\
-  &= N\log|S_x| - \sum_{t=1}^N\tr(\overline{S}_{c,t}^{-1}M^tS_xM) + (x_t-M\bar{\mu}_{c,t})^tS_x(x_t-M\bar{\mu}_{c,t})\label{E1:1}.
-\end{align}
+outside the integral in \eqref{E1} we have the same collapse of the posterior to the marginalization at $s_t$,
+which is just $\gamma_t(s_t)$.  It follows that
+\begin{equation}  \label{E0:1}
+  \begin{split}
+  E_0 &= \log|S_0| - E_{\gamma_0(s_0)}Q(s_0;\mu_0,S_0)\\
+  &=\log|S_0| - \tr(\overline{S}_{c,0}^{-1}S_0) - (\mu_0-\bar{\mu}_{c,0})^tS_0(\mu_0 - \bar{\mu}_{c,0}).
+  \end{split}
+  \end{equation}
+Then using \eqref{E_Q} we get
+\begin{equation}\label{E1:1}
+  \begin{split}
+  E_1 &= N\log|S_x| - \sum_{t=1}^NE_{\gamma_t(s_t)}Q(Ms_t;x_t,S_x)\\
+  &= N\log|S_x| - \sum_{t=1}^N\tr(\overline{S}_{c,t}^{-1}M^tS_xM) + (x_t-M\bar{\mu}_{c,t})^tS_x(x_t-M\bar{\mu}_{c,t})
+  \end{split}
+\end{equation}
 
 
  Turning finally to  \eqref{E2}, the integral collapses to the 
 joint marginal expectation over $s_t$ and $s_{t-1}$ at time $t$ given by \eqref{gamma_hat}, and we get
 \begin{equation}\label{E2:1}
   \begin{split}
-    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}\Q(Ts_{t-1};s_t,S_T)\gamma_{t-1}(s_{t-1})\N(s_t;\overline{T}s_{t-1},
-    \overline{S}_T)\right)ds_{t-1}ds_t\\
-    &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\gamma_{t-1}(s_{t-1})\left(\int_{\R^{n}}\Q(s_t;Ts_{t-1},S_T)\N(s_t;\overline{T}s_{t-1},
-    \overline{S}_T)ds_t\right)ds_{t-1}\\
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}
+    \int_{\R^{n}}\Q(Ts_{t-1};s_t,S_T)\gamma_{t-1}(s_{t-1})\N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_{t-1}ds_t\\
+    &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\gamma_{t-1}(s_{t-1})\left(\int_{\R^{n}}\Q(s_t;Ts_{t-1},S_T)
+    \N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_t\right)ds_{t-1}\\
   \end{split}
   \end{equation}
 In order to evaluate the inner integral in \eqref{E2:1}, we use \eqref{E_Q} 
-(with $\gamma := N(s_t;\overline{T}s_{t-1},\overline{S}_T))$:
+with $\gamma := N(s_t;\overline{T}s_{t-1},\overline{S}_T)$,  $A = I$,  and $ \mu = Ts_{t-1}$ :
 $$
 E_{\gamma}Q(s_t;Ts_{t-1},S_T) = \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T - \overline{T})^tS_T(T - \overline{T})s_{t-1}.
 $$
@@ -629,50 +635,79 @@ Q := (x-A\mu)^tS(x-A\mu) = x^tSx - 2x^tSA\mu + \mu^tA^tSA\mu.
 $$
 Differentiating the linear term is just a special case of
 $$
-\frac{\partial}{\partial{A}}y^tAx = yx^t.
+ \frac{\partial}{\partial{A}}y^tAx = yx^t.
 $$
 The quadratic term follows from \eqref{dQdA} with $\nu = \mu$.
 \end{proof}
 Finally, we have
-\begin{Lem} \label{d_tr_prod}Let $X$ be an $m\times{n}$ matrix, and let $Y$ be an $n\times{m}$ matrix.
-  Then
+\begin{Lem} \label{d_tr_prod} Let $X$ be a symmetric $n\times{n}$ matrix, and let $Y$ be a symmetric $m\times{m}$
+  matrix. If $M$ is any $m\times{n}$ matrix, then
   $$
-  \frac{\partial\tr(XY)}{\partial{X}} = B\circ{Y^t}.
+  \frac{\partial}{\partial{M}}\tr(XM^tYM) = 2YMX.
   $$
 \end{Lem}
 \begin{proof}
-  We have $ \tr(AB) = \sum_{i,j}A_{ij}B_{ji}$, whence
-  $$
-  \frac{\partial\tr(AB)}{\partial{A_{ij}}} = (2-\delta_{ij})B_{ji}.
-  $$
-  \end{proof}
+  Put $Z = XM^tYM$, then $Z_{ii} = \sum_{k,p,q}X_{ik}M_{pk}Y_{pq}M_{qi}$ and
+  $\tr(Z) = \sum_{i,k,p,q}X_{ik}M_{pk}Y_{pq}M_{qi}$, hence
+  \begin{align*}
+    \frac{\partial\tr(Z)}{\partial{M_{rs}}} &= \sum_{i,q}X_{is}Y_{rq}M_{qi} + \sum_{k,p}X_{sk}M_{pk}Y_{pr}\\
+    &= (YMX)_{rs} + (XM^tY)_{sr} \\
+    &= YMX_{rs} + (Y^tMX^t)_{rs} \\
+    &= 2YMX.
+    \end{align*}
+\end{proof}
 
 \subsection{Solving for  $\mu_0$ and $S_0$}
 We first optimize \eqref{E0:1} with respect to $\mu_0$ using \eqref{dQ_dmu}:
-\begin{equation} \label{mu_0}
+\begin{equation} \label{mu_0} 
   \begin{split}
   0 = \frac{\partial{E_0}}{\partial{\mu_0}} &= 2S(\mu_0-\bar{\mu}_{c,_0}),\quad\text{hence}\\
     \mu_0 &= \bar{\mu}_{c,0}.\\
   \end{split}
 \end{equation}
 
-Then we optimize \eqref{E0:1} with respect to $S_0$ using \eqref{partial_logdet}, \eqref{d_tr_prod}, and \eqref{dQ_dS}. Moreover,
-we can set $\mu_0 = \bar{\mu}_{c,0}$ by \eqref{mu_0}:
+Then we optimize \eqref{E0:1} with respect to $S_0$ using \eqref{partial_logdet}, \eqref{d_tr_prod}, and \eqref{dQ_dS}.
+%Moreover, we can set $\mu_0 = \bar{\mu}_{c,0}$ by \eqref{mu_0}:
 
 \begin{equation}\label{S_0}
   \begin{split}
-  0 = \frac{\partial{E_0}}{\partial{S_0}} &= B\circ{S_0^{-1}}-\overline{S}_0^{-1}, \quad\text{hence}\\
+  0 = \frac{\partial{E_0}}{\partial{S_0}} &= B\circ{S_0^{-1}}- B\circ\overline{S}_0^{-1}, \quad\text{hence}\\
   S_0 = \overline{S}_0.\\
   \end{split}
 \end{equation}
 
-
 \subsection{Solving for M and $S_M$}
-Next, we optimize \eqref{E1:1} with respect to $M$ :
+Next, we optimize \eqref{E1:1} with respect to $M$ using %\eqref{partial_logdet},
+\eqref{d_tr_prod}, \eqref{dM}, and \eqref{dQ_dmu} :
+%N\log|S_x| - \sum_{t=1}^N\tr(\overline{S}_{c,t}^{-1}M^tS_xM) + (x_t-M\bar{\mu}_{c,t})^tS_x(x_t-M\bar{\mu}_{c,t})\label{E1:1}.
+%  \frac{\partial{Q(x;A\mu,S)}}{\partial{A}} = -2Sx\mu^t + 2SA\mu\mu^t. \label{dM}
+\begin{equation}\label{M:0}
+\begin{split}
+  0 = \frac{\partial{E_1}}{\partial{M}} &= -\sum_{t=1}^N  \left(S_xM\overline{S}_{c,t}^{-1} + S_xM\overline{S}_{c,t}^{-1})^t + \frac{\partial}{\partial{M}}(x_t-M\bar{\mu}_{c,t})^tS_x(x_t-M\bar{\mu}_{c,t})\right) \\
+  &= -\sum_{t=1}^N  \left(2S_xM\overline{S}_{c,t}^{-1}  + \frac{\partial}{\partial{M}}Q(x_t;M\bar{\mu}_{c,t},S_x)\right)\\
+  &= -\sum_{t=1}^N  \left(2S_xM\overline{S}_{c,t}^{-1}  + 2S_x(M\bar{\mu}_{c,t} - x_t)\bar{\mu}_{c,t}^t\right)\\
+  &= -2S_x\sum_{t=1}^N\left(M(S_{c,t}^{-1}+\bar{\mu}_{c,t}\bar{\mu}_{c,t}^t) - x_t\bar{\mu}_{c,t}^t\right).
+\end{split}
+\end{equation}
+It follows that
+\begin{equation}\label{M}
+  M = \frac{\sum_{t=1}^N x_t\bar{\mu}_{c,t}^t}{\sum_{t=1}^N (S_{c,t}^{-1}+ \bar{\mu}_{c,t}\bar{\mu}_{c,t}^t)}.
+\end{equation}
 
 
-  \subsection{Solving for $\mu_0$ and $S_0$ (old)}
 
+
+
+
+
+
+
+
+
+
+=========================================================
+
+ \subsection{Solving for $\mu_0$ and $S_0$ (old)}
 Armed with the above preliminaries, we first optimize $E_0$ with respect to $\mu_0$: 
  
 \begin{align}
@@ -1030,7 +1065,7 @@ inner iteration is possible using the same values for the $\gamma_t$ but updatin
   Dempster, A Laird, N and Rubin, D,
    \emph{Maximum-likelihood from incomplete data via the EM algorithm},
   J.Royal Statist. Soc. Ser. B, 39,
-  1977
+   1977
 \bibitem{Shumway}
   Shumway, R and Stoffer, D,
   \emph{Time Series Analysis and Its Applications, 3rd Ed. (Blue printing)}
