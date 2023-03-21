@@ -15,7 +15,8 @@
 \maketitle
 
 \section{Preface}
-This expository paper  was begun as my pandemic project during the initial lockdown of spring 2020, and then sporadically
+This expository paper  began as my pandemic project during the initial lockdown of spring 2020, and then was
+sporadically
 continued over the next few years.  I was already familiar with the classical Hidden Markov Model from earlier
 work, and I decided to see if I could  convert all the finite probability distributions to gaussian distributions.
 After I got into it, I realized that I was probably re-discovering the Kalman Filter, or more acurately as I later learned,
@@ -50,38 +51,34 @@ X(x_t\mid s) := \N(x_t;M_ts_t + b_t,S_x),
 $$
 where $M_t$ is a linear map from the state space to the
 measurement space, $b_t$ is a bias, and $S_x$ is an $m\times{m}$ positive definite real symmetric matrix.  Thus, $x_t$
-is normally distributed with mean $M_ts_t$ and inverse covariance matrix $S_x$.  In this paper, $S_x$ and $M := M_t$ are
-time-independent model parameters which we usually seek to re-estimate from the data.  The bias $b_t$ can
-usually be subtracted from the data so we assume here that $b_t = 0$ for all $t$. 
+is normally distributed with mean $M_ts_t$ and inverse covariance matrix $S_x$.  In this paper, $M := M_t$ is a
+time-independent model parameter which we usually seek to re-estimate from the data.  The bias $b_t$ can
+usually be subtracted from the data so we assume here that $b_t = 0$ for all $t$.  
 In the simplest case, $M_t = I$ for all $t$ so that $m = n$ and $s$ is itself the mean of the output distribution.  
 The state process is a discrete time continuous state Markov process with transition probability density
 from state $s_0$ at time $t$ to state $s_1$ at time $t+1$ given by
 $$
 Pd(s_1\mid s_0) :=  \N(s_1;T_ts_0+c_t,S_T),
 $$
-where $S_T$ is a time-independent model parameter, $T_t$, the ``transition matrix'' is an invertible linear map  
+where $S_T$ is a time-independent model parameter, $T_t$, the ``transition matrix'', is an invertible linear map  
 defining the deterministic component of the time update, and $c_t$ is a bias.  In this paper, we assume that
 $T_t = T$ is a time-independent model parameter which we may
 also re-estimate from data, and that $c_t = 0$.  Note that $T$ is not a transition matrix in the
 discrete-state HMM sense.
 
-To avoid scaling issues, we constrain $T$ to be unimodular.  In addition,  we may assume without serious loss of generality
-that the characteristic polynomial of $T$ has distinct roots, which is generically true.  This implies that $T$
-is similar to a companion matrix, which in this paper will always mean a matrix $(t_{ij})$ such that:
-$t_{ij} = 0$ for all $i < n$ and all $j \neq i+1$, and $t_{i,i+1} = 1$ for all $i < n$.  And if there is no
-preferred basis for the state space, which is an application-dependent issue,
-we may optionally assume that $T$ is a companion matrix.  This is a convenient assumption because it's easy to
-constrain $T$ to be unimodular in this case.  Namely,
-since $|T| = (-1)^{n-1}t_{n1}$ for such a matrix, we also assume that $t_{n1} = (-1)^{n-1}$.  Thus, $T$ has $n-1$
-degrees of freedom given by the coefficients $t_{nj}$ for $j > 1$.  If we are re-estimating $T$, we constrain the $M$-step
-of the $EM$ algorithm in order to maintain these conditions on subsequent Baum-Welch iterations.
+To avoid scaling issues when simulating long data sets, we optionally constrain $T$ to be orthonormal.
+If we are re-estimating $T$, we constrain the $M$-step of the $EM$ algorithm in order to maintain these
+conditions on subsequent Baum-Welch iterations.  We do this by essentially applying Gram-Schmidt to the
+unconstrained matrix, but unfortunately we then lose the EM guarantee of a score increase.   In order to preserve the
+guarantee, we show in appendix \ref{ortho_std_form} how to parameterize $T$ with a set of angles by choosing
+a preferred basis for the state space.  We also discuss in appendix \ref{least_squares} how to re-estimate $T$ by
+least-squares, which also loses the EM guarantee.
 
-If we assume $T$ is a companion matrix, then in effect the state vector becomes the vector of all $n$ lags of a
-univariate $AR(n)$ process, except that at every time step we add more correlated noise to each lag until it leaves
-the AR-window. Thus, each term becomes less and less determinate as it recedes into the past.
-And it is convenient to note that companion matrices are invertible in closed form.  Namely, let $T^{-1} = (u_{ij})$, then
-it is easy to check that $u_{ij} = 0$ for all $i > 1$ and all $j\neq i-1$,
-$u_{i,i-1} = 1$ for all $i > 1$, $ u_{1j} = -t_{i,j+1}$ for $j < n$, and $u_{1n} = (-1)^{n-1}$.   
+When using real data, it may be that  $T$ and/or $M$ are not close to linear.  This is easy enough to approximate
+by eliminating the assumption of time-indepence, but then it makes no sense to re-estimate $T_t$ and $M_t$ from the
+data.  Finally, as we point out below, the data inverse covariance matrix $S_x$ can be iteratively re-estimated from
+the data,  but we avoid doing this because  it smacks of ``fitting the data to the model''.
+
 
 As usual, we are given observations $\{x_t\mid 1\le t\le N\}$ and model parameters $\theta := \{M,S_x,T,S_T,S_0,\mu_0\}$
 where $S_0$ and $\mu_0$ are defined below.  For each observation time $t$ and state $s$, we define
@@ -358,9 +355,11 @@ at time $t$.
 \begin{align*}
   S_{c,t} :&= S_{a,t} + S_{b,t}, \\
   \mu_{c,t} :&= S_{c,t}^{-1}(S_{a,t}\mu_{a,t} + S_{b,t}\mu_{b,t}), \quad\text{and}\\
-  P_{c,t} :&= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}*S_{b,t}), \quad\text{then} \\
+  P_{c,t} :&= P_{a,t}P_{b,t}\N(\mu_{a,t};\mu_{b,t},S_{a,t}*S_{b,t}), \\
+  \text{then} \\
  \gamma_t(s) &= \N(s;\mu_{c,t},S_{c,t}).
-  \end{align*}
+\end{align*}
+
 \end{Thm}
 \begin{proof}
   From \eqref{alpha:1} and \eqref{beta:1} we have (using \eqref{exact_prod}
@@ -371,36 +370,22 @@ at time $t$.
   \end{align*}
 \end{proof}
 
-We also need the joint posterior probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ at time $t$,
-which we denote by $\hat{\gamma}_t(s_{t-1},s_t)$.
-\begin{Lem}\label{gamma_hat}
-The joint likelihood of states $s_{t-1},s_t$ is
+We also need the joint probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ at time $t$,
+which we denote by $P(s_{t-1},s_t)$.
+\begin{Lem} \label{gamma_hat}
+  The joint probability density of states $s_{t-1},s_t$ is
 $$
-    \hat{\gamma}_t(s_{t-1},s_t) = \N(s_t; Ts_{t-1},S_T)\gamma_{t-1}(s_{t-1}) .
+  P(s_{t-1},s_t) = \N(s_t; Ts_{t-1},S_T)\gamma_{t-1}(s_{t-1}) .
 $$
-%% \begin{align*}
-%%   \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_{t-1};\mu_{t-1,t},S_{t-1,t}) + e^{-\frac{1}{2}s_t^tS_Ts_t},\quad\text{where}\\
-%%   S_{t-1,t} &:= S_{c,t-1}+S_T',\\
-%%   \mu_{t-1,t} &:= S_{t-1,t}^{-1}(T^tS_Ts_t + S_{c,t-1}\mu_{c,t-1}),\quad\text{and}\\
-%% %   R &= -\frac{1}{2}s_t^tS_Ts_t
-%%   \end{align*}
 \end{Lem}
 \begin{proof}
   By definition, the joint posterior likelihood of states $s_{t-1},s_t$ is the conditional likelihood of $s_t$ given
-  $s_{t-1}$ times the posterior likelihood of $s_{t-1}$, as asserted.
-
-%%   namely using \eqref{comp_sq:2} we have
-%%    \begin{align*}
-%%     \hat{\gamma}_t(s_{t-1},s_t) &= \N(s_t; Ts_{t-1},S_T)\gamma_{t-1}(s_{t-1}) \\
-%%     &= \N(Ts_{t-1};s_t,S_T)\N(s_{t-1};\mu_{c,t-1},S_{c,t-1}) \\
-%%     &\propto  \N(s_{t-1};\mu_{t-1,t},S_{t-1,t}) + e^{ -\frac{1}{2}s_t^tS_Ts_t} 
-%%   \end{align*}
-%%   where the proportionality factor does not depend on either $s_{t-1}$ or $s_t$, and
-%%   \begin{align*}
-%%     S_{t-1,t} :&= S'_T + S_{c,t-1},\\
-%%     \mu_{t-1,t} :&= S_{t-1,t}^{-1}(T^tS_Ts_t+S_{c,t-1}\mu_{c,t-1}).%,\quad\text{and}\\
-%% %    R :&= s_t^tS_Ts_t ,
-%%   \end{align*}
+  $s_{t-1}$ times the posterior likelihood of $s_{t-1}$, namely $P(s_{t-1},s_t)$, so we just need to verify that
+  $$
+  \int_{R^{2n}} P(s_{t-1},s_t) ds_tds_{t-1} = 1.
+  $$
+  But this is straightforward, because $\gamma_{t-1}(s_{t-1})$ does not depend on $s_t$, therefore we can first integrate
+  with respect to $s_t$, leaving just $\gamma_{t-1}(s_{t-1})$ and then integrate with respect to $s_{t-1}$.
 \end{proof}
 
 \newpage
@@ -473,22 +458,25 @@ Equipped with \eqref{E_Q}, we can now turn to the problem at hand.  Namely, if w
 state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
 the probability density of $S$ given observations $X$ and  parameters $\theta := \{\mu_0,S_0,S_T,T,S_x,M\}$ is
 \begin{equation} \label{density}
-P(S\mid X,\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_x)\N(s_t;Ts_{t-1},S_T).
+\Gamma(S) := Pd(S\mid X,\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_x)\N(s_t;Ts_{t-1},S_T).
 \end{equation}
 
-Note that $P(S\mid X, \theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$
+Note that $Pd(S\mid X, \theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$
 given observations $X$ and state sequence $S$.  The objective here is to choose $\theta$ to maximize $L(\theta)$.
-We use the EM technology to do this, which begins with an initial choice of $\theta$, then re-estimates
-parameters and (typically) iterates this procedure, replacing the initial parameters with their re-estimates.
+However, since $S$ is a sequence of latent variables $s_t$, we only have the posterior density $\Gamma(S)$ for $S$
+based on an initial choice $\bar{\theta}$ of parameters.\footnote{In fact, we don't actually have $\Gamma(S)$ either, we just have marginals $\gamma_t(s_t)$ and $L(s_{t-1},s_t)$.  This turns out to be good enough.} We then apply the EM
+technology, which uses the computed posteriors $\Gamma(S)$ to re-estimate the parameters and then (typically)
+iterates this procedure.
+
 
 We begin by defining 
 $$
-E(\theta,\bar{\theta}) := \int_{\R^{Nn}}P(S\mid X,\bar{\theta})\log{L(\theta\mid X,S)}dS,
+E(\theta,\bar{\theta}) := \int_{\R^{Nn}}\log{L(\theta\mid X,S)}\Gamma(S))dS,
 $$
 where $\bar{\theta}$ is the current set of parameters, and $\theta$ is the unknown set of new parameters
-we wish to determine. So instead of maximizing the log-likelihood directly, we can maximize its expected
-value with respect to the current posterior distribution on states, because it is a standard result \cite{Dempster}
-that
+we wish to determine. So instead of maximizing the log-likelihood directly, we can maximize $E(\theta,\bar{\theta}$,
+its expected value with respect to the current posterior distribution on states, because EM 
+\cite{Dempster} tells us that
 $$
 L(\theta) - L(\bar{\theta}) \ge E(\theta,\bar{\theta}) - E(\bar{\theta},\bar{\theta}).
 $$
@@ -497,14 +485,15 @@ Thus, choosing $\theta$ to maximize $E(\theta,\bar{\theta})$ will increase the v
 Expanding $E(\theta,\bar{\theta})$, we have 
 \begin{align}
   E(\theta,\bar{\theta}) &= -(2N+1)\frac{n\log(2\pi)}{2} + \frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
-  E_0 :&=\int_{\R^{Nn}}P(S\mid X,\bar{\theta})\{\log|S_0| - Q(s_0;\mu_0,S_0)\}dS,\label{E0}\\
-  E_1 :&= \int_{\R^{Nn}}P(S\mid X,\bar{\theta})\left\{\sum_{t=1}^N\log|S_x| - Q(x_t;Ms_t,S_x)\right\}dS,
+  E_0 :&=\int_{\R^{Nn}}\{\log|S_0| - Q(s_0;\mu_0,S_0)\}\Gamma(S)dS,\label{E0}\\
+  E_1 :&= \int_{\R^{Nn}}\left\{\sum_{t=1}^N\log|S_x| - Q(x_t;Ms_t,S_x)\right\}\Gamma(S)dS,
 \label{E1}\\
-E_2 :&= \int_{\R^{Nn}}P(S\mid X,\bar{\theta})\left\{\sum_{t=1}^N\log|S_T| - Q(s_t;Ts_{t-1},S_T)\right\}dS,
+E_2 :&= \int_{\R^{Nn}}\left\{\sum_{t=1}^N\log|S_T| - Q(s_t;Ts_{t-1},S_T)\right\}\Gamma(S))dS,
 \label{E2}
 \end{align}
 Since the expected value of a constant is just that constant, $-n\log(2\pi)/2$ can be moved outside each
-integral sign and ignored in the optimization.  And since none of the parameters of $\theta$ appear in more
+integral sign and ignored in the optimization.  For the same reason, we will ignore all terms in $E(\theta,\bar{\theta})$
+which xdo not involve any of the unknown parameters.  And since none of the parameters of $\theta$ appear in more
 than one of the $E_i$, we can optimize $E$ by optimizing each of $E_0,E_1,E_2$ separately.
 
 We begin with $E_0$. Since the only component of $S$ in the integrand of \eqref{E0} is $s_0$, the integrand is a constant
@@ -529,16 +518,17 @@ Then using \eqref{E_Q} we get
 \end{equation}
 
 
- Turning finally to  \eqref{E2}, the integral collapses to the 
-joint marginal expectation over $s_t$ and $s_{t-1}$ at time $t$ given by \eqref{gamma_hat}, and we get
+Turning finally to  \eqref{E2}, the integral collapses to the double integral over $s_{t-1},s_t$ with respect to the
+marginal posterior probability of $s_t$ and $s_{t-1}$ at time $t$, given by \eqref{gamma_hat}:
+    %\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)\N(s_t;\overline{T}s_{t-1},\overline{S}_T)P(s_{t-1},s_t)ds_{t-1}ds_t.
 \begin{equation}\label{E2:1}
   \begin{split}
-    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}
-    \int_{\R^{n}}\Q(Ts_{t-1};s_t,S_T)\gamma_{t-1}(s_{t-1})\N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_{t-1}ds_t\\
-    &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\gamma_{t-1}(s_{t-1})\left(\int_{\R^{n}}\Q(s_t;Ts_{t-1},S_T)
-    \N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_t\right)ds_{t-1}\\
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^{2n}}\log{L(\theta\mid X,S)}Q(s_t;Ts_{t-1},S_t)P(s_{t-1},s_t)ds_{t-1}ds_t\\
+   &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)
+   \N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_t\right)\gamma_{t-1}(s_{t-1})ds_{t-1}\\
   \end{split}
   \end{equation}
+
 In order to evaluate the inner integral in \eqref{E2:1}, we use \eqref{E_Q} 
 with $\gamma := N(s_t;\overline{T}s_{t-1},\overline{S}_T)$,  $A = I$,  and $ \mu = Ts_{t-1}$ :
 $$
@@ -554,6 +544,10 @@ Thus, substituting this into \eqref{E2:1} and using \eqref{E_x^tSx}, we obtain
   \end{split}
 \end{equation}
 where $\Delta{T} := T - \overline{T}$.
+\section{The Maximization Step} \label{maximization}
+With the expected value of the log-likelihood with respect to the posterior density now in hand, we now maximize
+it by setting partial derivatives with repsect to the parameters to zero and solving the resulting equations.
+
 \subsection{Some Preliminaries}
 If $f$ is any scalar-valued function of an $m\times{n}$ matrix $A = a_{ij}$, we denote by $\partial{f}/\partial{A}$ the 
 $m\times{n}$ matrix whose $(i,j)$-entry is $\partial{f}/\partial{a_{ij}}$.  This also applies to column vectors
@@ -608,7 +602,7 @@ However after replacing $i$ by $l$, $j$ by $k$ and using the fact that $S$ is sy
 \eqref{SA} and \eqref{A^tS} are identical except that $\mu$ and $\nu$ are interchanged.
 But both equations have the common term
 $\mu_r\nu_rA_{qr}^2S_{qq}$ when $j = k = q$ and $i = l = r$.
-Then
+Then 
 \begin{align}
   \notag\frac{\partial{Q}}{\partial{A_{qr}}} &= \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\nu_l
   +\nu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\mu_l+ 2\mu_r\nu_rA_{qr}S_{qq}\\
@@ -652,11 +646,20 @@ Finally, we have
   \begin{align*}
     \frac{\partial\tr(Z)}{\partial{M_{rs}}} &= \sum_{i,q}X_{is}Y_{rq}M_{qi} + \sum_{k,p}X_{sk}M_{pk}Y_{pr}\\
     &= (YMX)_{rs} + (XM^tY)_{sr} \\
-    &= YMX_{rs} + (Y^tMX^t)_{rs} \\
-    &= 2YMX.
-    \end{align*}
+    &= (YMX)_{rs} + (Y^tMX^t)_{rs} \\
+    &= 2(YMX)_{rs}.
+  \end{align*}
 \end{proof}
 
+\begin{Lem}\label{d_tr_prod:1}
+  $$
+  \frac{\partial \tr(XY)}{\partial{X}} = Y^t.
+  $$
+\end{Lem}
+  \begin{proof}
+    We have $\tr(XY) = \sum_{i,j}X_{ij}Y{ji}$, so $\frac\partial{\tr(XY)}{\partial X_{rs}} = Y_{sr}$.
+  \end{proof}
+ 
 \subsection{Solving for  $\mu_0$ and $S_0$}
 We first optimize \eqref{E0:1} with respect to $\mu_0$ using \eqref{dQ_dmu}:
 \begin{equation} \label{mu_0} 
@@ -667,7 +670,7 @@ We first optimize \eqref{E0:1} with respect to $\mu_0$ using \eqref{dQ_dmu}:
 \end{equation}
 
 Then we optimize \eqref{E0:1} with respect to $S_0$ using \eqref{partial_logdet}, \eqref{d_tr_prod}, and \eqref{dQ_dS}.
-%Moreover, we can set $\mu_0 = \bar{\mu}_{c,0}$ by \eqref{mu_0}:
+
 
 \begin{equation}\label{S_0}
   \begin{split}
@@ -676,7 +679,7 @@ Then we optimize \eqref{E0:1} with respect to $S_0$ using \eqref{partial_logdet}
   \end{split}
 \end{equation}
 
-\subsection{Solving for M and $S_M$}
+\subsection{Solving for $M$}
 Next, we optimize \eqref{E1:1} with respect to $M$ using %\eqref{partial_logdet},
 \eqref{d_tr_prod}, \eqref{dM}, and \eqref{dQ_dmu} :
 %N\log|S_x| - \sum_{t=1}^N\tr(\overline{S}_{c,t}^{-1}M^tS_xM) + (x_t-M\bar{\mu}_{c,t})^tS_x(x_t-M\bar{\mu}_{c,t})\label{E1:1}.
@@ -698,179 +701,18 @@ It follows that
   \end{split}
 \end{equation}
 
-
-
-
-
-
-
-
-
-
-
+We note that in a similar way, equation \eqref{E1:1} can be optimized with respect to $S_x$, but this smacks of
+``fitting the data to the model''.  We prefer to compute $S_x$ directly from the data without any re-estimation.
 
 =========================================================
-
-
-\subsection{Solving for M and $S_M$ (old)}
-To optimize $E_1$, we first differentiate with respect to $\overline{M}$ using \eqref{dM}.
-Setting the derivative to zero we need to solve for $\overline{M}$:
+ 
+    
+\subsection{Solving for $T$ and $S_T$}
+%N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) -\sum_{t=1}^N \tr(S_{c,t-1}^{-1}S_T) + \mu_{c,t-1}^t(\Delta{T})^tS_T(\Delta{t})\mu_{c,t-1}
+Finally, we optimize \eqref{E2:2} using \eqref{d_tr_prod:1} and \eqref{dQdA} :
 \begin{align*}
-  0 &= \frac{\partial{E_1}}{\partial\overline{M}}
-  = -\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial}{\partial\overline{M}}Q(x_t,\overline{M}s_t,S_M)ds_t\\
-  &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(S_Mx_ts_t^t - S_M\overline{M}s_ts_t^t)ds_t\\
-  &= 2\sum_{t=1}^N(S_Mx_t\mu_{c,t}^t - S_M\overline{M}(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t).
+  0 = \frac{\partial{E_2}}{\partial{\Delta{T}}} &= 2S_T\Delta{T}\mu_{c,t-1}\mu_{c,t-1}^t,
 \end{align*}
-Multiplying through by $\frac{1}{2}S_M^{-1}$, we find that
-\begin{equation}\label{M_bar}
-  \begin{split}
-    \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
-    \Gamma_1 :&= \sum_{t=1}^Nx_t\mu_{c,t}^t, \quad\text{and}\\
-    \Gamma_2 :&= \sum_{i=1}^NS_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t.
-  \end{split}
-\end{equation}
-
-Note that $\overline{M}$ does not depend on $S_M$, so we can optimize $E_1$ with respect to $S_M$
-using the new value of $\overline{M}$:
-\begin{align*}
-  0 = \frac{\partial{E_1}}{\partial{S_M}} &=
-   N\frac{\partial{\log|S_M|}}{\partial{S_M}}
-  - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial{Q(x_t;\overline{M}s_t,S_M)}}{\partial{S_M}}ds_t \\
-  &= N(B\circ{S}_M^{-1}) - B\circ\sum_{t=1}^N
-  \int_{\R^n}\gamma_t(s_t)(x_t-\overline{M}s_t)(x_t-\overline{M}s_t)^tds,
-\end{align*}
-where $B_{ij} := 2-\delta_{ij}$ as above.  Dividing by $B_{ij}$ in each component, we see that
-\begin{equation}\label{S_x}
-  \begin{split}
-    S_M^{-1} &= \frac{1}{N}\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(x_tx_t^t - x_ts_t^t\overline{M}^t
-    - \overline{M}s_tx_t^t + \overline{M}s_ts_t^t\overline{M}^t)ds_t \\
-    &= \frac{1}{N}\sum_{t=1}^N(x_tx_t^t - x_t\mu_{c,t}^t\overline{M}^t - \overline{M}\mu_{c,t}x_t^t +
-    \overline{M}(S_{c,t}^{-1}+\mu_{c,t}\mu_{c,t}^t)\overline{M}^t)\\
-    &= \frac{1}{N}\sum_{t=1}^N(x_t-\overline{M}\mu_{c,t})(x_t-\overline{M}\mu_{c,t})^t +
-    \overline{M}S_{c,t}^{-1}\overline{M}^t.
-  \end{split}
-\end{equation}
-
-\subsection{Solving for T and $S_T$} (old)
-Finally, we optimize $E_2$ first by solving
-$$
-\frac{\partial{E_2}}{\partial{\overline{T}}} = 0
-$$
-for $\overline{T}$ optionally subject to the condition that $\overline{T}$ is a companion matrix.  We do this
-by computing the full E-M update for $T$, but for a companion matrix we only use the result to update the variable entries,
-namely $T_{nj}$ for $j > 1$, while leaving all the constant entries unchanged.
-
-Thus, using \eqref{gamma_hat} and \eqref{dM}, we have
-\begin{equation}\label{T:1}
-  \begin{split}
-0 &= \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)
-\frac{\partial{Q(s_t;\overline{T}s_{t-1},S_T)}}{\partial\overline{T}}ds_{t-1}ds_t \\
-&= -2\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(S_Ts_ts_{t-1}^t -
-S_T\overline{T}s_{t-1}s_{t-1}^t) ds_{t-1}ds_t \\
-&= -2S_T\sum_{t=1}^N\int_{\R^{n}}\gamma_t(s_t) (s_t\mu_{t-1,t}^t -
-\overline{T}(S_{t-1,t}^{-1} + \mu_{t-1,t}\mu_{t-1,t}^t))ds_t \\
-&= 2S_T\sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^tds_t +
-\overline{T}\int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^tds_t\right).\\
-  \end{split}
-\end{equation}
-So we have two integrals to evaluate:
-\begin{equation}\label{I_1}
-  \begin{split}
-  I_{1,t} :&= \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^tds_t \\
-  &= \int_{\R^n}\gamma_t(s_t)s_t(s_t^tS_TT + \mu_{a,t-1}^tS_{a,t-1})S_{t-1,t}^{-1})ds_t \\
-  &= (S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t)S_TTS_{t-1,t}^{-1} + \mu_{c,t}\mu_{a,t-1}^tS_{a,t-1}S_{t-1,t}^{-1},
-  \end{split}
-  \end{equation}
-and
-\begin{equation}\label{I_2}
-  \begin{split}
-  I_{2,t} :&= \int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^tds_t \\
-  &= \int_{\R^n}\gamma_t(s_t)S_{t-1,t}^{-1}(T^tS_Ts_ts_t^tS_TT + T^tS_Ts_t\mu_{a,t-1}^tS_{a,t-1} \\
-  &+ S_{a,t-1}\mu_{a,t-1}s_t^tS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^tS_{a,t-1}) S_{t,t-1}^{-1}ds_t \\
-  &= S_{t-1,t}^{-1}[T^tS_T(S_{c,t}^{-1`}+\mu_{c,t}\mu_{c,t}^t)S_TT + T^tS_T\mu_{c,t}\mu_{a,t-1}^tS_{a,t-1} \\
-  &+ S_{a,t-1}\mu_{a,t-1}\mu_{c,t}^tS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^tS_{a,t-1}]S_{t-1,t}^{-1}. \\
-\end{split}
-\end{equation}
-
-Note that the matrices $T$ and $S_T$ appearing in \eqref{I_1} and \eqref{I_2} are the {\em previous}
-values, as opposed to the unkowns $\overline{T}$ and $S_T$ for which we are solving.
-
-To simplify notation, we put
-\begin{align*}
-S_* :&= S_{t-1,t}^{-1}S_{a,t-1},\\
-S_+ :&= S_{t-1,t}^{-1}T^tS_T,\\
-\nu_1 :&= S_+\mu_{c,t},\quad\text{and}\\
-\nu_2 :&= S_*\mu_{a,t-1}.
-\end{align*}
-Then
-\begin{align*}
-  I_{1,t} &= S_{c,t}^{-1}S_+^t +\mu_{c,t}(\nu_1^t + \nu_2^t), \quad\text{and}\\
-  I_{2,t} &= S_+S_{c,t}^{-1}S_+^t+\nu_1\nu_1^t + \nu_1\nu_2^t + \nu_2\nu_1^t + \nu_2\nu_2^t \\
-      &= S_+S_{c,t}^{-1}S_+^t + (\nu_1+\nu_2)(\nu_1+\nu_2)^t.
-\end{align*}
-
-After multiplying by $S_T^{-1}$, \eqref{T:1} becomes
-\begin{align*}
- 0 &= \sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - I_{1,t} + \overline{T}I_{2,t}\right)\\
-  &= \overline{T}\Gamma_2 - \Gamma_1, \quad\text{where} \\
-  \Gamma_2 :&= \sum_{i=1}^N(S_{t-1,t}^{-1} + I_{2,t}),\quad\text{and}\\
-  \Gamma_1 :&= \sum_{i=1}^NI_{1,t}.
-\end{align*}
-Thus,  we have
-\begin{equation}\label{T:2}
-  \overline{T} = \Gamma_1\Gamma_2^{-1}.
-\end{equation}
-Note that if $T$ is a companion matrix, we only update $T_{nj}$ for $j > 1$ from \eqref{T:2} and
-leave all other entries unchanged.
-
-Finally, we complete our optimization of $E_2$ by differentiating with respect to $S_T$ and using \eqref{gamma_hat} and \eqref{partial_logdet}:
-\begin{equation}\label{Sigma_Tr:0}
-  \begin{split}
-  0 &= \frac{\partial{E_2}}{\partial{S_T}} = \frac{\partial{\log|S_T|}}{\partial{S}_T}
-  - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)\frac{\partial{Q(s_t;\overline{T}s_{t-1},S_T)}}
-  {\partial{S}_T}ds_{t-1}ds_t \\
-  &= N(B\circ{S}_T^{-1}) -B\circ\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})
-  \gamma_t(s_t)(\overline{T}s_{t-1}-s_t)(\overline{T}s_{t-1}-s_t)^tds_{t-1}ds_t.
-  \end{split}
-\end{equation}
-
-As noted earlier, $\gamma_t(s_t)$ does not depend on $s_{t-1}$, so we can integrate first with respect to $s_{t-1}$, with
-a result analagous to \eqref{S_x}:
-\begin{align*}
-  \int_{-\infty}^{\infty}&\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(\overline{T}s_{t-1}-s_t)
-  (\overline{T}s_{t-1}-s_t)^tds_{t-1}\\ &= S_{t-1,t}^{-1} +
-(\overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^t\overline{T}^t,
-\end{align*}
-where $s'_t = \overline{T}^{-1}s_t$.
-Substituting this result into \eqref{Sigma_Tr:0}, we get
-\begin{equation}\label{Sigma_Tr:1}
-  S_T^{-1} =  \frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s_t)
-  \overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^t\overline{T}^tds_t\right).
-\end{equation}
-
-However, there is a problem evaluating this integral because after checking \eqref{gamma_hat}, we see that $\mu_{t-1,t}$
-depends on $s'_t = \overline{T}^{-1}s_t$, namely 
-\begin{equation}\label{s-mu_1}
-  \begin{split}
-    \left(\mu_{t-1,t}-s'_t\right) &= (S_{t-1,t}^{-1}T^{t}S_TT - I)s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= (S_{t-1,t}^{-1}T^{t}S_TT)s'_t - S_{t-1,t}^{-1}S_{t-1,t}) + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{t-1,t}^{-1}(T^{t}S_TT - S_{t-1,t} )s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-    &= S_{t-1,t}^{-1}S_{a,t-1}(\mu_{a,t-1}-s'_t),\\
-    &= S_*(\mu_{a,t-1}-s_t')
-  \end{split}
-\end{equation}
-
-Fortunately, neither $\mu_{a,t-1}$ nor $S_*$ depends on $s_t$,
-so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
-\begin{equation}\label{S_Tr:2}
-  \begin{split}
-  S_T^{-1} &=\frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} + \overline{T}S_*
-  \left[\int_{-\infty}^{\infty}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)(\mu_{a,t-1}-s'_t)^tds_t\right]S_*^t\overline{T}^t\right)\\
-   &=\frac{1}{N}\sum_{t=1}^NS_{t-1,t}^{-1} + \overline{T}S_*
-           [S_{c,t}^{-1}+(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})^t]
-           S_*^t\overline{T}^t.
-  \end{split}
-\end{equation}
 \newpage
 
 
@@ -879,7 +721,7 @@ so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
 Let $A$ be a real orthonormal $n\times n$ matrix, i.e. such that $A^tA = AA^t = I$.  Since $A+A^t$ is real
 symmetric, it has an  orthonormal basis of eigenvectors    $\{v_0,\dots,v_n\}$ with
 real eigenvalues $\{\lambda_i \mid 0\le i < n\}$.
-Let $\hat{v}_0 = Av_0$, then $A^{-1} \hat{v}_0 = A^t\hat{v}_0 = v_0$, and 
+Let $\hat{v}_0 := Av_0$, then $A^{-1} \hat{v}_0 = A^t\hat{v}_0 = v_0$, and 
 \begin{align*}
   (A + A^t)v_0 &= \lambda_0 v_0,\\
   \hat{v}_0 & = \lambda_0 v_0 - A^tv_0, \\
@@ -901,7 +743,7 @@ the orthogonal complement of $V_0$, is also $A$ and $A^t$ invariant, so an obvio
 $$
 V = W_1\oplus W_{-1} \bigoplus_{i=0}^{k-1} V_i
 $$
-where $A|_{W_j} = jI$ for $j = -1,1$, and $V_i$ is a 2-dimensional eigenspace of $A+A^t$ with eigenvalue $\lambda_i$
+where $A|_{W_j} = jI$ for $j \in \{-1,1\}$, and $V_i$ is a 2-dimensional eigenspace of $A+A^t$ with eigenvalue $\lambda_i$
 %% A|_{V_i} \sim \left[ \begin{matrix}
 %%     0 & -1 \\
 %%     1 & \lambda_i\\
@@ -913,10 +755,19 @@ from $\pm 1$.  It follows that if $W$ is the matrix of eigenvectors of $A+A^t$ w
 re-ordering of the eigenvalues, i.e. sorted in descending order, then $W^tAW$ is a block diagonal matrix
 whose entries are either $\pm 1$ or $2\times 2$ rotation matrices.  Then for each corresponding $2\times 2$
 block $B$ of $W^tAW$,
+$$
+A\mid_B ~\sim \left[\begin{matrix}
+    \cos\theta_B & \sin\theta_B \\
+    -\sin\theta_B & \cos\theta_B
+  \end{matrix}\right],
+$$
+for some angle $\theta_B$.  Thus, if if $T$ is constrained to be orthonormal, and we choose a basis as above
+for the state space, $T$ can be  parameterized by a set of $k$ angles $\{\theta_0,\dots\theta_{k-1}\}$.  This
+constraint is useful when generating long simulated data sets,  but may of course be inappropriate for a particular
+actual data set.
 
 
-
-\section{Solving for T by least-squares}
+\section{Solving for T by least-squares}\label{least_squares}
 We first consider the general problem of solving for T by least squares, and then specialize to a constrained
 version which uses Newton's method (non-linear least squares).  We don't have a proof that this approach actually
 increases the score, but in practice it seems to work well.
@@ -1146,3 +997,163 @@ inner iteration is possible using the same values for the $\gamma_t$ but updatin
 
 %% We note that above and in what follows, we have vector and matrix integrands.  Of course, this is just a convenient
 %% notation for sets of integrals, each one having a particular vector or matrix entry as the integrand.
+
+%% \subsection{Solving for M and $S_M$ (old)}
+%% To optimize $E_1$, we first differentiate with respect to $\overline{M}$ using \eqref{dM}.
+%% Setting the derivative to zero we need to solve for $\overline{M}$:
+%% \begin{align*}
+%%   0 &= \frac{\partial{E_1}}{\partial\overline{M}}
+%%   = -\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial}{\partial\overline{M}}Q(x_t,\overline{M}s_t,S_M)ds_t\\
+%%   &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(S_Mx_ts_t^t - S_M\overline{M}s_ts_t^t)ds_t\\
+%%   &= 2\sum_{t=1}^N(S_Mx_t\mu_{c,t}^t - S_M\overline{M}(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t).
+%% \end{align*}
+%% Multiplying through by $\frac{1}{2}S_M^{-1}$, we find that
+%% \begin{equation}\label{M_bar}
+%%   \begin{split}
+%%     \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
+%%     \Gamma_1 :&= \sum_{t=1}^Nx_t\mu_{c,t}^t, \quad\text{and}\\
+%%     \Gamma_2 :&= \sum_{i=1}^NS_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t.
+%%   \end{split}
+%% \end{equation}
+
+%% Note that $\overline{M}$ does not depend on $S_M$, so we can optimize $E_1$ with respect to $S_M$
+%% using the new value of $\overline{M}$:
+%% \begin{align*}
+%%   0 = \frac{\partial{E_1}}{\partial{S_M}} &=
+%%    N\frac{\partial{\log|S_M|}}{\partial{S_M}}
+%%   - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial{Q(x_t;\overline{M}s_t,S_M)}}{\partial{S_M}}ds_t \\
+%%   &= N(B\circ{S}_M^{-1}) - B\circ\sum_{t=1}^N
+%%   \int_{\R^n}\gamma_t(s_t)(x_t-\overline{M}s_t)(x_t-\overline{M}s_t)^tds,
+%% \end{align*}
+%% where $B_{ij} := 2-\delta_{ij}$ as above.  Dividing by $B_{ij}$ in each component, we see that
+%% \begin{equation}\label{S_x}
+%%   \begin{split}
+%%     S_M^{-1} &= \frac{1}{N}\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(x_tx_t^t - x_ts_t^t\overline{M}^t
+%%     - \overline{M}s_tx_t^t + \overline{M}s_ts_t^t\overline{M}^t)ds_t \\
+%%     &= \frac{1}{N}\sum_{t=1}^N(x_tx_t^t - x_t\mu_{c,t}^t\overline{M}^t - \overline{M}\mu_{c,t}x_t^t +
+%%     \overline{M}(S_{c,t}^{-1}+\mu_{c,t}\mu_{c,t}^t)\overline{M}^t)\\
+%%     &= \frac{1}{N}\sum_{t=1}^N(x_t-\overline{M}\mu_{c,t})(x_t-\overline{M}\mu_{c,t})^t +
+%%     \overline{M}S_{c,t}^{-1}\overline{M}^t.
+%%   \end{split}
+%% \end{equation}
+
+
+% \subsection{Solving for $T$ and $S_T$ (old)}
+% Finally, we optimize $E_2$ first by solving
+% $$
+% \frac{\partial{E_2}}{\partial{\overline{T}}} = 0
+% $$
+% for $\overline{T}$ optionally subject to the condition that $\overline{T}$ is a companion matrix.  We do this
+% by computing the full E-M update for $T$, but for a companion matrix we only use the result to update the variable entries,
+% namely $T_{nj}$ for $j > 1$, while leaving all the constant entries unchanged.
+
+% Thus, using \eqref{gamma_hat} and \eqref{dM}, we have
+% \begin{equation}\label{T:1}
+%   \begin{split}
+% 0 &= \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)
+% \frac{\partial{Q(s_t;\overline{T}s_{t-1},S_T)}}{\partial\overline{T}}ds_{t-1}ds_t \\
+% &= -2\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(S_Ts_ts_{t-1}^t -
+% S_T\overline{T}s_{t-1}s_{t-1}^t) ds_{t-1}ds_t \\
+% &= -2S_T\sum_{t=1}^N\int_{\R^{n}}\gamma_t(s_t) (s_t\mu_{t-1,t}^t -
+% \overline{T}(S_{t-1,t}^{-1} + \mu_{t-1,t}\mu_{t-1,t}^t))ds_t \\
+% &= 2S_T\sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^tds_t +
+% \overline{T}\int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^tds_t\right).\\
+%   \end{split}
+% \end{equation}
+% So we have two integrals to evaluate:
+% \begin{equation}\label{I_1}
+%   \begin{split}
+%   I_{1,t} :&= \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^tds_t \\
+%   &= \int_{\R^n}\gamma_t(s_t)s_t(s_t^tS_TT + \mu_{a,t-1}^tS_{a,t-1})S_{t-1,t}^{-1})ds_t \\
+%   &= (S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t)S_TTS_{t-1,t}^{-1} + \mu_{c,t}\mu_{a,t-1}^tS_{a,t-1}S_{t-1,t}^{-1},
+%   \end{split}
+%   \end{equation}
+% and
+% \begin{equation}\label{I_2}
+%   \begin{split}
+%   I_{2,t} :&= \int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^tds_t \\
+%   &= \int_{\R^n}\gamma_t(s_t)S_{t-1,t}^{-1}(T^tS_Ts_ts_t^tS_TT + T^tS_Ts_t\mu_{a,t-1}^tS_{a,t-1} \\
+%   &+ S_{a,t-1}\mu_{a,t-1}s_t^tS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^tS_{a,t-1}) S_{t,t-1}^{-1}ds_t \\
+%   &= S_{t-1,t}^{-1}[T^tS_T(S_{c,t}^{-1`}+\mu_{c,t}\mu_{c,t}^t)S_TT + T^tS_T\mu_{c,t}\mu_{a,t-1}^tS_{a,t-1} \\
+%   &+ S_{a,t-1}\mu_{a,t-1}\mu_{c,t}^tS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^tS_{a,t-1}]S_{t-1,t}^{-1}. \\
+% \end{split}
+% \end{equation}
+
+% Note that the matrices $T$ and $S_T$ appearing in \eqref{I_1} and \eqref{I_2} are the {\em previous}
+% values, as opposed to the unkowns $\overline{T}$ and $S_T$ for which we are solving.
+
+% To simplify notation, we put
+% \begin{align*}
+% S_* :&= S_{t-1,t}^{-1}S_{a,t-1},\\
+% S_+ :&= S_{t-1,t}^{-1}T^tS_T,\\
+% \nu_1 :&= S_+\mu_{c,t},\quad\text{and}\\
+% \nu_2 :&= S_*\mu_{a,t-1}.
+% \end{align*}
+% Then
+% \begin{align*}
+%   I_{1,t} &= S_{c,t}^{-1}S_+^t +\mu_{c,t}(\nu_1^t + \nu_2^t), \quad\text{and}\\
+%   I_{2,t} &= S_+S_{c,t}^{-1}S_+^t+\nu_1\nu_1^t + \nu_1\nu_2^t + \nu_2\nu_1^t + \nu_2\nu_2^t \\
+%       &= S_+S_{c,t}^{-1}S_+^t + (\nu_1+\nu_2)(\nu_1+\nu_2)^t.
+% \end{align*}
+
+% After multiplying by $S_T^{-1}$, \eqref{T:1} becomes
+% \begin{align*}
+%  0 &= \sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - I_{1,t} + \overline{T}I_{2,t}\right)\\
+%   &= \overline{T}\Gamma_2 - \Gamma_1, \quad\text{where} \\
+%   \Gamma_2 :&= \sum_{i=1}^N(S_{t-1,t}^{-1} + I_{2,t}),\quad\text{and}\\
+%   \Gamma_1 :&= \sum_{i=1}^NI_{1,t}.
+% \end{align*}
+% Thus,  we have
+% \begin{equation}\label{T:2}
+%   \overline{T} = \Gamma_1\Gamma_2^{-1}.
+% \end{equation}
+% Note that if $T$ is a companion matrix, we only update $T_{nj}$ for $j > 1$ from \eqref{T:2} and
+% leave all other entries unchanged.
+
+% Finally, we complete our optimization of $E_2$ by differentiating with respect to $S_T$ and using \eqref{gamma_hat} and \eqref{partial_logdet}:
+% \begin{equation}\label{Sigma_Tr:0}
+%   \begin{split}
+%   0 &= \frac{\partial{E_2}}{\partial{S_T}} = \frac{\partial{\log|S_T|}}{\partial{S}_T}
+%   - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)\frac{\partial{Q(s_t;\overline{T}s_{t-1},S_T)}}
+%   {\partial{S}_T}ds_{t-1}ds_t \\
+%   &= N(B\circ{S}_T^{-1}) -B\circ\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})
+%   \gamma_t(s_t)(\overline{T}s_{t-1}-s_t)(\overline{T}s_{t-1}-s_t)^tds_{t-1}ds_t.
+%   \end{split}
+% \end{equation}
+
+% As noted earlier, $\gamma_t(s_t)$ does not depend on $s_{t-1}$, so we can integrate first with respect to $s_{t-1}$:
+% \begin{align*}
+%   \int_{-\infty}^{\infty}&\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(\overline{T}s_{t-1}-s_t)
+%   (\overline{T}s_{t-1}-s_t)^tds_{t-1}\\ &= S_{t-1,t}^{-1} +
+% (\overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^t\overline{T}^t,
+% \end{align*}
+% where $s'_t = \overline{T}^{-1}s_t$.
+% Substituting this result into \eqref{Sigma_Tr:0}, we get
+% \begin{equation}\label{Sigma_Tr:1}
+%   S_T^{-1} =  \frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s_t)
+%   \overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^t\overline{T}^tds_t\right).
+% \end{equation}
+
+% However, there is a problem evaluating this integral because after checking \eqref{gamma_hat}, we see that $\mu_{t-1,t}$
+% depends on $s'_t = \overline{T}^{-1}s_t$, namely 
+% \begin{equation}\label{s-mu_1}
+%   \begin{split}
+%     \left(\mu_{t-1,t}-s'_t\right) &= (S_{t-1,t}^{-1}T^{t}S_TT - I)s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+%     &= (S_{t-1,t}^{-1}T^{t}S_TT)s'_t - S_{t-1,t}^{-1}S_{t-1,t}) + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+%     &= S_{t-1,t}^{-1}(T^{t}S_TT - S_{t-1,t} )s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
+%     &= S_{t-1,t}^{-1}S_{a,t-1}(\mu_{a,t-1}-s'_t),\\
+%     &= S_*(\mu_{a,t-1}-s_t')
+%   \end{split}
+% \end{equation}
+
+% Fortunately, neither $\mu_{a,t-1}$ nor $S_*$ depends on $s_t$,
+% so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
+% \begin{equation}\label{S_Tr:2}
+%   \begin{split}
+%   S_T^{-1} &=\frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} + \overline{T}S_*
+%   \left[\int_{-\infty}^{\infty}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)(\mu_{a,t-1}-s'_t)^tds_t\right]S_*^t\overline{T}^t\right)\\
+%    &=\frac{1}{N}\sum_{t=1}^NS_{t-1,t}^{-1} + \overline{T}S_*
+%            [S_{c,t}^{-1}+(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})^t]
+%            S_*^t\overline{T}^t.
+%   \end{split}
+% \end{equation}

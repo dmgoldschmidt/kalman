@@ -340,3 +340,15 @@ Note: 8.26 is wrong, and referenced at 8.29.
 
 Tue Mar 14 15:30:16 2023
 OK, I solved for M and got a reasonable result.  I'm pushing it to github now.
+
+Sun Mar 19 11:19:40 2023
+Well, it looks like the entire EM section is screwed up, because a) we have to compute the expected value of the log likelihood with respect to the posterior PROBABILITY DENSITY (i.e. using the existing parameters \bar{\theta}), which means we need to normalize the likelihood, i.e. we have to integrate.
+
+Mon Mar 20 15:28:29 2023
+After a lot of mental back-and-forth and some mainly text/notation revisions, I'm now at line 550.  No smoking gun yet,
+or if I noticed one it's now been forgotten (sigh).
+
+Tue Mar 21 16:21:37 2023
+Well, I've "verified" everything up to 8.13.  One thing I discovered along the way is that
+$\N(s_t,Ts_{t-1],S_T)\gamma_t(s_t)$ has double integral = 1, i.e. it already is a probability density. Now I'm suspicious
+of differentiating wrt \Delta{T}.  I'm going to verify by expanding it out and differentiating wrt T.
