@@ -531,19 +531,17 @@ marginal posterior probability of $s_t$ and $s_{t-1}$ at time $t$, given by \eqr
 
 In order to evaluate the inner integral in \eqref{E2:1}, we use \eqref{E_Q} 
 with $\gamma := N(s_t;\overline{T}s_{t-1},\overline{S}_T)$,  $A = I$,  and $ \mu = Ts_{t-1}$ :
-$$
-E_{\gamma}Q(s_t;Ts_{t-1},S_T) = \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T - \overline{T})^tS_T(T - \overline{T})s_{t-1}.
-$$
-Thus, substituting this into \eqref{E2:1} and using \eqref{E_x^tSx}, we obtain
+\begin{align*}
+  E_{\gamma}Q(s_t;Ts_{t-1},S_T) &= \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T - \overline{T})^tS_T(T - \overline{T})s_{t-1}\\
+  &= \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T^tS_TT - T^tS_T\overline{T} - \overline{T}^tS_TT + \overline{T}^tS_T\overline{T})s_{t-1}. 
+\end{align*}
+Thus, substituting this into \eqref{E2:1}, dropping all terms that don't depend on $T$,  and using \eqref{E_x^tSx},
+it remains to optimize
 \begin{equation}\label{E2:2}
-  \begin{split}
-    E_2 &= N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) - \sum_{t=1}^N E_{\gamma_{t-1}(s_{t-1})}s_{t-1}^t(T - \overline{T})^t
-    S_T(T - \overline{T})s_{t-1} \\
-    &= N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) -\sum_{t=1}^N \tr(S_{c,t-1}^{-1}S_T) + \mu_{c,t-1}^t(\Delta{T})^tS_T
-    (\Delta{T})\mu_{c,t-1},
-  \end{split}
-\end{equation}
-where $\Delta{T} := T - \overline{T}$.
+    \tilde{E}_2=\mu^t_{c,t-1}T^tS_TT \mu_{c,t-1}- 2\mu^t_{c,t-1}T^tS_T\overline{T} \mu_{c.t-1}
+  \end{equation}
+  with respect to $T$.  
+
 \section{The Maximization Step} \label{maximization}
 With the expected value of the log-likelihood with respect to the posterior density now in hand, we now maximize
 it by setting partial derivatives with repsect to the parameters to zero and solving the resulting equations.
@@ -579,30 +577,40 @@ Finally, to reestimate $M$ and $T$, we need
 
 \begin{Lem}\label{dQdA}
   Let $S$ be a symmetric $m\times{m}$ matrix, let $A$ be any $m\times{n}$ matrix,
-  and let $\mu,\nu\in \R^n$.  Define
+  let $B$ be any ${n}\times{m}$ matrix,  and let $\mu,\nu\in \R^n$.  Define
   \begin{align*}
-  Q :&= \mu^tA^tSA\nu,\quad\text{then}\\
-  \frac{\partial{Q}}{\partial{A}} &= SA(\mu\nu^t+\nu\mu^t).
+  Q :&= \mu^tA^tSB\nu,\quad\text{then}\\
+  \frac{\partial{Q}}{\partial{A}} &= SB(\mu\nu^t+ \delta_{A,B}\nu\mu^t),
   \end{align*}
+where $\delta_{A,B}$ is the Kronecker delta.
 \end{Lem}
 \begin{proof}
 Expanding, we have
-$$
-Q = \mu^tA^tSA\mu = \sum_{i,j,k,l}\mu_iA_{ji}S_{jk}A_{kl}\nu_l.
-$$
-Collecting terms which involve $A_{qr}$, if $j=q$ and $i=r$, we get
-\begin{equation}\label{SA}
-A_{qr}\mu_r\sum_{k,l}S_{qk}A_{kl}\nu_l,
+\begin{equation}\label{dQdA:1}
+Q = \mu^tA^tSA\mu = \sum_{i,j,k,l}\mu_iA_{ji}S_{jk}B_{kl}\nu_l.
 \end{equation}
-while if $k=q$ and $l=r$, we get
-\begin{equation}\label{A^tS}
+Collecting terms which involve $A_{qr}$, we set $j=q$ and $i=r$ and we get
+\begin{equation}\label{SB}
+A_{qr}\mu_r\sum_{k,l}S_{qk}B_{kl}\nu_l.
+\end{equation}
+It follows that
+$$
+\frac{\partial Q}{\partial A_{qr}} = \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}B_{kl}\nu_l
+  $$
+  and hence
+  $$
+  \frac{\partial Q}{\partial A} = SB\nu\mu^t.
+  $$
+
+  If $B = A$, we get a second term when we set $k=q$ and $l=r$ in \eqref{dQdA:1}:
+  \begin{equation}\label{A^tS}
 A_{qr}\nu_r\sum_{i,j}\mu_iA_{ji}S_{jq}.
 \end{equation}
-However after replacing $i$ by $l$, $j$ by $k$ and using the fact that $S$ is symmetric,
-\eqref{SA} and \eqref{A^tS} are identical except that $\mu$ and $\nu$ are interchanged.
+Furthermore after 1) setting $B=A$ in \eqref {SB}, 2) replacing $i$ by $l$, and $j$ by $k$, and 3) using the fact that $S$ is symmetric,
+\eqref{SB} and \eqref{A^tS} are identical except that $\mu$ and $\nu$ are interchanged.
 But both equations have the common term
 $\mu_r\nu_rA_{qr}^2S_{qq}$ when $j = k = q$ and $i = l = r$.
-Then 
+So when $B = A$ we get 
 \begin{align}
   \notag\frac{\partial{Q}}{\partial{A_{qr}}} &= \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\nu_l
   +\nu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\mu_l+ 2\mu_r\nu_rA_{qr}S_{qq}\\
@@ -767,7 +775,13 @@ constraint is useful when generating long simulated data sets,  but may of cours
 actual data set.
 
 
-\section{Solving for T by least-squares}\label{least_squares}
+
+
+
+
+
+
+    \section{Solving for T by least-squares}\label{least_squares}
 We first consider the general problem of solving for T by least squares, and then specialize to a constrained
 version which uses Newton's method (non-linear least squares).  We don't have a proof that this approach actually
 increases the score, but in practice it seems to work well.

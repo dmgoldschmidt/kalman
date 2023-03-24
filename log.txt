@@ -352,3 +352,8 @@ Tue Mar 21 16:21:37 2023
 Well, I've "verified" everything up to 8.13.  One thing I discovered along the way is that
 $\N(s_t,Ts_{t-1],S_T)\gamma_t(s_t)$ has double integral = 1, i.e. it already is a probability density. Now I'm suspicious
 of differentiating wrt \Delta{T}.  I'm going to verify by expanding it out and differentiating wrt T.
+
+Thu Mar 23 17:03:22 2023
+I've made changes to kalman.tex to accommodate solving for $T$ and $S_T$.  In particular, I have a new version
+of (8.12) and (8.13), and I modified (9.4) to allow for the new (8.13).  Next steps:  zero  the partials of (8.13) and solve
+for T.  Then modify (8.12) for S_T (use the new value of T just obtained), take those partials, and solve for S_T.
