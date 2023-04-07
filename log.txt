@@ -357,3 +357,17 @@ Thu Mar 23 17:03:22 2023
 I've made changes to kalman.tex to accommodate solving for $T$ and $S_T$.  In particular, I have a new version
 of (8.12) and (8.13), and I modified (9.4) to allow for the new (8.13).  Next steps:  zero  the partials of (8.13) and solve
 for T.  Then modify (8.12) for S_T (use the new value of T just obtained), take those partials, and solve for S_T.
+
+Fri Mar 24 08:03:50 2023
+Uh-oh.  (8.13) is wrong.  We need to apply (8.4) several times to evaluate E_{\gamma_{t-1}(s_{t-1}) (s^t_{t-1}As_{t-1}
+for various A.  Furthermore, the proof given requires A to be symmetric positive definite.
+
+Sun Mar 26 12:36:02 2023
+OK, I have a proof for 8.4 for arbitrary S.  Now to fix (8.13).
+
+Sun Apr  2 14:42:51 2023
+I think I have all the pieces to complete the optimization of E_2.
+
+Thu Apr  6 17:31:28 2023
+OK, I have a new version of E_2 using the latest definition of joint posterior for $s_{t-1],s_t$.
+Now I have to redo the partials w.r.t. T (and S_T, which looks harder still).

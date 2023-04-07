@@ -335,8 +335,8 @@ setting $S_{b,N} = 0$, so we somewhat arbitrarily assume the following values
   \N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\\
     &= P_{b,t}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}).
   \end{align*}
-  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$, all observations $x_\tau~(\tau > t+1)$,
-      {\em and} $x_{t+1}$. Then an application of \eqref{exact_prod} and \eqref{comp_sq:4} yields the time update
+  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$ given all observations $x_\tau~
+  (\tau \ge t+1)$.  Then an application of \eqref{exact_prod} and \eqref{comp_sq:4} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
     &= P_{b,t}\int_{\R^n}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\N(u;Ts,S_T)du\\
@@ -392,16 +392,29 @@ $$
 \section{Re-estimating Parameters}
 In this section, we derive re-estimation equations for the parameters using the EM algorithm.
 \subsection{The Estimation Step}
-We begin with the key lemma.
-    
+We begin with two lemmas.
+
+\begin{Lem}\label{x^tAy}
+  Let $A$ be any $n\times{n}$ matrix, and let $x,y\in\R^n$.  Then
+  $$
+  x^tAy = \tr(Ayx^t).
+  $$
+\end{Lem}
+
+  \begin{proof}
+    We see that
+    $$
+    x^tAy = \sum_{i,j}x_iA_{ij}x_j = \sum_i\left(\sum_jA_{ij}x_jx_i\right).
+    $$
+  \end{proof}
+  
   \begin{Lem}\label{exp_log}
-    Recall the notation of \eqref{comp_sq:1}. Let $\gamma := \N(x;\mu_0,S_0)$ be an $n$-dimensional gaussian,  let $S$ be
-    positive definite, and let $A$ be any
-    full rank $m\times{n}$ matrix. Then for any vector $\mu\in\R^n$, 
+    Recall the notation of \eqref{comp_sq:1}. Let $\gamma := \N(x;\mu_0,S_0)$ be an $n$-dimensional gaussian,  let $S$
+    and $A$ be arbitary matrices of appropriate dimensions. Then for any vector $\mu\in\R^n$, 
     \begin{align}
       E_{\gamma}(x-\mu)(x-\mu)^t &= S_0^{-1} + (\mu-\mu_0)(\mu-\mu_0)^t, \label{E_xx^t}\\
       E_{\gamma}(x-\mu)^t(x - \mu) &=  \tr(S_0^{-1}) + (\mu-\mu_0)^t(\mu-\mu_0), \label{E_x^tx}\\
-      E_{\gamma}(x^tSx) &= \tr(S_0^{-1}S) + \mu_0^tS\mu_0, \quad\text{and} \label{E_x^tSx} \\
+      E_{\gamma}(x^tSx) &=\tr(S_0^{-1}S)+\mu_0^tS\mu_0 = \tr(S(S_0^{-1}+\mu_0\mu_0^t)), \quad\text{and} \label{E_x^tSx} \\
       E_{\gamma}{Q}(Ax;\mu,S) &=  \tr(S_0^{-1}A^tSA) + (\mu-A\mu_0)^tS(\mu-A\mu_0), \label{E_Q}
     \end{align}
   \end{Lem}
@@ -416,39 +429,31 @@ We begin with the key lemma.
     \end{align*}
     proving \eqref{E_xx^t}; and \eqref{E_x^tx} follows by taking the trace.
 
-    To prove \eqref{E_x^tSx} we let $C$ be the Cholesky matrix of $S$, so that
-    $S = C^tC$.  Note that since $S$ is positive definite, $C$ is invertible.
-    Making the change of variable $y = Cx,~ dy = |C|dx$ and using \eqref{E_x^tx}, we then have
-      \begin{align*}
-        E_{\gamma}(x^tSx) &= \int_{R^n}x^tSx~\N(x;\mu_0,S_0)dx\\
-        &= \sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}x^tC^tCx~\exp\left\{-\frac{1}{2}Q(x;\mu_0,S_0)\right\}dx \\
-        &= |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty~\exp\left\{-\frac{1}{2}Q(C^{-1}y;\mu_0,S_0)\right\}dy.
-      \end{align*}
-      We can re-write the quadratic form as follows:
-      \begin{align*}
-        Q(C^{-1}y,\mu_0,S_0) &= (C^{-1}y-\mu_0)^tS_0(C^{-1}y-\mu_0)\\
-        &= y^tC^{-t}S_0C^{-1}y - y^tC^{-t}S_0\mu_0 - \mu_0^tS_0C^{-1}y + \mu_0^tS_0\mu_0 \\
-        &= y^tC^{-t}S_0C^{-1}y - 2y^t(C^{-t}S_0C^{-1})C\mu_0 + \mu_0C^t(C^{-t}S_0C^{-1})C\mu_0\\
-        &= Q(y;C\mu_0,C^{-t}S_0C^{-1}).
-      \end{align*}
-      Substituting above yields
-      \begin{align*}
-        E_{\gamma}(x^tSx) &=  |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty~\exp\left\{-\frac{1}{2}Q(y;C\mu_0,C^{-t}S_0C^{-1})\right\}dy \\
-        &= \int_{\R^n}y^ty~\N(y;C\mu_0,C^{-t}S_0C^{-1})dy.
-      \end{align*}
-      Then using \eqref{E_x^tx} we get
-      \begin{align*}
-        E_{\gamma}(x^tSx) &=  \tr(CS_0^{-1}C^t) + \mu_0^tC^tC\mu_0 \\
-        &= \tr(S_0^{-1}S) + \mu_0^tS\mu_0,
-      \end{align*}
-      as required.
+    To prove \eqref{E_x^tSx} we use \eqref{E_xx^t} with $\mu = 0$:
+    $$
+    E_{\gamma}xx^t = S_0^{-1} + \mu_0\mu_0^t.
+    $$
+    Taking the $i,j$ entry of both sides we get
+    \begin{equation}\label{Ex_ix_}
+      E_{\gamma}x_ix_j = \sigma_{ij} + \mu_{0,i}\mu_{0,j}.
+    \end{equation}
+    where $\sigma_{ij}$ is the $i,j$ entry of $S_0^{-1}$, and $\mu_{0,i}$ and  $\mu_{0,j}$ are the $i$ and $j$ entries
+    of $\mu_0$.
+    Thus,
+    \begin{align*}
+      E_{\gamma}(x^tSx) = E_{\gamma}(\sum_{ij}x_iS_{ij}x_j) &= \sum_{ij}S_{ij}(\sigma_{ij} + \mu_{0,i}\mu_{0,j}) \\
+                                                            &= \tr(S_0^{-1}S) + \mu_0^tS\mu_0 = \tr(S_0^{-1}(S+\mu_0\mu_0^t)),
+    \end{align*}
+    as asserted.
+    
+
 
     Finally, to prove \eqref{E_Q} we  use \eqref{E_x^tSx} (with $A^tSA$ in place of $S$):
       \begin{align*}
         E_{\gamma}Q(Ax;\mu,S) &= E_{\gamma}(x^tA^tSAx) - 2E_{\gamma}(x^tA^tS\mu) + E_{\gamma}(\mu^tS\mu) \\
         &= E_{\gamma}(x^tA^tSAx) - 2\mu_0^tA^tS\mu + \mu^tS\mu\\
         &= \tr(S_0^{-1}A^tSA) + \mu_0^tA^tSA\mu_0 - 2\mu_0^tA^tS\mu + \mu^tS\mu,\\
-        &= \tr(S_0^{-1}A^tSA) + (\mu-A\mu_0)^tS(\mu- A\mu_0). %\mu_0^tA^tSA\mu_0 - 2\mu_0^tA^tS\mu + \mu^tS\mu,\\
+        &= \tr(S_0^{-1}A^tSA) + (\mu-A\mu_0)^tS(\mu- A\mu_0). 
       \end{align*}
 
 completing the proof of \eqref{E_Q}.
@@ -464,14 +469,14 @@ the probability density of $S$ given observations $X$ and  parameters $\theta :=
 Note that $Pd(S\mid X, \theta)$ can also be viewed as  $L(\theta\mid X,S)$, the posterior likelihood of $\theta$
 given observations $X$ and state sequence $S$.  The objective here is to choose $\theta$ to maximize $L(\theta)$.
 However, since $S$ is a sequence of latent variables $s_t$, we only have the posterior density $\Gamma(S)$ for $S$
-based on an initial choice $\bar{\theta}$ of parameters.\footnote{In fact, we don't actually have $\Gamma(S)$ either, we just have marginals $\gamma_t(s_t)$ and $L(s_{t-1},s_t)$.  This turns out to be good enough.} We then apply the EM
+based on an initial choice $\bar{\theta}$ of parameters.\footnote{In fact, we don't actually have $\Gamma(S)$ either, we just have marginals $\gamma_t(s_t)$ and $P(s_{t-1},s_t)$.  This turns out to be good enough.} We then apply the EM
 technology, which uses the computed posteriors $\Gamma(S)$ to re-estimate the parameters and then (typically)
 iterates this procedure.
 
 
 We begin by defining 
 $$
-E(\theta,\bar{\theta}) := \int_{\R^{Nn}}\log{L(\theta\mid X,S)}\Gamma(S))dS,
+E(\theta,\bar{\theta}) := \int_{\R^{Nn}}\log{L(\theta\mid X,S)}\Gamma(S\mid X,\bar{\theta}))dS,
 $$
 where $\bar{\theta}$ is the current set of parameters, and $\theta$ is the unknown set of new parameters
 we wish to determine. So instead of maximizing the log-likelihood directly, we can maximize $E(\theta,\bar{\theta}$,
@@ -482,13 +487,13 @@ L(\theta) - L(\bar{\theta}) \ge E(\theta,\bar{\theta}) - E(\bar{\theta},\bar{\th
 $$
 Thus, choosing $\theta$ to maximize $E(\theta,\bar{\theta})$ will increase the value of $L(\theta)$.
 
-Expanding $E(\theta,\bar{\theta})$, we have 
+Expanding $E(\theta,\bar{\theta})$ and ignoring constants, we have 
 \begin{align}
   E(\theta,\bar{\theta}) &= -(2N+1)\frac{n\log(2\pi)}{2} + \frac{1}{2}(E_0 + E_1 + E_2),\quad\text{where}\notag\\
-  E_0 :&=\int_{\R^{Nn}}\{\log|S_0| - Q(s_0;\mu_0,S_0)\}\Gamma(S)dS,\label{E0}\\
-  E_1 :&= \int_{\R^{Nn}}\left\{\sum_{t=1}^N\log|S_x| - Q(x_t;Ms_t,S_x)\right\}\Gamma(S)dS,
+  E_0 :&=\int_{\R^{Nn}}\{\log|S_0| - Q(s_0;\mu_0,S_0)\}\Gamma(S\mid X,\bar{\theta})dS,\label{E0}\\
+  E_1 :&= \int_{\R^{Nn}}\left\{\sum_{t=1}^N\log|S_x| - Q(x_t;Ms_t,S_x)\right\}\Gamma(S\mid X,\bar{\theta})dS,
 \label{E1}\\
-E_2 :&= \int_{\R^{Nn}}\left\{\sum_{t=1}^N\log|S_T| - Q(s_t;Ts_{t-1},S_T)\right\}\Gamma(S))dS,
+E_2 :&= \int_{\R^{Nn}}\left\{\sum_{t=1}^N\log|S_T| - Q(s_t;Ts_{t-1},S_T)\right\}\Gamma(S\mid X,\bar{\theta}))dS,
 \label{E2}
 \end{align}
 Since the expected value of a constant is just that constant, $-n\log(2\pi)/2$ can be moved outside each
@@ -523,7 +528,7 @@ marginal posterior probability of $s_t$ and $s_{t-1}$ at time $t$, given by \eqr
     %\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)\N(s_t;\overline{T}s_{t-1},\overline{S}_T)P(s_{t-1},s_t)ds_{t-1}ds_t.
 \begin{equation}\label{E2:1}
   \begin{split}
-    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^{2n}}\log{L(\theta\mid X,S)}Q(s_t;Ts_{t-1},S_t)P(s_{t-1},s_t)ds_{t-1}ds_t\\
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^{2n}}Q(s_t;Ts_{t-1},S_t)P(s_{t-1},s_t)ds_{t-1}ds_t\\
    &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)
    \N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_t\right)\gamma_{t-1}(s_{t-1})ds_{t-1}\\
   \end{split}
@@ -531,16 +536,18 @@ marginal posterior probability of $s_t$ and $s_{t-1}$ at time $t$, given by \eqr
 
 In order to evaluate the inner integral in \eqref{E2:1}, we use \eqref{E_Q} 
 with $\gamma := N(s_t;\overline{T}s_{t-1},\overline{S}_T)$,  $A = I$,  and $ \mu = Ts_{t-1}$ :
-\begin{align*}
-  E_{\gamma}Q(s_t;Ts_{t-1},S_T) &= \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T - \overline{T})^tS_T(T - \overline{T})s_{t-1}\\
-  &= \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T^tS_TT - T^tS_T\overline{T} - \overline{T}^tS_TT + \overline{T}^tS_T\overline{T})s_{t-1}. 
-\end{align*}
-Thus, substituting this into \eqref{E2:1}, dropping all terms that don't depend on $T$,  and using \eqref{E_x^tSx},
-it remains to optimize
+$$
+  E_{\gamma}Q(s_t;Ts_{t-1},S_T) = \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T - \overline{T})^tS_T(T - \overline{T})s_{t-1}.
+$$
+Substituting this into \eqref{E2:1}and using \eqref{E_x^tSx} with $\widehat{S}_T := (T-\overline{T})^tS_T(T-\overline{T})$, we get
 \begin{equation}\label{E2:2}
-    \tilde{E}_2=\mu^t_{c,t-1}T^tS_TT \mu_{c,t-1}- 2\mu^t_{c,t-1}T^tS_T\overline{T} \mu_{c.t-1}
-  \end{equation}
-  with respect to $T$.  
+  \begin{split}
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{\R^n} \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t\widehat{S}_Ts_{t-1}\gamma_{t-1}(s_{t-1})ds_{t-1} \\
+       &= N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) - \sum_{t=1}^NE_{\gamma_{t-1}(s_{t-1})}  s_{t-1}^t\widehat{S}_Ts_{t-1}  \\
+       &= N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T)  -\sum_{t=1}^N\tr(S_{c,t-1}^{-1}\widehat{S}_T) + \mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}.
+  \end{split}
+\end{equation}
+
 
 \section{The Maximization Step} \label{maximization}
 With the expected value of the log-likelihood with respect to the posterior density now in hand, we now maximize
@@ -574,55 +581,99 @@ and it is also easy to verify that
 \end{equation}
 
 Finally, to reestimate $M$ and $T$, we need
-
-\begin{Lem}\label{dQdA}
-  Let $S$ be a symmetric $m\times{m}$ matrix, let $A$ be any $m\times{n}$ matrix,
-  let $B$ be any ${n}\times{m}$ matrix,  and let $\mu,\nu\in \R^n$.  Define
+\begin{Lem}
+  Let $S$ be symmetric with $A$ and $B$  of appropriate dimension.
+  Assume no element of $B$ depends on any element of $A$.  Then
+  \begin{align}
+    \frac{\partial}{\partial{A}}\tr(A^tSB) &= SAB,\quad\text{and}\label{trA^tSB}\\
+  \frac{\partial}{\partial{A}}\tr(A^tSAB) &= SA(B+B^t). \label{trA^tSAB}
+  \end{align}
+  
+    \end{Lem}
+    \begin{proof}
+      Let
+      $$
+      X = \begin{cases} I  & \text{in case \eqref{trA^tSB}}\\
+            A & \text{in case \eqref{trA^tSAB}}.
+          \end{cases}
+          $$
+          Then
+      $$
+      \tr(A^tSXB) = \sum_{i,j,k,l}A_{ji}S_{jk}X_{kl}B_{li}.
+      $$
+      When $j = r$ and $i = q$, we get the partial sum
+      $$
+      T_1 := A_{rq}\sum_{k,l}S_{rk}X_{kl}B_{lq}= A_{rq}(SXB)_{rq}, 
+      $$
+      proving \eqref{trA^tSB}. 
+     In \eqref{trA^tSAB}  there is a second partial sum involving $A_{qr}$  when  $k = r$ and $l = q$:
+      $$
+      T_2 := A_{rq}\sum_{i,j} A_{ji}S_{jr}B_{qi} = A_{rq}(BA^tS)_{qr} = X_{rq}(SAB^t)_{rq},
+      $$
+      keeping in mind that $S$ is symmetric.
+      But when both conditions are satisfied, $T_1$ and $T_2$ have the common term $A_{rq}^2S_{rr}B_{qq}$.
+      It follows that
+      \begin{align*}
+      \frac{\partial{\tr(A^tSAB)}}{\partial{A_{rq}}} &=
+                                                      \sum_{kl\neq rq} S_{rk}A_{kl}B_{lq} + \sum_{i,j\neq rq} A_{ji}S_{jr}B_{qi} + 2A_{rq}S_{rr}B_{qq}\\
+                                                    &= (S(A(B + B^t))_{rq}\\
+      \end{align*}
+     as asserted.
+    \end{proof}
+    
+      \begin{Cor}\label{dQdA}
+        With the same hypotheses and notation as in the lemma, let $\mu,\nu\in \R^n$.  Define
   \begin{align*}
   Q :&= \mu^tA^tSB\nu,\quad\text{then}\\
   \frac{\partial{Q}}{\partial{A}} &= SB(\mu\nu^t+ \delta_{A,B}\nu\mu^t),
   \end{align*}
 where $\delta_{A,B}$ is the Kronecker delta.
-\end{Lem}
+\end{Cor}
 \begin{proof}
-Expanding, we have
-\begin{equation}\label{dQdA:1}
-Q = \mu^tA^tSA\mu = \sum_{i,j,k,l}\mu_iA_{ji}S_{jk}B_{kl}\nu_l.
-\end{equation}
-Collecting terms which involve $A_{qr}$, we set $j=q$ and $i=r$ and we get
-\begin{equation}\label{SB}
-A_{qr}\mu_r\sum_{k,l}S_{qk}B_{kl}\nu_l.
-\end{equation}
-It follows that
+  
+We have 
+% \begin{equation}\label{dQdA:1}
 $$
-\frac{\partial Q}{\partial A_{qr}} = \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}B_{kl}\nu_l
+  Q = \mu^tA^tSB\nu = \tr(A^tSB\nu\mu^t) 
+  % \end{equation}
   $$
-  and hence
-  $$
-  \frac{\partial Q}{\partial A} = SB\nu\mu^t.
-  $$
+by \eqref{x^tAy}, and the result follows from the lemma.
+%   \sum_{i,j,k,l}\mu_iA_{ji}S_{jk}B_{kl}\nu_l.
+% \end{equation}
+% Collecting terms which involve $A_{qr}$, we set $j=q$ and $i=r$ and we get
+% \begin{equation}\label{SB}
+% A_{qr}\mu_r\sum_{k,l}S_{qk}B_{kl}\nu_l.
+% \end{equation}
+% It follows that
+% $$
+% \frac{\partial Q}{\partial A_{qr}} = \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}B_{kl}\nu_l
+%   $$
+%   and hence
+%   $$
+%   \frac{\partial Q}{\partial A} = SB\nu\mu^t.
+%   $$
 
-  If $B = A$, we get a second term when we set $k=q$ and $l=r$ in \eqref{dQdA:1}:
-  \begin{equation}\label{A^tS}
-A_{qr}\nu_r\sum_{i,j}\mu_iA_{ji}S_{jq}.
-\end{equation}
-Furthermore after 1) setting $B=A$ in \eqref {SB}, 2) replacing $i$ by $l$, and $j$ by $k$, and 3) using the fact that $S$ is symmetric,
-\eqref{SB} and \eqref{A^tS} are identical except that $\mu$ and $\nu$ are interchanged.
-But both equations have the common term
-$\mu_r\nu_rA_{qr}^2S_{qq}$ when $j = k = q$ and $i = l = r$.
-So when $B = A$ we get 
-\begin{align}
-  \notag\frac{\partial{Q}}{\partial{A_{qr}}} &= \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\nu_l
-  +\nu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\mu_l+ 2\mu_r\nu_rA_{qr}S_{qq}\\
-  &= \mu_r\sum_{k,l}S_{qk}A_{kl}\nu_l + \nu_r\sum_{k,l}S_{qk}A_{kl}\mu_l\notag\\
-  &= \sum_{k,l}S_{qk}A_{kl}(\mu_l\nu_r + \nu_l\mu_r).\label{dQ_0}
-\end{align}
+%   If $B = A$, we get a second term when we set $k=q$ and $l=r$ in \eqref{dQdA:1}:
+%   \begin{equation}\label{A^tS}
+% A_{qr}\nu_r\sum_{i,j}\mu_iA_{ji}S_{jq}.
+% \end{equation}
+% Furthermore after 1) setting $B=A$ in \eqref {SB}, 2) replacing $i$ by $l$, and $j$ by $k$, and 3) using the fact that $S$ is symmetric,
+% \eqref{SB} and \eqref{A^tS} are identical except that $\mu$ and $\nu$ are interchanged.
+% But both equations have the common term
+% $\mu_r\nu_rA_{qr}^2S_{qq}$ when $j = k = q$ and $i = l = r$.
+% So when $B = A$ we get 
+% \begin{align}
+%   \notag\frac{\partial{Q}}{\partial{A_{qr}}} &= \mu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\nu_l
+%   +\nu_r\sum_{(k,l)\neq(q,r)}S_{qk}A_{kl}\mu_l+ 2\mu_r\nu_rA_{qr}S_{qq}\\
+%   &= \mu_r\sum_{k,l}S_{qk}A_{kl}\nu_l + \nu_r\sum_{k,l}S_{qk}A_{kl}\mu_l\notag\\
+%   &= \sum_{k,l}S_{qk}A_{kl}(\mu_l\nu_r + \nu_l\mu_r).\label{dQ_0}
+% \end{align}
 
-We conclude that the matrix whose $(q,r)$ term is given by \eqref{dQ_0} is
-$$
-\frac{\partial{Q}}{\partial{A}} = SA(\mu\nu^t+\nu\mu^t)
-$$
-as asserted.
+% We conclude that the matrix whose $(q,r)$ term is given by \eqref{dQ_0} is
+% $$
+% \frac{\partial{Q}}{\partial{A}} = SA(\mu\nu^t+\nu\mu^t)
+% $$
+% as asserted.
 \end{proof}
 
 \begin{Cor}\label{dM}
@@ -717,13 +768,58 @@ We note that in a similar way, equation \eqref{E1:1} can be optimized with respe
     
 \subsection{Solving for $T$ and $S_T$}
 %N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) -\sum_{t=1}^N \tr(S_{c,t-1}^{-1}S_T) + \mu_{c,t-1}^t(\Delta{T})^tS_T(\Delta{t})\mu_{c,t-1}
-Finally, we optimize \eqref{E2:2} using \eqref{d_tr_prod:1} and \eqref{dQdA} :
+We first expand $\mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}$:
 \begin{align*}
-  0 = \frac{\partial{E_2}}{\partial{\Delta{T}}} &= 2S_T\Delta{T}\mu_{c,t-1}\mu_{c,t-1}^t,
+  \mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1} &= \mu_{c,t-1}^t(T-\overline{T})^tS_T(T-\overline{T})\mu_{c,t-1}\\
+                                         &= \mu_{c,t-1}^tT^tS_TT\mu_{c,t-1} - \mu_{c,t-1}^tT^tS_T\overline{T}\mu_{c,t-1}\\ 
+                                          &-  \mu_{c,t-1}^t\overline{T}^tS_TT\mu_{c,t-1}
+                                           + \mu_{c,t-1}^t\overline{T}^tS_T\overline{T}\mu_{c,t-1}.
 \end{align*}
+
+Then using \eqref{dQdA}:
+\begin{equation}\label{dQdA:2}
+  \begin{split}
+  \frac{\partial}{\partial{T}} [\mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}] &= \frac{\partial}{\partial{T}}
+                                                                        [\mu_{c,t-1}^tT^tS_TT\mu_{c,t-1} 
+                                                                     - 2 \mu_{c,t-1}^tT^tS_T\overline{T}\mu_{c,t-1}]\\
+                                                                 &= 2S_TT\mu_{c,t-1}\mu_{c,t-1}^t - 2S_T\overline{T}\mu_{c,t-1}\mu_{c,t-1}^t\\
+                                                                       &= 2S_T(T-\overline{T})\mu_{c,t-1}\mu_{c,t-1}^t. 
+  \end{split}
+\end{equation}
+
+Next, using \eqref{trA^tSB} and \eqref{trA^tSAB}:
+\begin{equation}\label{d_tr_prod:2}
+  \begin{split}
+\frac{\partial}{\partial{T}}\tr(S_{c,t-1}^{-1}\widehat{S}_T) &= \frac{\partial}{\partial{T}}\tr([T^tS_TT 
+                                                               - 2T^tS_T\overline{T}]S_{c,t-1}^{-1})\\
+    &= 2S_T(T - \overline{T})S_{c,t-1}^{-1}
+  \end{split}
+\end{equation}
+
+Finally, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using \eqref{x^tAy}, \eqref{dQdA:2}, 
+and \eqref{d_tr_prod:2}: 
+\begin{equation}\label{E2:3} 
+  \begin{split}
+    0 &= \frac{\partial}{\partial{T}}\left(N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T)  -\sum_{t=1}^N\tr(S_{c,t-1}^{-1}\widehat{S}_T) + \mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}\right)\\
+      &= -\frac{\partial}{\partial{T}}\left(\sum_{t=1}^N\tr(\widehat{S}_T(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu^t_{c,t-1}))
+        \right)\\
+      &=  -\frac{\partial}{\partial{T}}\left(\sum_{t=1}^N\tr(T^tS_TT - 2T^tS_T\overline{T})(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu^t_{c,t-1}))
+        \right)\\
+    &= -2S_T(T-\overline{T})\sum_{t=1}^N(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu_{c,t-1}^t)
+  \end{split}
+\end{equation}
+Solving for $T$, we define
+$$
+X_c := \sum_{t=1}^N(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu_{c,t-1}^t)
+$$
+and we get
+\begin{equation}\label{T}
+  S_TTX_c = S_T\overline{T}X_c.
+\end{equation}
+
+=====================================================================
+
 \newpage
-
-
 \appendix
 \section{A Standard Form for Orthonormal Matrices}\label{ortho_std_form}
 Let $A$ be a real orthonormal $n\times n$ matrix, i.e. such that $A^tA = AA^t = I$.  Since $A+A^t$ is real
@@ -833,56 +929,6 @@ $$
 Due to the various approximations involved, it may be advisable to bound $|\theta_i-\bar{\theta_i}|$.  Also, an
 inner iteration is possible using the same values for the $\gamma_t$ but updating $\bar{\theta_i} \leftarrow \theta_i$.
 
-%% \section{An Elementary Inequality}
-
-%% \begin{Lem}\label{Q_func} Suppose that $f_1(\theta),\dots,f_n(\theta)$ are positive real-valued functions.
-%% Let $f(\theta):= \sum_{i=1}^nf_i(\theta)$, and define 
-%% $$
-%% E(\bar{\theta},\theta):= \sum_{i=1}^nf_i(\bar{\theta})\log(f_i(\theta)).
-%% $$
-%% Then $ f(\theta) - f(\bar{\theta}) \ge E(\bar{\theta},\theta) - E(\bar{\theta},\bar{\theta})$ with equality only if
-%% $E(\bar{\theta},\theta) = E(\bar{\theta},\bar{\theta})$.
-%% \end{Lem}
-%% \begin{proof}
-%% The equation of the tangent line to the graph of $y = \log(\theta)$ at $\theta = 1$ is $y = \theta - 1$.
-%% Since $\log(\theta)$ is concave down, it follows that 
-%% $\log(\theta) \le \theta - 1$, with equality if and only if $\theta = 1$. Using this, we have
-%% \begin{align*}
-%% E(\bar{\theta},\theta) - E(\bar{\theta},\bar{\theta}) &= \sum_{i=1}^nf_i(\bar{\theta})[\log(f_i(\theta) - \log(f_i(\bar{\theta}))] \\
-%% &= \sum_{i=1}^nf_i(\bar{\theta})\log(f_i(\theta)/f_i(\bar{\theta})) \\
-%% &\le \sum_{i=1}^nf_i(\bar{\theta})[f_i(\theta)/f_i(\bar{\theta}) - 1] \\
-%% &= \sum_{i=1}^n[f_i(\theta) - f_i(\bar{\theta})] \\
-%% &= f(\theta) - f(\bar{\theta}),
-%% \end{align*}
-%% with equality if and only if $f_i(\theta)/f_i(\bar{\theta}) = 1$ for all $i$.
-
-%% \end{proof}
-
-%% $A$ is
-%% similar to a block-diagonal matrix with $2\times 2$ blocks
-
-
-%% \begin{align*}
-%%   \hat{v}_0 &= \lambda_0 A^{-1}\hat{v}_0 - A^{-1}v_0,\\
-%%   A^tv_0 &= A^{-1}v_0 = \lambda_0 v_0 - \hat{v}_0.
-%% \end{align*}
-%% In particular, the 2-dimensional subspace $V_0:= <v_0,\hat{v}_0>$ is $A$-invariant and $A^t$-invariant, and 
-%% \quad\text{and}\quad A^t  \sim \left[\begin{matrix}
-%%     \lambda_0 & 1 \\
-%%     -1 & 0\\
-%%   \end{matrix}
-%%   \right].\\
-%% $$
-
-%% Thus, with respect to the basis $\{v_0,\hat{v}_0\}$ we have the diagonal matrix
-%% $$
-%% A+A^t \sim \left[\begin{matrix}
-%%     \lambda_0 & 0 \\
-%%     0 & \lambda_0 \\
-%%   \end{matrix}
-%%   \right]
-%% $$
-%% In other words, $v_0$ and $\hat{v}_0$ are both eigenvectors of $A+A^t$ with eigenvalue $\lambda_0$.
 
 \begin{thebibliography}{9}
 \bibitem{Hinton}
@@ -917,257 +963,3 @@ inner iteration is possible using the same values for the $\gamma_t$ but updatin
  
 \end{document}
 
-
-    %% To evaluate $E_{\gamma}(x^tA^tSAx)$, we let $C$ be the Cholesky matrix of $A^tSA$, so that
-    %% $A^tSA = C^tC$.  Note that since $A$
-    %% has full rank, $A^tSA$ is invertible, and so is $C$. Making the change
-    %% of variable $y = Cx,~ dy = |C|dx$ and using \eqref{E_x^tx}, we then have
-    %%   \begin{align*}
-    %%     E_{\gamma}(x^tA^tSAx) &= \int_{R^n}x^tA^tSAx~\N(x;\mu_0,S_0)dx\\
-    %%     &= \sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}x^tA^tSAx~\exp\left\{-\frac{1}{2}Q(x;\mu_0,S_0)\right\}dx \\
-    %%     &= |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty~\exp\left\{-\frac{1}{2}Q(C^{-1}y;\mu_0,S_0)\right\}dy.
-    %%   \end{align*}
-    %%   We can re-write the quadratic form as follows:
-    %%   \begin{align*}
-    %%     Q(C^{-1}y,\mu_0,S_0) &= (C^{-1}y-\mu_0)^tS_0(C^{-1}y-\mu_0)\\
-    %%     &= y^tC^{-T}S_0C^{-1}y - y^tC^{-T}S_0\mu_0 - \mu_0^tS_0C^{-1}y + \mu_0^tS_0\mu_0 \\
-    %%     &= y^tC^{-T}S_0C^{-1}y - 2y^t(C^{-T}S_0C^{-1})C\mu_0 + \mu_0C^t(C^{-T}S_0C^{-1})C\mu_0\\
-    %%     &= Q(y;C\mu_0,C^{-T}S_0C^{-1}).
-    %%   \end{align*}
-    %%   Substituting above yields
-    %%   \begin{align*}
-    %%     E_{\gamma}(x^tA^tSAx) &=  |C|^{-1}\sqrt{(2\pi)^{-n}|S_0|}\int_{\R^n}y^ty~\exp\left\{-\frac{1}{2}Q(y;C\mu_0,C^{-T}S_0C^{-1})\right\}dy \\
-    %%     &= \int_{\R^n}y^ty~\N(y;C\mu_0,C^{-T}S_0C^{-1})dy.
-    %%   \end{align*}
-    %%   Then using \eqref{E_x^tx} we get
-    %%   \begin{align*}
-    %%     E_{\gamma}(x^tA^tSAx) &=  \tr(CS_0^{-1}C^t) + \mu_0^tC^tC\mu_0 \\
-    %%     &= \tr(S_0^{-1}A^tSA) + \mu_0^tA^tSA\mu_0.
-    %%   \end{align*}
-
-
-
-%%     &= N\log|S_T|-\sum_{t=1}^N\int_{R^n}\left(tr(S_{t-1,t}^{-1}T^tS_TT) +
-%%     (s_t - T\mu_{t-1,t})^tS_T(s_t-T\mu_{t-1,t})\right)\gamma(s_t)ds_t\\
-%%     &= N\log|S_T|-\sum_{t=1}^N\left(tr(S_{t-1,t}^{-1}T^tS_TT) + E_{\gamma_t(s_t)}Q(s_t;T\mu_{t-1,t},S_T)\right).\\
-%%     \end{split}
-%% \end{equation}
-%% At this point we would like to apply \eqref{E_Q} to this last expectation, but unfortunately after checking \eqref{gamma_hat},
-%% we find that $\mu_{t-1,t}$ depends on $s_t$.  Namely, with $s_t' := \overline{T}^{-1}s_t$ and
-%% $\overline{S}_T' := \overline{T}^t\overline{S}_T\overline{T}$ we have
-%% \begin{align*}
-%% \mu_{t-1,t}-s'_t &= (\overline{S}_{t-1,t}^{-1}\overline{S}'_T - I)s'_t +
-%%   \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\mu_{a,t-1}, \\
-%%   &= (\overline{S}_{t-1,t}^{-1}\overline{S}'_T) - \overline{S}_{t-1,t}^{-1}\overline{S}_{t-1,t})s'_t +
-%%   \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\mu_{a,t-1}, \\
-%%     &= \overline{S}_{t-1,t}^{-1}(\overline{S}'_T - \overline{S}_{t-1,t} )s'_t + \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\mu_{a,t-1}, \\
-%%     &= \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}(\mu_{a,t-1}-s'_t), \quad\text{hence}\\
-%%     \mu_{t-1,t} &= \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}\mu_{a,t-1} - (\overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1}-I)\overline{T}^{-1}s_t,\quad\text{and therefore}\\
-%%     T\mu_{t-1,t} - s_t &= T\bar{v}_t - (T\overline{S}_* + I)s_t, 
-%%   \end{align*}
-%% where
-%% \begin{align*}
-%%   \overline{S}_* :&= (\overline{W}_t - I)\overline{T}^{-1} ,\\
-%%   \overline{W}_t :&= \overline{S}_{t-1,t}^{-1}\overline{S}_{a,t-1},\quad\text{and}\\
-%%   \bar{v}_t :&= W_t\mu_{a,t-1}.
-%% \end{align*}
-
-%% Note that both $\overline{S}_*$ and $\bar{v}_t$  depend only on the known posterior parameters as indicated
-%% by the bar notation, and neither one depends on $s_t$.
-
-%% We can now re-write \eqref{E2:1} in a form amenable to \eqref{E_Q}:
-
-%% \begin{equation}\label{mu_t-1,t}
-%%   \begin{split}
-%%     Q(s_t,T\mu_{t-1,t},S_T) &= ((T\overline{S}_*+I)s_t - T\bar{v}_t)^tS_T((T\overline{S}_* + I)s_t - T\bar{v}_t),\quad\text{and}\\
-%%     E_{\gamma_t(s_t)}Q(s_t,T\mu_{t-1,t},S_T) &= E_{\gamma_t(s_t)}Q((T\overline{S}_*+ I)s_t;T\bar{v}_t,S_T)\\
-%%     &= tr(\overline{S}_{c,t}^{-1}(T\overline{S}_*+I)^tS_T(T\overline{S}_* + I)) + (T\bar{v}_t - \mu_{c,t})^tS_T(T\bar{v}_t-\mu_{c,t}).
-%%   \end{split}
-%% \end{equation}
-%%  \subsection{Solving for $\mu_0$ and $S_0$ (old)}
-%% Armed with the above preliminaries, we first optimize $E_0$ with respect to $\mu_0$: 
- 
-%% \begin{align}
-%% 0 = \frac{\partial{E_0}}{\partial{\mu_0}} &= \int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_0,S_0)}}{\partial{\mu_0}}ds_0 \notag\\
-%% &= \int_{\R^n}\gamma_0(s_0)(2S_0(\mu_0-s_0))ds_0\notag\\
-%% &= 2S_0\int_{\R^n}\gamma_0(s_0)(\mu_0-s_0)ds_0 \notag\\
-%% &= 2S_0(\mu_0-\mu_{c,0}), \quad\text{hence}\notag\\
-%% \mu_0 &= \mu_{c,0}
-%% \end{align}
-
-%% Next, we optimize $E_0$ with respect to $S_0$, and we can set $\mu_0 = \mu_{c,0}$ by \eqref{mu_0}:
-%% \begin{align*}
-%%   0 = \frac{\partial{E_0}}{\partial{S_0}} &= \frac{\partial\log|S_0|}{\partial{S_0}}
-%%   -\int_{\R^n}\gamma_0(s_0)\frac{\partial{Q(s_0;\mu_{c,0},S_0)}}{\partial{S_0}}ds_0 \\
-%% &= (2-\delta_{ij})S_0^{-1} - (2-\delta_{ij})\int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^tds_0.
-%% \end{align*}
-%% Not surprisingly, it follows that
-%% \begin{equation}\label{Sigma_0}
-%%   \begin{split}
-%%     S_0^{-1} &= \int_{\R^n}\gamma_0(s_0)(s_0-\mu_{c,0})(s_0-\mu_{c,0})^tds_0 = S_{c,0}^{-1}, \quad\text{i.e.}\\
-%%     S_0 &= S_{c,0}.
-%%   \end{split}
-%% \end{equation}
-
-%% We note that above and in what follows, we have vector and matrix integrands.  Of course, this is just a convenient
-%% notation for sets of integrals, each one having a particular vector or matrix entry as the integrand.
-
-%% \subsection{Solving for M and $S_M$ (old)}
-%% To optimize $E_1$, we first differentiate with respect to $\overline{M}$ using \eqref{dM}.
-%% Setting the derivative to zero we need to solve for $\overline{M}$:
-%% \begin{align*}
-%%   0 &= \frac{\partial{E_1}}{\partial\overline{M}}
-%%   = -\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial}{\partial\overline{M}}Q(x_t,\overline{M}s_t,S_M)ds_t\\
-%%   &= 2\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(S_Mx_ts_t^t - S_M\overline{M}s_ts_t^t)ds_t\\
-%%   &= 2\sum_{t=1}^N(S_Mx_t\mu_{c,t}^t - S_M\overline{M}(S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t).
-%% \end{align*}
-%% Multiplying through by $\frac{1}{2}S_M^{-1}$, we find that
-%% \begin{equation}\label{M_bar}
-%%   \begin{split}
-%%     \overline{M} &= \Gamma_1\Gamma_2^{-1}, \quad\text{where}\\
-%%     \Gamma_1 :&= \sum_{t=1}^Nx_t\mu_{c,t}^t, \quad\text{and}\\
-%%     \Gamma_2 :&= \sum_{i=1}^NS_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t.
-%%   \end{split}
-%% \end{equation}
-
-%% Note that $\overline{M}$ does not depend on $S_M$, so we can optimize $E_1$ with respect to $S_M$
-%% using the new value of $\overline{M}$:
-%% \begin{align*}
-%%   0 = \frac{\partial{E_1}}{\partial{S_M}} &=
-%%    N\frac{\partial{\log|S_M|}}{\partial{S_M}}
-%%   - \sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)\frac{\partial{Q(x_t;\overline{M}s_t,S_M)}}{\partial{S_M}}ds_t \\
-%%   &= N(B\circ{S}_M^{-1}) - B\circ\sum_{t=1}^N
-%%   \int_{\R^n}\gamma_t(s_t)(x_t-\overline{M}s_t)(x_t-\overline{M}s_t)^tds,
-%% \end{align*}
-%% where $B_{ij} := 2-\delta_{ij}$ as above.  Dividing by $B_{ij}$ in each component, we see that
-%% \begin{equation}\label{S_x}
-%%   \begin{split}
-%%     S_M^{-1} &= \frac{1}{N}\sum_{t=1}^N\int_{\R^n}\gamma_t(s_t)(x_tx_t^t - x_ts_t^t\overline{M}^t
-%%     - \overline{M}s_tx_t^t + \overline{M}s_ts_t^t\overline{M}^t)ds_t \\
-%%     &= \frac{1}{N}\sum_{t=1}^N(x_tx_t^t - x_t\mu_{c,t}^t\overline{M}^t - \overline{M}\mu_{c,t}x_t^t +
-%%     \overline{M}(S_{c,t}^{-1}+\mu_{c,t}\mu_{c,t}^t)\overline{M}^t)\\
-%%     &= \frac{1}{N}\sum_{t=1}^N(x_t-\overline{M}\mu_{c,t})(x_t-\overline{M}\mu_{c,t})^t +
-%%     \overline{M}S_{c,t}^{-1}\overline{M}^t.
-%%   \end{split}
-%% \end{equation}
-
-
-% \subsection{Solving for $T$ and $S_T$ (old)}
-% Finally, we optimize $E_2$ first by solving
-% $$
-% \frac{\partial{E_2}}{\partial{\overline{T}}} = 0
-% $$
-% for $\overline{T}$ optionally subject to the condition that $\overline{T}$ is a companion matrix.  We do this
-% by computing the full E-M update for $T$, but for a companion matrix we only use the result to update the variable entries,
-% namely $T_{nj}$ for $j > 1$, while leaving all the constant entries unchanged.
-
-% Thus, using \eqref{gamma_hat} and \eqref{dM}, we have
-% \begin{equation}\label{T:1}
-%   \begin{split}
-% 0 &= \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)
-% \frac{\partial{Q(s_t;\overline{T}s_{t-1},S_T)}}{\partial\overline{T}}ds_{t-1}ds_t \\
-% &= -2\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})\gamma_t(s_t)(S_Ts_ts_{t-1}^t -
-% S_T\overline{T}s_{t-1}s_{t-1}^t) ds_{t-1}ds_t \\
-% &= -2S_T\sum_{t=1}^N\int_{\R^{n}}\gamma_t(s_t) (s_t\mu_{t-1,t}^t -
-% \overline{T}(S_{t-1,t}^{-1} + \mu_{t-1,t}\mu_{t-1,t}^t))ds_t \\
-% &= 2S_T\sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^tds_t +
-% \overline{T}\int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^tds_t\right).\\
-%   \end{split}
-% \end{equation}
-% So we have two integrals to evaluate:
-% \begin{equation}\label{I_1}
-%   \begin{split}
-%   I_{1,t} :&= \int_{\R^n}\gamma_t(s_t)s_t\mu_{t-1,t}^tds_t \\
-%   &= \int_{\R^n}\gamma_t(s_t)s_t(s_t^tS_TT + \mu_{a,t-1}^tS_{a,t-1})S_{t-1,t}^{-1})ds_t \\
-%   &= (S_{c,t}^{-1} + \mu_{c,t}\mu_{c,t}^t)S_TTS_{t-1,t}^{-1} + \mu_{c,t}\mu_{a,t-1}^tS_{a,t-1}S_{t-1,t}^{-1},
-%   \end{split}
-%   \end{equation}
-% and
-% \begin{equation}\label{I_2}
-%   \begin{split}
-%   I_{2,t} :&= \int_{\R^n}\gamma_t(s_t)\mu_{t-1,t}\mu_{t-1,t}^tds_t \\
-%   &= \int_{\R^n}\gamma_t(s_t)S_{t-1,t}^{-1}(T^tS_Ts_ts_t^tS_TT + T^tS_Ts_t\mu_{a,t-1}^tS_{a,t-1} \\
-%   &+ S_{a,t-1}\mu_{a,t-1}s_t^tS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^tS_{a,t-1}) S_{t,t-1}^{-1}ds_t \\
-%   &= S_{t-1,t}^{-1}[T^tS_T(S_{c,t}^{-1`}+\mu_{c,t}\mu_{c,t}^t)S_TT + T^tS_T\mu_{c,t}\mu_{a,t-1}^tS_{a,t-1} \\
-%   &+ S_{a,t-1}\mu_{a,t-1}\mu_{c,t}^tS_TT + S_{a,t-1}\mu_{a,t-1}\mu_{a,t-1}^tS_{a,t-1}]S_{t-1,t}^{-1}. \\
-% \end{split}
-% \end{equation}
-
-% Note that the matrices $T$ and $S_T$ appearing in \eqref{I_1} and \eqref{I_2} are the {\em previous}
-% values, as opposed to the unkowns $\overline{T}$ and $S_T$ for which we are solving.
-
-% To simplify notation, we put
-% \begin{align*}
-% S_* :&= S_{t-1,t}^{-1}S_{a,t-1},\\
-% S_+ :&= S_{t-1,t}^{-1}T^tS_T,\\
-% \nu_1 :&= S_+\mu_{c,t},\quad\text{and}\\
-% \nu_2 :&= S_*\mu_{a,t-1}.
-% \end{align*}
-% Then
-% \begin{align*}
-%   I_{1,t} &= S_{c,t}^{-1}S_+^t +\mu_{c,t}(\nu_1^t + \nu_2^t), \quad\text{and}\\
-%   I_{2,t} &= S_+S_{c,t}^{-1}S_+^t+\nu_1\nu_1^t + \nu_1\nu_2^t + \nu_2\nu_1^t + \nu_2\nu_2^t \\
-%       &= S_+S_{c,t}^{-1}S_+^t + (\nu_1+\nu_2)(\nu_1+\nu_2)^t.
-% \end{align*}
-
-% After multiplying by $S_T^{-1}$, \eqref{T:1} becomes
-% \begin{align*}
-%  0 &= \sum_{t=1}^N\left(\overline{T}S_{t-1,t}^{-1} - I_{1,t} + \overline{T}I_{2,t}\right)\\
-%   &= \overline{T}\Gamma_2 - \Gamma_1, \quad\text{where} \\
-%   \Gamma_2 :&= \sum_{i=1}^N(S_{t-1,t}^{-1} + I_{2,t}),\quad\text{and}\\
-%   \Gamma_1 :&= \sum_{i=1}^NI_{1,t}.
-% \end{align*}
-% Thus,  we have
-% \begin{equation}\label{T:2}
-%   \overline{T} = \Gamma_1\Gamma_2^{-1}.
-% \end{equation}
-% Note that if $T$ is a companion matrix, we only update $T_{nj}$ for $j > 1$ from \eqref{T:2} and
-% leave all other entries unchanged.
-
-% Finally, we complete our optimization of $E_2$ by differentiating with respect to $S_T$ and using \eqref{gamma_hat} and \eqref{partial_logdet}:
-% \begin{equation}\label{Sigma_Tr:0}
-%   \begin{split}
-%   0 &= \frac{\partial{E_2}}{\partial{S_T}} = \frac{\partial{\log|S_T|}}{\partial{S}_T}
-%   - \sum_{t=1}^N\int_{\R^{2n}}\hat{\gamma}_t(s_{t-1},s_t)\frac{\partial{Q(s_t;\overline{T}s_{t-1},S_T)}}
-%   {\partial{S}_T}ds_{t-1}ds_t \\
-%   &= N(B\circ{S}_T^{-1}) -B\circ\sum_{t=1}^N\int_{\R^{2n}}\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})
-%   \gamma_t(s_t)(\overline{T}s_{t-1}-s_t)(\overline{T}s_{t-1}-s_t)^tds_{t-1}ds_t.
-%   \end{split}
-% \end{equation}
-
-% As noted earlier, $\gamma_t(s_t)$ does not depend on $s_{t-1}$, so we can integrate first with respect to $s_{t-1}$:
-% \begin{align*}
-%   \int_{-\infty}^{\infty}&\N(s_{t-1};\mu_{t-1,t},S_{t-1,t})(\overline{T}s_{t-1}-s_t)
-%   (\overline{T}s_{t-1}-s_t)^tds_{t-1}\\ &= S_{t-1,t}^{-1} +
-% (\overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^t\overline{T}^t,
-% \end{align*}
-% where $s'_t = \overline{T}^{-1}s_t$.
-% Substituting this result into \eqref{Sigma_Tr:0}, we get
-% \begin{equation}\label{Sigma_Tr:1}
-%   S_T^{-1} =  \frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} +\int_{-\infty}^{\infty}\gamma_t(s_t)
-%   \overline{T}(\mu_{t-1,t}-s'_t)(\mu_{t-1,t}-s'_t)^t\overline{T}^tds_t\right).
-% \end{equation}
-
-% However, there is a problem evaluating this integral because after checking \eqref{gamma_hat}, we see that $\mu_{t-1,t}$
-% depends on $s'_t = \overline{T}^{-1}s_t$, namely 
-% \begin{equation}\label{s-mu_1}
-%   \begin{split}
-%     \left(\mu_{t-1,t}-s'_t\right) &= (S_{t-1,t}^{-1}T^{t}S_TT - I)s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-%     &= (S_{t-1,t}^{-1}T^{t}S_TT)s'_t - S_{t-1,t}^{-1}S_{t-1,t}) + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-%     &= S_{t-1,t}^{-1}(T^{t}S_TT - S_{t-1,t} )s'_t + S_{t-1,t}^{-1}S_{a,t-1}\mu_{a,t-1}, \\
-%     &= S_{t-1,t}^{-1}S_{a,t-1}(\mu_{a,t-1}-s'_t),\\
-%     &= S_*(\mu_{a,t-1}-s_t')
-%   \end{split}
-% \end{equation}
-
-% Fortunately, neither $\mu_{a,t-1}$ nor $S_*$ depends on $s_t$,
-% so using \eqref{gamma_hat}, \eqref{Sigma_Tr:1} becomes
-% \begin{equation}\label{S_Tr:2}
-%   \begin{split}
-%   S_T^{-1} &=\frac{1}{N}\sum_{t=1}^N\left(S_{t-1,t}^{-1} + \overline{T}S_*
-%   \left[\int_{-\infty}^{\infty}\gamma_t(s_t)(\mu_{a,t-1}-s'_t)(\mu_{a,t-1}-s'_t)^tds_t\right]S_*^t\overline{T}^t\right)\\
-%    &=\frac{1}{N}\sum_{t=1}^NS_{t-1,t}^{-1} + \overline{T}S_*
-%            [S_{c,t}^{-1}+(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})(\mu_{a,t-1}-\overline{T}^{-1}\mu_{c,t})^t]
-%            S_*^t\overline{T}^t.
-%   \end{split}
-% \end{equation}
