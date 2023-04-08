@@ -371,3 +371,7 @@ I think I have all the pieces to complete the optimization of E_2.
 Thu Apr  6 17:31:28 2023
 OK, I have a new version of E_2 using the latest definition of joint posterior for $s_{t-1],s_t$.
 Now I have to redo the partials w.r.t. T (and S_T, which looks harder still).
+
+Sat Apr  8 15:31:47 2023
+I now have a preliminary solution for T from optimizing the new E_2.
+

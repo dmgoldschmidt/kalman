@@ -296,7 +296,7 @@ the measurement update first by multiplying by $X(x_{t+1}\mid u)$ to obtain $\ha
 and then we integrate with respect to $Pd(u\mid s)du$ for the time update.  
 
 \begin{Thm}\label{beta:1}
-  For $t < T$, inductively define
+  For $t < N$, inductively define
 \begin{align*}
   \hat{S}_{b,t+1} :&= M^tS_xM + S_{b,t+1};\\
   S_{b,t} :&= T^t(\hat{S}_{b,t+1}*S_T)T,\\
@@ -305,7 +305,7 @@ and then we integrate with respect to $Pd(u\mid s)du$ for the time update.
   R_{b,t} :&= x_{t+1}^tS_xx_{t+1} + \mu_{b,t+1}^tS_{b,t+1}\mu_{b,t+1} - \hat{\mu}_{b,t+1}^t\hat{S}_{b,t+1}\hat{\mu}_{b,t+1},\quad\text{and}\\
   P_{b,t} :&= P_{b,t+1}\left(\frac{|S_x|\cdot|S_{b,t+1}|}{|2\pi\hat{S}_{b,t+1}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}}
 \end{align*}
-with initial values at $t = T$ given below. Then for each state $s$ and time $t < T$,
+with initial values at $t = N$ given below. Then for each state $s$ and time $t < N$,
 $$
   \beta_t(s) = P_{b,t}\N(s;\mu_{b,t},S_{b,t}).
 $$
@@ -313,20 +313,19 @@ $$
 
 \begin{proof}
 We proceed by reverse induction on $t$. However, to get started we first must  deal with
-the special case of $\beta_{T}(u)$, the conditional probability of the future observations given
-state $u$ at time $T$, but of course there are no such observations.  In the standard discrete
-state HMM, we set $\beta_T(s) = 1$ for all states $s$ and this will work in our case as well by
-setting $S_{b,T} = 0$, so we somewhat arbitrarily assume the following values
+the special case of $\beta_{N}(u)$, the conditional probability of the future observations given
+state $u$ at time $N$, but of course there are no such observations.  In the standard discrete
+state HMM, we set $\beta_N(s) = 1$ for all states $s$ and this will work in our case as well by
+setting $S_{b,N} = 0$, so we somewhat arbitrarily assume the following values
 %provided that $M$ is 1-1. But we really need a proper gaussian 
 %density in order to get the reverse induction started in all cases,
 \begin{align*}
-  S_{b,T} :&= 0,\\
-  \mu_{b,T} :&= 0,\quad\text{and}\\
-  P_{b,T} :&= 1.
+  S_{b,N} :&= 0,\\
+  \mu_{b,N} :&= 0,\quad\text{and}\\
+  P_{b,N} :&= 1.
 \end{align*}
-  For $t <  T$, we use \eqref{comp_sq:2} to get the measurement update 
-  \begin{equation}\label{beta_hat}
-    \begin{split}
+  For $t <  N$, we use \eqref{comp_sq:2} to get the measurement update 
+  \begin{align*}
     \hat{\beta}_{t+1}(u) &= X(x_{t+1}\mid u)\beta_{t+1}(u)\\
     &= P_{b,t+1}\N(Mu;x_{t+1},S_x)\N(u;\mu_{b,t+1},S_{b,t+1})\\
     &= P_{b,t+1}\N_0\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\\
@@ -335,8 +334,7 @@ setting $S_{b,T} = 0$, so we somewhat arbitrarily assume the following values
   &= P_{b,t+1}\left(\frac{|S_x||S_{b,t+1}|}{|2\pi \hat{S}_{b,t+1}|}\right)^{\frac{1}{2}}e^{-\frac{1}{2}R_{b,t}}
   \N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\\
     &= P_{b,t}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}).
-    \end{split}
-    \end{equation}
+  \end{align*}
   $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$ given all observations $x_\tau~
   (\tau \ge t+1)$.  Then an application of \eqref{exact_prod} and \eqref{comp_sq:4} yields the time update
   \begin{align*}
@@ -372,18 +370,22 @@ at time $t$.
   \end{align*}
 \end{proof}
 
-We also need the joint posterior density of state $s_{t-1}$ at time $t-1$ and state $s_t$ at time $t$,
-which we denote by $L(s_{t-1},s_t)$.
+We also need the joint probability density of state $s_{t-1}$ at time $t-1$ and state $s_t$ at time $t$,
+which we denote by $P(s_{t-1},s_t)$.
 \begin{Lem} \label{gamma_hat}
-  The joint posterior density of states $s_{t-1},s_t$ is
+  The joint probability density of states $s_{t-1},s_t$ is
 $$
-  P(s_{t-1},s_t) = \alpha_{t-1}(s_{t-1})\hat{\beta}_t(s_t) = \N(s_{t-1}; \mu_{a,t-1},S_{a,t-1})\N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t}),
-  $$
-  where $\hat{\mu}_{b,t}$ and $\hat{S}_{b,t}$ are defined in \eqref{beta_hat}.
+  P(s_{t-1},s_t) = \N(s_t; Ts_{t-1},S_T)\gamma_{t-1}(s_{t-1}) .
+$$
 \end{Lem}
 \begin{proof}
-  The first factor is the posterior density of state $s_{t-1}$ given past data $\{x_1,\dots,x_{t-1}\}$, while the second factor is the posterior density of state $s_t$ given future data $\{x_t,\dots,x_T\}$\footnote{See \eqref{beta_hat}.}.
-Since the observations are assumed independent, and since we have omitted the transition probability from $s_{t-1}$ to $s_t$ (which is why we have used $\hat{\beta}_t$ instead of $\beta_t$), we can multiply the two densities.  
+  By definition, the joint posterior likelihood of states $s_{t-1},s_t$ is the conditional likelihood of $s_t$ given
+  $s_{t-1}$ times the posterior likelihood of $s_{t-1}$, namely $P(s_{t-1},s_t)$, so we just need to verify that
+  $$
+  \int_{R^{2n}} P(s_{t-1},s_t) ds_tds_{t-1} = 1.
+  $$
+  But this is straightforward, because $\gamma_{t-1}(s_{t-1})$ does not depend on $s_t$, therefore we can first integrate
+  with respect to $s_t$, leaving just $\gamma_{t-1}(s_{t-1})$ and then integrate with respect to $s_{t-1}$.
 \end{proof}
 
 \newpage
@@ -458,7 +460,7 @@ completing the proof of \eqref{E_Q}.
   \end{proof}
   
 Equipped with \eqref{E_Q}, we can now turn to the problem at hand.  Namely, if we are given a particular
-state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_N\}$,
+state sequence $S := \{s_0,s_1,s_2,\dots,s_T\}$ and the data sequence $X := \{x_1,x_2,\dots,x_T\}$,
 the probability density of $S$ given observations $X$ and  parameters $\theta := \{\mu_0,S_0,S_T,T,S_x,M\}$ is
 \begin{equation} \label{density}
 \Gamma(S) := Pd(S\mid X,\theta) = \N(s_0;\mu_0,S_0)\prod_{t=1}^N\N(x_t;Ms_t,S_x)\N(s_t;Ts_{t-1},S_T).
@@ -527,26 +529,22 @@ marginal posterior probability of $s_t$ and $s_{t-1}$ at time $t$, given by \eqr
 \begin{equation}\label{E2:1}
   \begin{split}
     E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^{2n}}Q(s_t;Ts_{t-1},S_t)P(s_{t-1},s_t)ds_{t-1}ds_t\\
-        &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)\hat{\beta}_t(s_t)ds_t\right)
-          \alpha_{t-1}(s_{t-1})ds_{t-1}\\
+   &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)
+   \N(s_t;\overline{T}s_{t-1},\overline{S}_T)ds_t\right)\gamma_{t-1}(s_{t-1})ds_{t-1}\\
   \end{split}
   \end{equation}
 
 In order to evaluate the inner integral in \eqref{E2:1}, we use \eqref{E_Q} 
-with $\gamma := \hat{\beta}_t(s_t) = \N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t})$,  $A = I$,   $ \mu = Ts_{t-1}$, and
-  $S = S_T$ , where $\hat{\mu}_{b,t}$ and $\hat{S}_{b,t}$ are of course  evaluated by \eqref{beta_hat} using the
-  $\bar{\theta}$ parameters:
-\begin{align*}
-  E_{\gamma}Q(s_t;Ts_{t-1},S_T) &= \tr(\hat{S}_{b,t}^{-1}S_T) + (Ts_{t-1}-\hat{\mu}_{b,t})^tS_T(Ts_{t-1}-\hat{\mu}_{b,t})\\
-  &= \tr(\hat{S}_{b,t}^{-1}S_T) + Q(Ts_{t-1};\hat{\mu}_{b,t},S_T).
-  \end{align*}
-  Substituting this into \eqref{E2:1} and using \eqref{E_Q} again, this time with $\gamma = \alpha_{t-1}(s_{t-1})$,  $A = T$,
-  $\mu = \hat{\mu}_{b,t}$, and $S = S_T$, we get
+with $\gamma := N(s_t;\overline{T}s_{t-1},\overline{S}_T)$,  $A = I$,  and $ \mu = Ts_{t-1}$ :
+$$
+  E_{\gamma}Q(s_t;Ts_{t-1},S_T) = \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t(T - \overline{T})^tS_T(T - \overline{T})s_{t-1}.
+$$
+Substituting this into \eqref{E2:1}and using \eqref{E_x^tSx} with $\widehat{S}_T := (T-\overline{T})^tS_T(T-\overline{T})$, we get
 \begin{equation}\label{E2:2}
   \begin{split}
-    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{\R^n} \tr(S_{b,t}^{-1}S_T) + Q(Ts_{t-1};\hat{\mu}_{b,t},S_T)\alpha_{t-1}(s_{t-1})ds_{t-1}\\
-      &= N\log|S_T| - N - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)E_{\alpha_{t-1}(s_{t-1})}Q(Ts_{t-1};\hat{\mu}_{b,t},S_T) \\
-      &= N\log|S_T|  - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)\left(\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)\right).
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{\R^n} \tr(\overline{S}_T^{-1}S_T) + s_{t-1}^t\widehat{S}_Ts_{t-1}\gamma_{t-1}(s_{t-1})ds_{t-1} \\
+       &= N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) - \sum_{t=1}^NE_{\gamma_{t-1}(s_{t-1})}  s_{t-1}^t\widehat{S}_Ts_{t-1}  \\
+       &= N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T)  -\sum_{t=1}^N\tr(S_{c,t-1}^{-1}\widehat{S}_T) + \mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}.
   \end{split}
 \end{equation}
 
@@ -769,25 +767,58 @@ We note that in a similar way, equation \eqref{E1:1} can be optimized with respe
  
     
 \subsection{Solving for $T$ and $S_T$}
-Next, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using \eqref{trA^tSAB} and
-\eqref{dM}.  Define $\tau_t := \tr(S_{b,t}^{-1}S_T)$, then we have 
-  \begin{align*}
-    0 &= \frac{\partial}{\partial{T}} \left(N\log|S_T|  - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\right)\\
-    &= - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)\frac{\partial}{\partial{T}}[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\\
-      &= - \sum_{t=1}^N\tau_t[2S_TTS_{a,t-1}^{-1} + 2S_T(T\mu_{a,t-1} - \mu_{b,t})\mu_{a,t-1}^t]\\
-       &= -2S_T\sum_{t=1}^NT\tau_t[S_{a,t-1} + \mu_{a,t-1}\mu_{a,t-1}^t] - \tau_t\mu_{b,t}\mu_{a,t-1}^t
-  \end{align*}
-
-Solving for $T$, we can multiply through by $(-2-S_T)^{-1}$ since $S_T$ is positive definite, and we get
-\begin{equation}\label{E2:3}
-  T = \Gamma_1^{-1}\Gamma_2,
-\end{equation}
-where
+%N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T) -\sum_{t=1}^N \tr(S_{c,t-1}^{-1}S_T) + \mu_{c,t-1}^t(\Delta{T})^tS_T(\Delta{t})\mu_{c,t-1}
+We first expand $\mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}$:
 \begin{align*}
-\Gamma_1 :&= \sum_{t=1}^N\tau_t(S_{a,t-1} + \mu_{a,t-1}\mu_{a,t-1}^t), \quad\text{and}\\
- \Gamma_2 := \sum_{t=1}^N\tau_t\mu_{b,t}\mu_{b,t}^t.
+  \mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1} &= \mu_{c,t-1}^t(T-\overline{T})^tS_T(T-\overline{T})\mu_{c,t-1}\\
+                                         &= \mu_{c,t-1}^tT^tS_TT\mu_{c,t-1} - \mu_{c,t-1}^tT^tS_T\overline{T}\mu_{c,t-1}\\ 
+                                          &-  \mu_{c,t-1}^t\overline{T}^tS_TT\mu_{c,t-1}
+                                           + \mu_{c,t-1}^t\overline{T}^tS_T\overline{T}\mu_{c,t-1}.
 \end{align*}
-Note that $\Gamma_1$ is positive definite and hence invertible.
+
+Then using \eqref{dQdA}:
+\begin{equation}\label{dQdA:2}
+  \begin{split}
+  \frac{\partial}{\partial{T}} [\mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}] &= \frac{\partial}{\partial{T}}
+                                                                        [\mu_{c,t-1}^tT^tS_TT\mu_{c,t-1} 
+                                                                     - 2 \mu_{c,t-1}^tT^tS_T\overline{T}\mu_{c,t-1}]\\
+                                                                 &= 2S_TT\mu_{c,t-1}\mu_{c,t-1}^t - 2S_T\overline{T}\mu_{c,t-1}\mu_{c,t-1}^t\\
+                                                                       &= 2S_T(T-\overline{T})\mu_{c,t-1}\mu_{c,t-1}^t. 
+  \end{split}
+\end{equation}
+
+Next, using \eqref{trA^tSB} and \eqref{trA^tSAB}:
+\begin{equation}\label{d_tr_prod:2}
+  \begin{split}
+\frac{\partial}{\partial{T}}\tr(S_{c,t-1}^{-1}\widehat{S}_T) &= \frac{\partial}{\partial{T}}\tr([T^tS_TT 
+                                                               - 2T^tS_T\overline{T}]S_{c,t-1}^{-1})\\
+    &= 2S_T(T - \overline{T})S_{c,t-1}^{-1}
+  \end{split}
+\end{equation}
+
+Finally, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using \eqref{x^tAy}, \eqref{dQdA:2}, 
+and \eqref{d_tr_prod:2}: 
+\begin{equation}\label{E2:3} 
+  \begin{split}
+    0 &= \frac{\partial}{\partial{T}}\left(N\log|S_T| - N\tr(\overline{S}_T^{-1}S_T)  -\sum_{t=1}^N\tr(S_{c,t-1}^{-1}\widehat{S}_T) + \mu_{c,t-1}^t\widehat{S}_T\mu_{c,t-1}\right)\\
+      &= -\frac{\partial}{\partial{T}}\left(\sum_{t=1}^N\tr(\widehat{S}_T(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu^t_{c,t-1}))
+        \right)\\
+      &=  -\frac{\partial}{\partial{T}}\left(\sum_{t=1}^N\tr(T^tS_TT - 2T^tS_T\overline{T})(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu^t_{c,t-1}))
+        \right)\\
+    &= -2S_T(T-\overline{T})\sum_{t=1}^N(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu_{c,t-1}^t)
+  \end{split}
+\end{equation}
+Solving for $T$, we define
+$$
+X_c := \sum_{t=1}^N(S_{c,t-1}^{-1} + \mu_{c,t-1}\mu_{c,t-1}^t)
+$$
+and we get
+\begin{equation}\label{T}
+  S_TTX_c = S_T\overline{T}X_c.
+\end{equation}
+
+=====================================================================
+
 \newpage
 \appendix
 \section{A Standard Form for Orthonormal Matrices}\label{ortho_std_form}
