@@ -775,19 +775,19 @@ Next, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using
     0 &= \frac{\partial}{\partial{T}} \left(N\log|S_T|  - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\right)\\
     &= - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)\frac{\partial}{\partial{T}}[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\\
       &= - \sum_{t=1}^N\tau_t[2S_TTS_{a,t-1}^{-1} + 2S_T(T\mu_{a,t-1} - \mu_{b,t})\mu_{a,t-1}^t]\\
-       &= -2S_T\sum_{t=1}^NT\tau_t[S_{a,t-1} + \mu_{a,t-1}\mu_{a,t-1}^t] - \tau_t\mu_{b,t}\mu_{a,t-1}^t
+       &= -2S_T\sum_{t=1}^NT\tau_t[S_{a,t-1}^{-1} + \mu_{a,t-1}\mu_{a,t-1}^t] - \tau_t\mu_{b,t}\mu_{a,t-1}^t
   \end{align*}
 
-Solving for $T$, we can multiply through by $(-2-S_T)^{-1}$ since $S_T$ is positive definite, and we get
+Solving for $T$, we can multiply through by $(-2S_T)^{-1}$ since $S_T$ is positive definite, and we get
 \begin{equation}\label{E2:3}
-  T = \Gamma_1^{-1}\Gamma_2,
+  T = \Gamma_1\Gamma_2^{-1},
 \end{equation}
 where
 \begin{align*}
-\Gamma_1 :&= \sum_{t=1}^N\tau_t(S_{a,t-1} + \mu_{a,t-1}\mu_{a,t-1}^t), \quad\text{and}\\
- \Gamma_2 := \sum_{t=1}^N\tau_t\mu_{b,t}\mu_{b,t}^t.
+ \Gamma_1 :&= \sum_{t=1}^N\tau_t\mu_{b,t}\mu_{b,t}^t, \quad\text{and}\\
+\Gamma_2 :&= \sum_{t=1}^N\tau_t(S_{a,t-1}^{-1} + \mu_{a,t-1}\mu_{a,t-1}^t).
 \end{align*}
-Note that $\Gamma_1$ is positive definite and hence invertible.
+Note that $\Gamma_2$ is positive definite and hence invertible.
 \newpage
 \appendix
 \section{A Standard Form for Orthonormal Matrices}\label{ortho_std_form}
@@ -839,14 +839,7 @@ for the state space, $T$ can be  parameterized by a set of $k$ angles $\{\theta_
 constraint is useful when generating long simulated data sets,  but may of course be inappropriate for a particular
 actual data set.
 
-
-
-
-
-
-
-
-    \section{Solving for T by least-squares}\label{least_squares}
+\section{Solving for T by least-squares}\label{least_squares}
 We first consider the general problem of solving for T by least squares, and then specialize to a constrained
 version which uses Newton's method (non-linear least squares).  We don't have a proof that this approach actually
 increases the score, but in practice it seems to work well.
