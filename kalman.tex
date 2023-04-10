@@ -778,8 +778,9 @@ Next, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using
        &= -2S_T\sum_{t=1}^NT\tau_t[S_{a,t-1}^{-1} + \mu_{a,t-1}\mu_{a,t-1}^t] - \tau_t\mu_{b,t}\mu_{a,t-1}^t
   \end{align*}
 
-Solving for $T$, we can multiply through by $(-2S_T)^{-1}$ since $S_T$ is positive definite, and we get
-\begin{equation}\label{E2:3}
+  Solving for $T$, we can multiply through by $(-2S_T)^{-1}$ since $S_T$ is positive definite and therefore
+  invertible, and we get
+\begin{equation}\label{T}
   T = \Gamma_1\Gamma_2^{-1},
 \end{equation}
 where

@@ -277,7 +277,8 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
   bool S_0_reestimate = false;
   bool M_reestimate = false;
   //  bool M_constraint = false;
-  bool T_reestimate = false;
+  string T_option = "OFF"; // other options from cmd line: "EM" (use EM algorithm), "LS" (use least squares)
+  bool T_orthogonalize = false;
   bool AR_mode = false;
   char const* help_msg = "Usage:\n\
 -dfile <filename>: read data from <filename>\n\
@@ -304,8 +305,8 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
   if(cl.get("S_x_reestimate")) {S_x_reestimate = true; cout << "re-estimate S_x\n";}
   if(cl.get("S_0_reestimate")) {S_0_reestimate = true; cout << "re-estimate S_0\n";}
   if(cl.get("M_reestimate")) {M_reestimate = true; cout << "re-estimate M\n";}
-  //  if(cl.get("M_constraint")) {M_constraint = true; cout << "constrain M\n";}
-  if(cl.get("T_reestimate")) {T_reestimate = true; cout << "re-estimate T\n";}
+  cl.get("T_option",T_option); cout << "T re-estimation option: " << T_option<<endl;
+  if(T_option != "OFF" && cl.get("T_orthogonalize")){ T_orthogonalize = true; cout << "orthogonalize T matrix\n";} 
   if(cl.get("AR_mode")) {AR_mode = true; cout << "AR_mode\n";}
 
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -398,7 +399,7 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
         for(int j = 0;j < nstates;j++) theta.M(i,j) = normal.dev();//+= 5.0;
       }
     }
-    if(T_reestimate){ // perturb the T-matrix
+    if(T_option == "EM" || T_option == "LS"){ // perturb the T-matrix
       if(AR_mode) for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 0.0;
       else if(nstates ==2){
           double phi = atan(1.0);
@@ -503,9 +504,9 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
       cout << "New S_0:\n"<<theta.S_0<< "new mu_0: " << theta.mu_0.Tr();
     }
  
-    if(T_reestimate){
+    if(T_option == "LS"){
       // re-estimation by least squares
-      cout << "T before reestimation:\n"<<theta.T;
+      cout << "T before LS re-estimation:\n"<<theta.T;
       Array<QRreg> qr_regs(nstates); // qr_regs[i] solves for row i of T using T*gamma[t].mu = gamma[t+1].mu
       for(int i = 0;i < nstates;i++){ // get one row at a time
         qr_regs[i].reset(nstates);
@@ -520,9 +521,20 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
       matrix Q(nstates,nstates),R(nstates,nstates);
       qr_comp(theta.T,Q,R);  
       theta.T = Q.Tr(); //orthogonalize the T-matrix (Gram-Schmidt via the QR decomposition)
-      // Svd svd;
-      // svd.reduce(theta.T.copy());
-      // theta.T.copy(svd.V);
+      cout << "New T:\n"<<theta.T;
+    }
+    if(T_option == "EM"){
+      cout << "T before EM re-estimation:\n"<<theta.T;
+      Gamma1.fill(0);
+      Gamma2.fill(0);
+      matrix temp(nstates,nstates);
+      for(int t = 1;t <= N;t++){
+        double tau = trace(sym_inv(beta[t].S)*theta.S_T);
+        Gamma1 = (beta[t].mu*tau)*beta[t].mu.Tr();
+        Gamma2 += (sym_inv(alpha[t-1].S) + alpha[t-1].mu*(alpha[t-1].mu.Tr()))*tau;
+        //        Gamma2 += temp*tau;
+      }
+      theta.T = Gamma1*sym_inv(Gamma2);
       cout << "New T:\n"<<theta.T;
     }
 

@@ -375,3 +375,15 @@ Now I have to redo the partials w.r.t. T (and S_T, which looks harder still).
 Sat Apr  8 15:31:47 2023
 I now have a preliminary solution for T from optimizing the new E_2.
 
+Mon Apr 10 12:53:04 2023
+I've started re-coding to implement the new T solution.  Command line option changes:
+1. removed "T_reestimate"
+2. added string T_option = "OFF" , cl.get("T_option",T_option). I will provide two choices: EM or LS (already exists)
+   anything else is equivalent to "OFF" (the default).
+3. added bool T_orthogonalize = false, and if(T_option != "OFF && T_orthogonalize) T_orthonalize = true.
+
+Mon Apr 10 16:17:12 2023
+OK, there's an unfortunate situation involvling scalar*matrix, namely it doesn't work as coded.  Instead we need
+a helper class, namely template<typename SCALAR> class Scalar.  Here we define  scalar*matrix which should
+work.  To simplify, I could just define class Double with one member, namely double x.  This should have an
+operator double to automagically convert from Double to double. 
