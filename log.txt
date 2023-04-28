@@ -381,9 +381,24 @@ I've started re-coding to implement the new T solution.  Command line option cha
 2. added string T_option = "OFF" , cl.get("T_option",T_option). I will provide two choices: EM or LS (already exists)
    anything else is equivalent to "OFF" (the default).
 3. added bool T_orthogonalize = false, and if(T_option != "OFF && T_orthogonalize) T_orthonalize = true.
+And I implemented the new theta.T = Gamma1*sym_inv(Gamma2);
 
 Mon Apr 10 16:17:12 2023
 OK, there's an unfortunate situation involvling scalar*matrix, namely it doesn't work as coded.  Instead we need
 a helper class, namely template<typename SCALAR> class Scalar.  Here we define  scalar*matrix which should
 work.  To simplify, I could just define class Double with one member, namely double x.  This should have an
 operator double to automagically convert from Double to double. 
+
+Tue Apr 11 15:54:45 2023
+Above problem seems to be solved:  I now have a helper template Scalar with typedef Scalar<double> Double.
+Then if we have Matrix<double> M, and double x, the expression Double(x)*M works, or if we have Double y,
+then y*M also works.  The template Scalar is defined at the top of Matrix.h.
+
+Wed Apr 12 07:38:50 2023
+I think I need two more command line options:  M_random, and T_random.  They are used by Theta for initializing
+the two matrices.  M_random always happens when nstates != data_dim.  When they're equal and M_random is false,
+M = I.  When T_random is false, T = I.  When it's true, we set T to a random orthonormal matrix.
+
+Fri Apr 21 12:03:17 2023
+I'm part-way through running git difftool after a first attempt to fix the beta->beta_hat issue.  I *think* I've got
+it in kalman.tex, but maybe not yet in kalman.cc.  I should start at the //beta pass line.

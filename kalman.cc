@@ -68,6 +68,7 @@ struct Theta { // Model parameters
       T(s,s) = 1.0;
       mu_0[s] = 0;
     }
+
     // Svd svd;
     // svd.reduce(T.copy());
     // T.copy(svd.V);  // set T = random orthonormal matrix
@@ -204,7 +205,7 @@ struct Data {
       mean_state = mean_state + temp;
       ran_vec_M.reset_mu(theta.M*state[t]);
       x[t] = ran_vec_M.dev(); // x[t] = M*state[t] + noise
-      cout << format("state[%d]: ",t)<<state[t].Tr()<<"data:  "<<x[t].Tr(); 
+      //      cout << format("state[%d]: ",t)<<state[t].Tr()<<"data:  "<<x[t].Tr(); 
     }
     mean_state *= 1.0/max_recs;
   }
@@ -233,6 +234,9 @@ struct QF{ // Multivariate quadratic form
   }
   double get_det(void){return _det;}
   void set_det(double d){_det = d;}
+  double operator()(ColVector<double> x){ // evaluate at x
+    return (x-mu).Tr()*S*(x-mu);
+  }
 };
 
 ostream& operator<<(ostream& os, const QF& Q){
@@ -252,11 +256,21 @@ double sum(const QF& Q1, const Matrix<double>&A1, const QF& Q2, const Matrix<dou
 
 matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(A+B)*B;}
 
+double E2_comp(Theta& theta, int N, Array<QF> alpha, Array<QF>beta_hat){
+  double E2 = log(det(theta.S_T));
+  for(int t = 1;t <= N;t++){
+    QF Q(theta.S_T,theta.T*alpha[t-1].mu);
+    E2 -= trace(sym_inv(beta_hat[t].S)*theta.S_T)*(trace(sym_inv(alpha[t-1].S)*theta.T.Tr()*theta.S_T*theta.T) +
+                                                                                             Q(beta_hat[t].mu));
+  }
+  return E2;
+}
 
- int main(int argc, char** argv){
 
-  int niters = 50;
-  int max_recs = 10000; // zero means read the entire file
+int main(int argc, char** argv){
+
+  int niters = 10;
+  int max_recs = 100; // zero means read the entire file
   int nchars = 27;
   string data_file = ""; //data (either real or from simulation)
   string outfile = ""; // output
@@ -264,8 +278,8 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
   string data_dir = "data/";
 
   int seed = 12345;
-  int nstates = 5;
-  int data_dim = 5;
+  int nstates = 2;
+  int data_dim = 2;
   double ntrain = .8;
   //  int sim_mode = 0; // simulation mode: 0 = no simulation
 
@@ -334,48 +348,20 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
    cout << "singular values of the sample covariance matrix: ";
   for(int i = 0;i < data_dim;i++){ cout << W.A(i,i) << " ";}
   cout << endl;
-  //  cout << "eigenvectors:\n"<<W.U;
-  //  
-  // Array<Matrix<double>> S_a(N+1); // alpha[t][s] = N(s,S_a[t],mu_a[t])
-  // Array<ColVector<double>> mu_a(N+1);
-  // Array<Matrix<double>> S_b(N+1); // beta[t](s) = N(s,S_b[t],mu_b[t])
-  // Array<ColVector<double>> mu_b(N+1);
-  //  Array<Matrix<double>> S_c(N+1);
   Array<Matrix<double>> S_c_inv(N+1); // needed for reestimation
-  //  Array<ColVector<double>> mu_c(N+1);
   Array<Matrix<double>> S_t1_t_inv(N+1);
   Array<Matrix<double>> S_t1_t_inv_S_a(N+1);
   for(int t = 0;t <= N;t++){
-    // S_a[t].reset(nstates,nstates);
-    // mu_a[t].reset(nstates);
-    // S_b[t].reset(nstates,nstates);
-    // mu_b[t].reset(nstates);
-    //    S_c[t].reset(nstates,nstates);
     S_c_inv[t].reset(nstates,nstates); 
-    // mu_c[t].reset(nstates);
-    // S_t1_t_inv[t].reset(nstates,nstates);
-    // S_t1_t_inv_S_a[t].reset(nstates,nstates);
   }
   Matrix<double> Gamma1(data_dim,nstates);
   Matrix<double> Gamma2(nstates,nstates);
-  // Matrix<double> T_bar(nstates,nstates);
-  // //  Matrix<double> Lambda(nstates,nstates);
-  // //  Matrix<double> S_star(nstates,nstates);
-  // Matrix<double> S_plus(nstates,nstates);
-  // Matrix<double> I_1(nstates,nstates);
-  // Matrix<double> I_2(nstates,nstates);
-  // matrix S_T(nstates,nstates);
-  // ColVector<double> nu(nstates);
-  //  matrix S_T1(nstates,nstates);
-  //  matrix S_a_hat(nstates,nstates);
-  //  matrix S_b_hat(nstates,nstates);
 
   // OK, the data is ready to go
 
   // Begin Baum-Welch iterations
 
   Array<double> alpha_score(N+1), beta_score(N+1), gamma_score(N+1);
-    //    detS_a(N+1),detS_b(N+1);
   if(simulation){ // perturb the simulation parameters
     if(S_T_reestimate){ // perturb the transition matrix
       for(int i = 0;i < nstates;i++){
@@ -400,29 +386,25 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
       }
     }
     if(T_option == "EM" || T_option == "LS"){ // perturb the T-matrix
-      if(AR_mode) for(int j = 1;j < nstates;j++) theta.T(nstates-1,j) += 0.0;
-      else if(nstates ==2){
-          double phi = atan(1.0);
-          theta.T = {{sin(phi),cos(phi)},{-cos(phi),sin(phi)}};
+      for(int i = 0; i < nstates;i++){
+        for(int j= 0;j < nstates;j++)theta.T(i,j) += 1.0;
       }
-      else{
-        for(int i = 0; i < nstates;i++) theta.T(i,i) = 1.0;
-      }
+      matrix R(nstates,nstates), Q(nstates,nstates);
+      qr_comp(theta.T,Q,R);  
+      theta.T = Q.Tr(); //orthogonalize the T-matrix (Gram-Schmidt via the QR decomposition)
     }
   }
+
   double det_S_x,det_S1_T,R,det_T,log_det_T;
-  // ColVector<double> S_mu(nstates),S1_mu1(nstates),S2_mu2(nstates),mu_hat(nstates);
-  // Matrix<double> MTS_x(data_dim,data_dim);
-  // Matrix<double> MTS_xM(nstates,nstates);
   Matrix<double> S1(nstates,nstates);
   Matrix<double> T_inv(nstates,nstates);
-  //  Matrix<double> S_T_T(nstates,nstates);
-  Array<QF> alpha(N+1), beta(N+1), gamma(N+1);
+  Array<QF> alpha(N+1), beta(N+1), beta_hat(N+1),gamma(N+1);
   Matrix<double> S_hat(nstates,nstates);
 
   for(int t = 0;t <=N;t++){
     alpha[t].reset(nstates);
     beta[t].reset(nstates);
+    beta_hat[t].reset(nstates);
     gamma[t].reset(nstates);
   }
   double nlog2pi = nstates*log(8*atan(1));
@@ -462,23 +444,28 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
     // beta pass
     beta[N].mu.fill(0);
     beta[N].S.fill(0);
-    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = .01;
-    beta[N]._det = 1.0;
+    for(int i = 0;i < nstates;i++)beta[N].S(i,i) = 10;
+    beta[N]._det = det(beta[N].S);
     beta_score[N] = 0;
-    double det_S_hat;
-    ColVector<double> mu_hat;
+    //    double det_S_hat;
+    //    Array<ColVector<double>> mu_hat(N);
     for(int t = N-1;t >= 0;t--){
-      S_hat = M1 + beta[t+1].S;
-      beta[t].S = theta.T.Tr()*star(S_hat,theta.S_T)*theta.T;
+      beta_hat[t+1].S = M1 + beta[t+1].S;
+      beta[t].S = theta.T.Tr()*star(beta_hat[t+1].S,theta.S_T)*theta.T;
       beta[t]._det = det(beta[t].S);
-      if(beta[t]._det <= 0) beta[t]._det = 1.0;
-      mu_hat = sym_inv(S_hat,&det_S_hat)*(theta.M.Tr()*theta.S_x*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
-      if(det_S_hat == 0) det_S_hat = 1.0;  // S_hat singular
-      beta[t].mu = T_inv*mu_hat;
-      R = data.x[t+1].Tr()*theta.S_x*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu  - mu_hat.Tr()*S_hat*mu_hat;
-      beta_score[t] = beta_score[t+1] + .5*(log(det_S_x*beta[t+1]._det/det_S_hat) - nlog2pi - R); 
-      //      cout << format("beta[%d]:  S: %.3g, beta._det: %.3g, R: %.3g\n",
-      //               t,beta[t].S(0,0),beta[t]._det,R);
+      if(beta[t]._det <= 0){
+        cerr<<format("error: beta[%d]._det = %f.  Bailing out\n",t, beta[t]._det);
+        exit(1);
+      }
+      beta_hat[t+1].mu = sym_inv(beta_hat[t+1].S,&beta_hat[t+1]._det)*(theta.M.Tr()*theta.S_x*data.x[t+1]+beta[t+1].S*beta[t+1].mu);
+      if(beta_hat[t+1]._det == 0) {
+        cerr<<format("error: beta_hat[%d]._det = %f.  Bailing out\n",t, beta_hat[t]._det);
+        exit(1);
+      }
+      beta[t].mu = T_inv*beta_hat[t+1].mu;
+      R = data.x[t+1].Tr()*theta.S_x*data.x[t+1] +beta[t+1].mu.Tr()*beta[t+1].S*beta[t+1].mu
+        - beta_hat[t+1].mu.Tr()*beta_hat[t+1].S*beta_hat[t+1].mu;
+      beta_score[t] = beta_score[t+1] + .5*(log(det_S_x*beta[t+1]._det/beta_hat[t+1]._det) - nlog2pi - R); 
     } // end beta pass
 
     // gamma pass
@@ -494,10 +481,11 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
     
     delta_score = (iter == 0? fabs(gamma_score[N] ): fabs((gamma_score[N] - old_score)/old_score));
     old_score = gamma_score[N/2];
-    cout << format("delta_score at iteration %d: %.9f, gamma_score[%d]: %g\n",iter,delta_score,N/2,gamma_score[N/2]);
-    for(int t = 1;t <=N;t++) cout<<format("t = %d:  alpha: %.3g, beta: %.3g, gamma: %.3g\n",t,alpha_score[t],
-                                          beta_score[t],gamma_score[t]);
-  
+    cout << format("delta_score at iteration %d: %.9f, gamma_score[%d]: %g\, E2: %g\n",iter,delta_score,N/2,gamma_score[N/2],E2_comp(theta,N,alpha,beta_hat));
+;
+    for(int t = 1;t <=N;t++) cout<<format("t = %d:  alpha: %.3g, beta: %.3g, gamma: %.3g\n",t,alpha_score[t],                                           beta_score[t],gamma_score[t]);
+
+    
     //    Re-estimation
     if(S_0_reestimate){
       theta.mu_0 = gamma[0].mu; theta.S_0 = gamma[0].S;
@@ -527,14 +515,18 @@ matrix star(const Matrix<double>& A, const Matrix<double>& B){ return A*sym_inv(
       cout << "T before EM re-estimation:\n"<<theta.T;
       Gamma1.fill(0);
       Gamma2.fill(0);
-      matrix temp(nstates,nstates);
-      for(int t = 1;t <= N;t++){
-        double tau = trace(sym_inv(beta[t].S)*theta.S_T);
-        Gamma1 = (beta[t].mu*tau)*beta[t].mu.Tr();
+      for(int t = 1;t < N;t++){ // NOTE:  beta[80].S is made-up, so we can't use it here.
+        double tau = trace(sym_inv(beta_hat[t].S)*theta.S_T);
+        //        if(t >= 78) cout << format("beta[%d].S:\n",t)<<beta[t].S<< "inverse:\n"<<sym_inv(beta[t].S);
+        //        cout << format("tau[%d] = %f\n", t,tau);
+        Gamma1 += (beta_hat[t].mu*tau)*alpha[t-1].mu.Tr();
         Gamma2 += (sym_inv(alpha[t-1].S) + alpha[t-1].mu*(alpha[t-1].mu.Tr()))*tau;
-        //        Gamma2 += temp*tau;
-      }
+      } // unfortunately the scalar multiplier must follow the matrix being scalar multiplied 
+      cout << "Gamma1:\n"<<Gamma1<<"Gamma2:\n"<<Gamma2;
       theta.T = Gamma1*sym_inv(Gamma2);
+      matrix Q(nstates,nstates),R(nstates,nstates);
+      qr_comp(theta.T,Q,R);  
+      theta.T = Q.Tr(); //orthogonalize the T-matrix (Gram-Schmidt via the QR decomposition)
       cout << "New T:\n"<<theta.T;
     }
 

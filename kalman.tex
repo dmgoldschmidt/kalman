@@ -337,8 +337,10 @@ setting $S_{b,T} = 0$, so we somewhat arbitrarily assume the following values
     &= P_{b,t}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1}).
     \end{split}
     \end{equation}
-  $\hat{\beta}_{t+1}(u)$ is the conditional likelihood of state $u$ at time $t+1$ given all observations $x_\tau~
-  (\tau \ge t+1)$.  Then an application of \eqref{exact_prod} and \eqref{comp_sq:4} yields the time update
+  $\hat{\beta}_{t+1}(u)$ is the joint likelihood of state $u$ at time $t+1$ and all observations $x_\tau~
+  (\tau \ge t+1)$.  Hence $\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})$ is the conditional posterior distribution of
+  state $u$ at time $t+1$ given all observations $x_\tau~(\tau \ge t+1)$. Then an application of \eqref{exact_prod}
+  and \eqref{comp_sq:4} yields the time update
   \begin{align*}
     \beta_t(s) &= \int_{\R^n}\hat{\beta}_{t+1}(u)Pd(u\mid s)du \\
     &= P_{b,t}\int_{\R^n}\N(u;\hat{\mu}_{b,t+1},\hat{S}_{b,t+1})\N(u;Ts,S_T)du\\
@@ -377,13 +379,14 @@ which we denote by $L(s_{t-1},s_t)$.
 \begin{Lem} \label{gamma_hat}
   The joint posterior density of states $s_{t-1},s_t$ is
 $$
-  P(s_{t-1},s_t) = \alpha_{t-1}(s_{t-1})\hat{\beta}_t(s_t) = \N(s_{t-1}; \mu_{a,t-1},S_{a,t-1})\N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t}),
+  P(s_{t-1},s_t) =  \N(s_{t-1}; \mu_{a,t-1},S_{a,t-1})\N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t}),
   $$
   where $\hat{\mu}_{b,t}$ and $\hat{S}_{b,t}$ are defined in \eqref{beta_hat}.
 \end{Lem}
 \begin{proof}
   The first factor is the posterior density of state $s_{t-1}$ given past data $\{x_1,\dots,x_{t-1}\}$, while the second factor is the posterior density of state $s_t$ given future data $\{x_t,\dots,x_T\}$\footnote{See \eqref{beta_hat}.}.
-Since the observations are assumed independent, and since we have omitted the transition probability from $s_{t-1}$ to $s_t$ (which is why we have used $\hat{\beta}_t$ instead of $\beta_t$), we can multiply the two densities.  
+  Since the observations are assumed independent, and since we have omitted the transition probability from $s_{t-1}$ to $s_t$ (which is why we have used $\hat{\beta}_t$ instead of $\beta_t$), we can multiply the two densities, and
+  of course the product of two independent probability densities is again a probability density.
 \end{proof}
 
 \newpage
@@ -527,13 +530,13 @@ marginal posterior probability of $s_t$ and $s_{t-1}$ at time $t$, given by \eqr
 \begin{equation}\label{E2:1}
   \begin{split}
     E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{R^{2n}}Q(s_t;Ts_{t-1},S_t)P(s_{t-1},s_t)ds_{t-1}ds_t\\
-        &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)\hat{\beta}_t(s_t)ds_t\right)
-          \alpha_{t-1}(s_{t-1})ds_{t-1}\\
+        &= N\log|S_T| - \sum_{t=1}^N\int_{R^n}\left(\int_{\R^{n}}Q(s_t;Ts_{t-1},S_T)\N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t}
+          ds_t\right)\N(s_{t-1};\mu_{a,t-1},S_{a,t-1})ds_{t-1}\\
   \end{split}
   \end{equation}
 
 In order to evaluate the inner integral in \eqref{E2:1}, we use \eqref{E_Q} 
-with $\gamma := \hat{\beta}_t(s_t) = \N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t})$,  $A = I$,   $ \mu = Ts_{t-1}$, and
+with $\gamma := \N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t})$,  $A = I$,   $ \mu = Ts_{t-1}$, and
   $S = S_T$ , where $\hat{\mu}_{b,t}$ and $\hat{S}_{b,t}$ are of course  evaluated by \eqref{beta_hat} using the
   $\bar{\theta}$ parameters:
 \begin{align*}
@@ -544,9 +547,9 @@ with $\gamma := \hat{\beta}_t(s_t) = \N(s_t;\hat{\mu}_{b,t},\hat{S}_{b,t})$,  $A
   $\mu = \hat{\mu}_{b,t}$, and $S = S_T$, we get
 \begin{equation}\label{E2:2}
   \begin{split}
-    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{\R^n} \tr(S_{b,t}^{-1}S_T) + Q(Ts_{t-1};\hat{\mu}_{b,t},S_T)\alpha_{t-1}(s_{t-1})ds_{t-1}\\
-      &= N\log|S_T| - N - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)E_{\alpha_{t-1}(s_{t-1})}Q(Ts_{t-1};\hat{\mu}_{b,t},S_T) \\
-      &= N\log|S_T|  - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)\left(\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)\right).
+    E_2 &= N\log|S_T| - \sum_{t=1}^N\int_{\R^n} \tr(\hat{S}_{b,t}^{-1}S_T) + Q(Ts_{t-1};\hat{\mu}_{b,t},S_T)\alpha_{t-1}(s_{t-1})ds_{t-1}\\
+      &= N\log|S_T| - N - \sum_{t=1}^N\tr(\hat{S}_{b,t}^{-1}S_T)E_{\alpha_{t-1}(s_{t-1})}Q(Ts_{t-1};\hat{\mu}_{b,t},S_T) \\
+      &= N\log|S_T|  - \sum_{t=1}^N\tr(\hat{S}_{b,t}^{-1}S_T)\left(\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)\right).
   \end{split}
 \end{equation}
 
@@ -770,12 +773,12 @@ We note that in a similar way, equation \eqref{E1:1} can be optimized with respe
     
 \subsection{Solving for $T$ and $S_T$}
 Next, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using \eqref{trA^tSAB} and
-\eqref{dM}.  Define $\tau_t := \tr(S_{b,t}^{-1}S_T)$, then we have 
+\eqref{dM}.  Define $\tau_t := \tr(\hat{S}_{b,t}^{-1}S_T)$, then we have 
   \begin{align*}
-    0 &= \frac{\partial}{\partial{T}} \left(N\log|S_T|  - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\right)\\
-    &= - \sum_{t=1}^N\tr(S_{b,t}^{-1}S_T)\frac{\partial}{\partial{T}}[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\\
-      &= - \sum_{t=1}^N\tau_t[2S_TTS_{a,t-1}^{-1} + 2S_T(T\mu_{a,t-1} - \mu_{b,t})\mu_{a,t-1}^t]\\
-       &= -2S_T\sum_{t=1}^NT\tau_t[S_{a,t-1}^{-1} + \mu_{a,t-1}\mu_{a,t-1}^t] - \tau_t\mu_{b,t}\mu_{a,t-1}^t
+    0 &= \frac{\partial}{\partial{T}} \left(N\log|S_T|  - \sum_{t=1}^N\tau_t[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\right)\\
+    &= - \sum_{t=1}^N\tau_t\frac{\partial}{\partial{T}}[\tr(S_{a,t-1}^{-1}T^tS_TT) + Q(\hat{\mu}_{b,t};T\mu_{a,t-1},S_T)]\\
+      &= - \sum_{t=1}^N\tau_t[2S_TTS_{a,t-1}^{-1} + 2S_T(T\mu_{a,t-1} - \hat{\mu}_{b,t})\mu_{a,t-1}^t]\\
+       &= -2S_T\sum_{t=1}^NT\tau_t[S_{a,t-1}^{-1} + \mu_{a,t-1}\mu_{a,t-1}^t] - \tau_t\hat{\mu}_{b,t}\mu_{a,t-1}^t
   \end{align*}
 
   Solving for $T$, we can multiply through by $(-2S_T)^{-1}$ since $S_T$ is positive definite and therefore
@@ -785,7 +788,7 @@ Next, we optimize \eqref{E2:2}, dropping terms that do not involve $T$ and using
 \end{equation}
 where
 \begin{align*}
- \Gamma_1 :&= \sum_{t=1}^N\tau_t\mu_{b,t}\mu_{b,t}^t, \quad\text{and}\\
+ \Gamma_1 :&= \sum_{t=1}^N\tau_t\hat{\mu}_{b,t}\mu_{a,t-1}^t, \quad\text{and}\\
 \Gamma_2 :&= \sum_{t=1}^N\tau_t(S_{a,t-1}^{-1} + \mu_{a,t-1}\mu_{a,t-1}^t).
 \end{align*}
 Note that $\Gamma_2$ is positive definite and hence invertible.

@@ -21,6 +21,22 @@ class ColVector;
 template<typename SCALAR>
 class RowVector;
 
+template<typename SCALAR> // helper class to enable pre-multiplication by a SCALAR.
+struct Scalar{
+  SCALAR x;
+  Scalar(SCALAR xx) : x(xx){}
+  Scalar(void) {}
+  operator SCALAR(){ return x;}
+  Matrix<SCALAR> operator *(Matrix<SCALAR>& M){
+    Matrix<SCALAR>  MM(M); // copy matrix operand
+    for(int i = 0;i < MM.nrows();i++){
+      for(int j = 0;j < MM.ncols();j++) MM(i,j) *= x;
+    }
+    return MM;
+  }
+};
+typedef Scalar<double> Double;
+  
 struct Givens{ // reset computes, applies, and stores the 2x2 rotation matrix T s.t. T(a,b) = (sqrt(a^2+b^2),0) 
   // rotate applies the above rotation to an arbitrary vector (x,y).
   double sin_t;
