@@ -216,7 +216,7 @@ matrix sym_inv(const matrix& A, double* det, double eps){ // symmetric matrix in
     cout << "cholesky: input A:\n"<<A<<"is not pos. definite.  Bailing out.\n"; // A = C.Tr()*C
     exit(1);
   }
-  cout << "A:\n"<<A<<"C:\n"<<C<<"C.Tr()*C:\n"<<C.Tr()*C;
+  //  cout << "A:\n"<<A<<"C:\n"<<C<<"C.Tr()*C:\n"<<C.Tr()*C;
   B.fill(0);
   for(int i = 0;i < n;i++) B(i,i) = 1.0; // B = I
   if(det != nullptr){
@@ -317,25 +317,20 @@ void Svd::reduce(const matrix& A0, double eps){
   Givens R(eps);
   reset(A0.nrows(),A0.ncols()); // call this for backward compatibility
   A.copy(A0); // copy in the input
-  //cout <<"at line 159:\n"<<AUV;
   ut(AU); // row rotate to upper triangular form
-  //cout << "at line 161:\n" << AUV;
   for(int i = 0;i < nrows-1;i++){ // zero the ith row above the super-diagonal with column rotations
     for(int j = ncols-1;j > i+1;j--){ // rotate columns j and j-1 to zero out AV(i,j)
       if(!R.reset(AV(i,j-1),AV(i,j)))continue;
       AV(i,j-1) = R.h; AV(i,j) = 0;
       for(int k = i+1;k < nrows+ncols;k++)
         R.rotate(AV(k,j-1),AV(k,j));
-      //      cout << "at line 168:\n" << AUV;
       if(!R.reset(AU(j-1,j-1),AU(j,j-1)))continue;
-      // remove resulting lower-triangular "residue" with a row rotation
       AU(j-1,j-1) = R.h;
       AU(j,j-1) = 0;
       for(int k = j;k < nrows+ncols;k++)
         R.rotate(AU(j-1,k),AU(j,k));
     }
   }
-  //  cout << "at line 177:\n" << AUV;
   // OK, A is now upper triangular with only the first super-diagonal non-zero
   int  maxiters = 1000;
   bool doit,not_done;
@@ -358,7 +353,6 @@ void Svd::reduce(const matrix& A0, double eps){
       not_done |= doit;
     }
     if(!not_done)break;
-    //      cout <<"iteration "<<niters<<"\n"<<A;
   }
 }
 void Svd::reset(int nr, int nc){

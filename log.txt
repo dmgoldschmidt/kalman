@@ -402,3 +402,50 @@ M = I.  When T_random is false, T = I.  When it's true, we set T to a random ort
 Fri Apr 21 12:03:17 2023
 I'm part-way through running git difftool after a first attempt to fix the beta->beta_hat issue.  I *think* I've got
 it in kalman.tex, but maybe not yet in kalman.cc.  I should start at the //beta pass line.
+
+Wed May  3 15:03:40 2023
+So I finished re-deriving E2 and it's partial w.r.t. T, and I coded it up, and almost as expected, it didn't work.
+So I'm taking a break from all that for now, and trying to implement T as a block sum of 2x2 rotation matrices,
+a la  "standard form for orthonormal matrices".  This parameterizes T by n/2 angles theta _i, which I should be able
+to solve for using non-linear least-squares. Initially, I choose these angles uniformly in [0,2\pi], and then there is
+the question of how to initialize S_T.  First attempt:  input Array<double> T_dev which is supposed to give an
+estimate of the "noise" inherent in the 2x2 rotations.  I do this by tweaking theta_i to
+theta_i' = theta_i + nomal.dev(0,T_dev) 1000 times to get a sample of vectors (cos(theta_i'),sin(theta_i')), and then
+compute the inverse covariance matrix of this sample to get one block of S_T.  For re-estimation, I get a value
+for T_dev for each block from the least-squares estimate and I use those for a re-estimate of S_T
+
+Thu May  4 12:44:39 2023
+When parameters are to be re-estimated, we need away of perturbing them away from the values that were
+used to simulate the data.  The question now is, how do we do this for T and S_T?  First attempt:  rotate each 2x2
+block by .1 radians.
+
+Sat May  6 08:14:15 2023
+I need a complete list of all the initialization steps I perform before beginning the first iteration.  To get the list,
+I will first ensure that the two main classes involved: Theta (holds the parameters) and Data (holds the data)
+do their own initializations in their constructors.
+
+Sat May  6 17:00:06 2023
+I'm getting a ridiculous compilation error at line 197.  It's the usual const vs non-const thing.  I've changed
+everything I can think of to non-const and it still happens.  Says it's in operator=.  
+
+Sun May  7 14:13:09 2023
+OK, I finally got a clean compile of kalman.  Almost all the trouble was with const, mostly with operator=
+(I think!).  I wound up a) #defining out "const" and when that still didn't work, I put in work-arounds that
+didn't actually do anything, but they made the compiler happy.  This isn't ready to run with T or S_T re-estimation
+yet because I haven't got the new code in.
+
+Fri May 12 08:30:01 2023
+Found a bug:  S_T now exists as a parameter of theta.R = struct Rotation.  So references to theta.S_T need to be
+corrected to theta.R.S_T.
+
+Fri May 12 09:43:38 2023
+Fixed the above and compiled.  But R.S_T is still zero.  I thought the problem was that
+Matrix::slice returns an actual copy of the slice.  But it doesn't.  The matrix copy constructor does a shallow copy,
+so writing to the slice modifies the original matrix entries as intended.
+
+Fri May 12 18:16:41 2023
+BUT, it doesn't work as an lvalue, e.g. M.slice(.....) = sym_inv(...).  Possible fix:  return a ref instead of the
+matrix.  This might not work either, because the data gets deleted on the return.  We'll have to test it out.
+
+Sat May 13 13:42:01 2023
+I was right -- returning a ref didn't work.  Next idea:  S_T.slice(....).copy(....).  Success!!

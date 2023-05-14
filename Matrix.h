@@ -7,8 +7,6 @@
 #include "Array.h"
 #include "util.h"
 
-//#define DEBUG 1
-
 #define ENTRY (operator())
 
 template<typename SCALAR>
@@ -26,7 +24,7 @@ struct Scalar{
   SCALAR x;
   Scalar(SCALAR xx) : x(xx){}
   Scalar(void) {}
-  operator SCALAR(){ return x;}
+  operator SCALAR(){ return x;} // convert Scalar -> SCALAR
   Matrix<SCALAR> operator *(Matrix<SCALAR>& M){
     Matrix<SCALAR>  MM(M); // copy matrix operand
     for(int i = 0;i < MM.nrows();i++){
@@ -274,17 +272,20 @@ public:
   Matrix slice(int i, int j, int m, int n) const{ // shallow copy mxn submatrix at (i,j)
     assert(i >= 0 && i < _nrows && j >= 0 && j < _ncols);
     assert(m >= 0 && m <= _nrows-i && n >= 0 && n <= _ncols-j);
-
     Matrix M(*this);
     M.offset += i*col_stride+j;
     M._nrows = m;
     M._ncols = n;
     return M;
   }
+  /*NOTE:  To use slice as an lvalue:
+   * Wrong:  A.slice(....) = B (shallow copy doesn't work)
+   * Right: A.slice(....).copy(B) (you need a deep copy)
+   */ 
   RowVector<SCALAR> row(int i) const { return slice(i,0,1,_ncols);}
   ColVector<SCALAR> col(int j) const { return slice(0,j,_nrows,1);}
   
-  SCALAR& operator()(int i, int j) const{
+  SCALAR& operator()(int i, int j) const {
 #ifdef MATRIX_BOUNDS
     if(i < 0 || i >= _nrows || j < 0 || j >= _ncols){
       throw "Matrix.h: index out of bounds\n";
@@ -645,7 +646,7 @@ public:
   void update(const ColVector<double>& x, double weight = 1.0); // add another data point
   double tot_weight(void){return W;}
   ColVector<double> mean(void){return W == 0? S1 : S1*(1.0/W);}
-  Matrix<double> variance(void){
+  const Matrix<double> variance(void){
     //    cout << "W: "<<W<<",  S2:\n";
     //    cout <<S2;
     return W == 0? S2: S2*(1.0/W);} 

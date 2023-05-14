@@ -1,6 +1,6 @@
 #include "Matrix.h"
 
-void qr_comp(const Matrix<double>& A, Matrix<double>& Q, Matrix<double>& R){
+void qr_comp(Matrix<double>& A, Matrix<double>& Q, Matrix<double>& R){
   /* Input: square matrix A
    * output: orthogonal matrix Q, upper triangular matrix R with non-negative diagonal entries 
    * such that A = QR. */
